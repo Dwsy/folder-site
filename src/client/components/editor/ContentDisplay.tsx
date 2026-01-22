@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { CodeBlock } from './CodeBlock.js';
 import { MarkdownPreview } from './MarkdownPreview.js';
 import { PDFExportButtonCompact } from './PDFExportButton.js';
+import { HTMLExportButtonCompact } from './HTMLExportButton.js';
 import { cn } from '../../utils/cn.js';
 import {
   FiFileText,
@@ -260,6 +261,17 @@ export function ContentDisplay({
             <PDFExportButtonCompact
               content={content}
               filename={filename ? filename.replace(/\.[^/.]+$/, '.pdf') : 'document.pdf'}
+              theme={themeMode}
+              options={{
+                title: filename,
+              }}
+            />
+          )}
+          {/* HTML Export Button - only show for markdown content */}
+          {language === 'markdown' && (
+            <HTMLExportButtonCompact
+              content={content}
+              filename={filename ? filename.replace(/\.[^/.]+$/, '.html') : 'document.html'}
               theme={themeMode}
               options={{
                 title: filename,
