@@ -22,6 +22,7 @@ function RootLayout() {
   // 全局键盘快捷键
   useKeyboardShortcuts([
     { key: 'Cmd+K', callback: () => setSearchOpen(true) },
+    { key: 'Cmd+P', callback: () => setSearchOpen(true) },
     { key: 'Cmd+D', callback: () => toggleTheme() },
     { key: 'Escape', callback: () => searchOpen && setSearchOpen(false) },
   ]);
@@ -50,10 +51,12 @@ function RootLayout() {
 
   // 关闭搜索模态框当路由变化时
   useEffect(() => {
-    if (searchOpen) {
+    // 只在用户真正导航到其他页面时关闭搜索框
+    // 首次加载或哈希变化时不关闭
+    if (searchOpen && location.pathname !== '/' && !location.hash) {
       setSearchOpen(false);
     }
-  }, [location.pathname, searchOpen]);
+  }, [location.pathname, location.hash, searchOpen]);
 
   return (
     <>
@@ -81,6 +84,9 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { index: true, element: <Home /> },
+          { path: 'docs', element: <Home /> },  // 临时指向 Home，后续添加真实文档页面
+          { path: 'features', element: <Home /> },
+          { path: 'about', element: <Home /> },
           { path: '*', element: <NotFound /> },
         ],
       },

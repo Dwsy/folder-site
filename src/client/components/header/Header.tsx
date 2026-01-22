@@ -84,9 +84,9 @@ export function Header({
         {showSidebarToggle && onSidebarToggle && (
           <button
             onClick={onSidebarToggle}
-            className="rounded-md p-2 hover:bg-muted transition-colors lg:hidden"
-            aria-label={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
-            title={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+            className="rounded-md p-2 hover:bg-muted transition-colors"
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <FaBars className="h-5 w-5" />
           </button>

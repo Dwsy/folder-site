@@ -151,6 +151,7 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
   isMobile?: boolean;
   onMobileClose?: () => void;
+  fileTree?: FileNode[];
 }
 
 export function Sidebar({
@@ -159,6 +160,7 @@ export function Sidebar({
   onToggleCollapse,
   isMobile = false,
   onMobileClose,
+  fileTree = mockFileTree,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -177,7 +179,7 @@ export function Sidebar({
   // Filter file tree based on search query
   const filteredFileTree = useMemo(() => {
     if (!searchQuery.trim()) {
-      return mockFileTree;
+      return fileTree;
     }
 
     const filterNodes = (nodes: FileNode[]): FileNode[] => {
@@ -203,8 +205,8 @@ export function Sidebar({
         .filter((node): node is FileNode => node !== null);
     };
 
-    return filterNodes(mockFileTree);
-  }, [searchQuery]);
+    return filterNodes(fileTree);
+  }, [searchQuery, fileTree]);
 
   const handleFileClick = useCallback(() => {
     if (isMobile) {
@@ -214,15 +216,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isMobile && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onMobileClose}
-          aria-hidden="true"
-        />
-      )}
-
       {/* Sidebar */}
       <aside
         className={cn(

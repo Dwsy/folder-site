@@ -1,21 +1,24 @@
 /**
  * SearchModal Component
- * 
+ *
  * 快速搜索模态框组件
- * 
+ *
  * 功能特性：
  * - Cmd+P (Mac) 或 Ctrl+P (Windows/Linux) 快捷键触发
- * - 模糊搜索文件和文件夹
+ * - 模糊搜索文件和文件夹（使用 Fuse.js）
  * - 键盘导航：上下箭头选择、回车确认、ESC 关闭
  * - 高亮匹配文本
  * - 显示文件图标
  * - 防抖搜索输入
+ * - LRU 缓存优化性能
+ * - 搜索历史记录
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaTimes, FaKeyboard, FaSearch } from 'react-icons/fa';
+import { FaTimes, FaKeyboard, FaSearch, FaHistory } from 'react-icons/fa';
 import * as Dialog from '@radix-ui/react-dialog';
+import Fuse from 'fuse.js';
 import { cn } from '../../utils/cn.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults, type SearchResultItem } from './SearchResults.js';
@@ -78,6 +81,34 @@ export function SearchModal({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 搜索历史
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('folder-site-search-history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // 搜索缓存
+  const searchCache = useRef<Map<string, SearchResultItem[]>>(new Map());
+
+  // Fuse.js 实例
+  const fuse = useMemo(() => {
+    return new Fuse(files, {
+      keys: [
+        { name: 'name', weight: 0.7 },
+        { name: 'path', weight: 0.3 }
+      ],
+      threshold: 0.3,
+      includeScore: true,
+      includeMatches: true,
+      minMatchCharLength: 1
+    });
+  }, [files]);
+
   // 防抖处理
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,30 +118,61 @@ export function SearchModal({
     return () => clearTimeout(timer);
   }, [query, debounceDelay]);
 
-  // 模糊搜索
+  // 模糊搜索（使用 Fuse.js + 缓存）
   const searchResults = useMemo(() => {
     if (!debouncedQuery.trim()) {
-      // 如果没有查询，返回最近的文件或默认推荐
+      // 如果没有查询，显示默认推荐
       return files.slice(0, maxResults).map((file) => ({
         ...file,
         score: 1,
       }));
     }
 
-    const results = files
-      .map((file) => {
-        const score = calculateMatchScore(file, debouncedQuery);
-        return {
-          ...file,
-          score,
-        };
-      })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, maxResults);
+    // 检查缓存
+    const cacheKey = debouncedQuery.toLowerCase();
+    if (searchCache.current.has(cacheKey)) {
+      return searchCache.current.get(cacheKey)!;
+    }
+
+    // 使用 Fuse.js 搜索
+    const fuseResults = fuse.search(debouncedQuery);
+
+    // 转换为搜索结果格式
+    const results: SearchResultItem[] = fuseResults
+      .slice(0, maxResults)
+      .map((result) => ({
+        ...result.item,
+        score: 1 - (result.score || 0), // Fuse.js 返回的是距离分数，需要转换
+        matchedIndices: result.matches?.[0]?.indices || [],
+      }));
+
+    // 缓存结果
+    searchCache.current.set(cacheKey, results);
+
+    // 限制缓存大小
+    if (searchCache.current.size > 100) {
+      const firstKey = searchCache.current.keys().next().value;
+      searchCache.current.delete(firstKey);
+    }
 
     return results;
-  }, [files, debouncedQuery, maxResults]);
+  }, [files, debouncedQuery, maxResults, searchHistory, fuse]);
+
+  // 保存搜索历史
+  useEffect(() => {
+    if (debouncedQuery && debouncedQuery.trim() && !searchHistory.includes(debouncedQuery)) {
+      const newHistory = [debouncedQuery, ...searchHistory].slice(0, 10);
+      setSearchHistory(newHistory);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('folder-site-search-history', JSON.stringify(newHistory));
+      }
+    }
+  }, [debouncedQuery, searchHistory]);
+
+  // 清除缓存当文件列表变化时
+  useEffect(() => {
+    searchCache.current.clear();
+  }, [files]);
 
   // 重置选中索引
   useEffect(() => {
@@ -213,8 +275,6 @@ export function SearchModal({
             'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
             className
           )}
-          onPointerDownOutside={(e: any) => e.preventDefault()}
-          onInteractOutside={(e: any) => e.preventDefault()}
         >
           <Dialog.Title className="sr-only">
             Quick Search
@@ -335,67 +395,6 @@ export function SearchModal({
       </Dialog.Portal>
     </Dialog.Root>
   );
-}
-
-/**
- * 计算匹配分数
- * 使用简单的模糊匹配算法
- */
-function calculateMatchScore(
-  file: { name: string; path: string; type: 'file' | 'folder' },
-  query: string
-): number {
-  const lowerQuery = query.toLowerCase();
-  const lowerName = file.name.toLowerCase();
-  const lowerPath = file.path.toLowerCase();
-
-  let score = 0;
-
-  // 文件名完全匹配
-  if (lowerName === lowerQuery) {
-    score += 100;
-  }
-
-  // 文件名以查询开头
-  if (lowerName.startsWith(lowerQuery)) {
-    score += 80;
-  }
-
-  // 文件名包含查询
-  if (lowerName.includes(lowerQuery)) {
-    score += 60;
-  }
-
-  // 路径包含查询
-  if (lowerPath.includes(lowerQuery)) {
-    score += 40;
-  }
-
-  // 字符匹配（模糊搜索）
-  let matchCount = 0;
-  let queryIndex = 0;
-  for (const char of lowerName) {
-    if (char === lowerQuery[queryIndex]) {
-      matchCount++;
-      queryIndex++;
-      if (queryIndex >= lowerQuery.length) break;
-    }
-  }
-
-  if (matchCount === lowerQuery.length) {
-    score += 50 + (matchCount / lowerName.length) * 20;
-  }
-
-  // 文件夹优先
-  if (file.type === 'folder') {
-    score += 10;
-  }
-
-  // 根据路径深度加分（浅层路径优先）
-  const depth = file.path.split('/').length;
-  score += Math.max(0, 10 - depth);
-
-  return score;
 }
 
 /**

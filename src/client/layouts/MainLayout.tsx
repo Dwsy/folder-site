@@ -94,6 +94,15 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Mobile sidebar overlay */}
+        {isMobile && isMobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={handleMobileSidebarClose}
+            aria-hidden="true"
+          />
+        )}
+
         {/* Sidebar */}
         <div
           data-sidebar
@@ -137,6 +146,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                 document.removeEventListener('mouseup', handleMouseUp);
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
+
+                // 保存侧边栏宽度
+                localStorage.setItem('sidebar-width', String(sidebarWidth));
               };
 
               document.addEventListener('mousemove', handleMouseMove);

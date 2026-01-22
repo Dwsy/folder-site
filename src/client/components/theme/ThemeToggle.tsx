@@ -40,20 +40,38 @@ export function ThemeToggle() {
 
   const cycleTheme = () => {
     triggerAnimation();
-    // 只在 light 和 dark 之间切换
-    setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
+    // 在 light、dark、auto 之间循环切换
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('auto');
+    } else {
+      setTheme('light');
+    }
   };
 
   const getIcon = () => {
+    if (theme === 'auto') {
+      return effectiveTheme === 'dark' ? <FaDesktop className="h-4 w-4" /> : <FaDesktop className="h-4 w-4" />;
+    }
     return effectiveTheme === 'dark' ? <FaMoon className="h-4 w-4" /> : <FaSun className="h-4 w-4" />;
   };
 
   const getLabel = () => {
+    if (theme === 'auto') {
+      return `System (${effectiveTheme})`;
+    }
     return effectiveTheme === 'dark' ? 'Dark' : 'Light';
   };
 
   const getDescription = () => {
-    return effectiveTheme === 'dark' ? 'Dark mode' : 'Light mode';
+    if (theme === 'light') {
+      return 'Light mode';
+    } else if (theme === 'dark') {
+      return 'Dark mode';
+    } else {
+      return `System (${effectiveTheme} mode)`;
+    }
   };
 
   // 防止水合不匹配的占位符
@@ -73,8 +91,8 @@ export function ThemeToggle() {
         focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
         ${isAnimating ? 'scale-95' : 'scale-100'}
       `}
-      title={`Current: ${getDescription()}. Click to cycle themes.`}
-      aria-label={`Theme toggle. Current theme: ${getLabel()}`}
+      title={`Current: ${getDescription()}. Click to toggle theme.`}
+      aria-label={`Theme toggle. Current: ${getLabel()}`}
     >
       {/* 图标 */}
       <span className={`
@@ -95,17 +113,6 @@ export function ThemeToggle() {
         transition-all duration-300 ease-out
         ${isAnimating ? 'w-8 -translate-x-1/2' : 'w-0'}
       `} />
-
-      {/* 悬停时的提示 */}
-      <span className={`
-        absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap
-        rounded-md bg-foreground px-2 py-1 text-xs text-background
-        opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:block
-        ${isAnimating ? 'block' : ''}
-      `}>
-        {getDescription()}
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 border-4 border-transparent border-t-foreground" />
-      </span>
     </button>
   );
 }
@@ -136,16 +143,31 @@ export function ThemeToggleCompact() {
 
   const cycleTheme = () => {
     triggerAnimation();
-    // 只在 light 和 dark 之间切换
-    setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
+    // 在 light、dark、auto 之间循环切换
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('auto');
+    } else {
+      setTheme('light');
+    }
   };
 
   const getIcon = () => {
+    if (theme === 'auto') {
+      return effectiveTheme === 'dark' ? <FaDesktop className="h-5 w-5" /> : <FaDesktop className="h-5 w-5" />;
+    }
     return effectiveTheme === 'dark' ? <FaMoon className="h-5 w-5" /> : <FaSun className="h-5 w-5" />;
   };
 
   const getDescription = () => {
-    return effectiveTheme === 'dark' ? 'Dark mode' : 'Light mode';
+    if (theme === 'light') {
+      return 'Light mode';
+    } else if (theme === 'dark') {
+      return 'Dark mode';
+    } else {
+      return `System (${effectiveTheme} mode)`;
+    }
   };
 
   if (!mounted) {

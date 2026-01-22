@@ -39,6 +39,7 @@ api.get('/', (c) => {
         health: '/api/health',
         files: '/api/files',
         search: '/api/search',
+        workhub: '/api/workhub',
         export: '/api/export',
       },
     },

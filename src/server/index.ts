@@ -18,6 +18,7 @@ import {
 import apiRoutes from './routes/api.js';
 import filesRoutes from './routes/files.js';
 import searchRoutes from './routes/search.js';
+import workhubRoutes from './routes/workhub.js';
 
 /**
  * MIME 类型映射配置
@@ -86,6 +87,7 @@ export function createServer(): Hono {
   app.route('/api', apiRoutes);
   app.route('/api/files', filesRoutes);
   app.route('/api/search', searchRoutes);
+  app.route('/api/workhub', workhubRoutes);
 
   // 静态文件服务 - 从 dist/client 目录提供
   // 配置了 MIME 类型映射和缓存控制

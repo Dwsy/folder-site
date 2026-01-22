@@ -273,14 +273,21 @@ export function ThemeProvider({
     saveTheme(mode);
   }, [saveTheme]);
 
-  // 切换主题模式（只在 light 和 dark 之间切换）
+  // 切换主题模式（在 light、dark、auto 之间循环切换）
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const next: ThemeMode = effectiveTheme === 'light' ? 'dark' : 'light';
+      let next: ThemeMode;
+      if (prev === 'light') {
+        next = 'dark';
+      } else if (prev === 'dark') {
+        next = 'auto';
+      } else {
+        next = 'light';
+      }
       saveTheme(next);
       return next;
     });
-  }, [saveTheme, effectiveTheme]);
+  }, [saveTheme]);
 
   // 设置主题颜色
   const setColors = useCallback((newColors: Partial<ThemePalette>) => {
