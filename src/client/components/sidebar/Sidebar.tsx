@@ -2,19 +2,17 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   FaHome,
-  FaBook,
-  FaFolder,
-  FaFolderOpen,
   FaChevronDown,
   FaChevronRight,
-  FaFile,
-  FaFileCode,
-  FaMarkdown,
-  FaFilePdf,
   FaBars,
   FaTimes,
   FaSearch,
 } from 'react-icons/fa';
+import {
+  FileIcon,
+  FolderIcon,
+  DefaultFolderOpenedIcon,
+} from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
 
 interface FileNode {
@@ -77,15 +75,7 @@ const mockFileTree: FileNode[] = [
 ];
 
 function getFileIcon(filename: string) {
-  const ext = filename.split('.').pop()?.toLowerCase();
-
-  if (filename === 'README.md') return <FaBook className="h-4 w-4 text-blue-500" />;
-  if (ext === 'md') return <FaMarkdown className="h-4 w-4 text-blue-500" />;
-  if (ext === 'pdf') return <FaFilePdf className="h-4 w-4 text-red-500" />;
-  if (['ts', 'tsx', 'js', 'jsx', 'json'].includes(ext || '')) {
-    return <FaFileCode className="h-4 w-4 text-yellow-500" />;
-  }
-  return <FaFile className="h-4 w-4 text-gray-500" />;
+  return <FileIcon fileName={filename} width={16} height={16} />;
 }
 
 interface FileTreeNodeProps {
@@ -122,9 +112,9 @@ function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
             <FaChevronDown className="h-3 w-3 text-muted-foreground" />
           )}
           {collapsed ? (
-            <FaFolder className="h-4 w-4 text-yellow-500" />
+            <FolderIcon folderName={node.name} width={16} height={16} />
           ) : (
-            <FaFolderOpen className="h-4 w-4 text-yellow-500" />
+            <DefaultFolderOpenedIcon width={16} height={16} />
           )}
           <span className="flex-1 text-left">{node.name}</span>
         </button>

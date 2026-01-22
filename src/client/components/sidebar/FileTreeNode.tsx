@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaChevronRight, FaChevronDown } from 'react-icons/fa';
-import { DefaultFolderIcon, DefaultFolderOpenedIcon, FileIcon } from '@react-symbols/icons/utils';
+import { FolderIcon, DefaultFolderOpenedIcon, FileIcon } from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
 
 /**
@@ -146,9 +146,9 @@ export function FileTreeNode({
           {showIcons && (
             <span className="shrink-0" aria-hidden="true">
               {collapsed ? (
-                <DefaultFolderIcon className="h-4 w-4 text-yellow-500" />
+                <FolderIcon folderName={node.name} width={16} height={16} />
               ) : (
-                <DefaultFolderOpenedIcon className="h-4 w-4 text-yellow-500" />
+                <DefaultFolderOpenedIcon width={16} height={16} />
               )}
             </span>
           )}
