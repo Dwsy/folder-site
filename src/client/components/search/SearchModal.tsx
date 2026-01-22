@@ -275,6 +275,12 @@ export function SearchModal({
             'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
             className
           )}
+          onPointerDownOutside={(e: any) => e.preventDefault()}
+          onInteractOutside={(e: any) => e.preventDefault()}
+          onEscapeKeyDown={(e: any) => {
+            e.preventDefault();
+            handleClose();
+          }}
         >
           <Dialog.Title className="sr-only">
             Quick Search

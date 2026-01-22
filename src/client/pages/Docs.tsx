@@ -7,9 +7,10 @@
 import { useState, useEffect } from 'react';
 import { ADRListWithDetail } from '../components/workhub/ADRList.js';
 import { IssueListWithDetail } from '../components/workhub/IssueList.js';
+import { PRListWithDetail } from '../components/workhub/PRList.js';
 import { cn } from '../utils/cn.js';
-import { FiFileText, FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
-import type { ADREntry, IssueEntry } from '../../types/workhub.js';
+import { FiFileText, FiRefreshCw, FiAlertCircle, FiGitPullRequest } from 'react-icons/fi';
+import type { ADREntry, IssueEntry, PREntry } from '../../types/workhub.js';
 
 interface WorkHubResponse {
   success: boolean;

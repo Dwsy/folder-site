@@ -6,7 +6,7 @@ export default defineConfig({
     testMatch: ['**/*.test.tsx', '**/*.test.ts'],
     testTimeout: 10000,
     preact: false,
-    environment: 'happy-dom',
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
   },
 });
