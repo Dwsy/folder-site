@@ -84,6 +84,17 @@ export type {
   ParseMetadata,
 } from './parser.js';
 
+export type {
+  // Transformer
+  TransformerOptions,
+  TransformerResult,
+  TransformerPlugin,
+  TransformerPluginContext,
+  NodeTransformer,
+  TransformerStats,
+  CodeHighlightOptions,
+} from './transformer.js';
+
 // 导出工具类型
 export type {
   DeepPartial,
