@@ -131,25 +131,19 @@ export function SearchModal({
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // 键盘快捷键监听
+  // 键盘快捷键监听（仅打开时的 Cmd/Ctrl + K/P，关闭由全局处理）
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K 或 Cmd/Ctrl + P
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'p')) {
+      // Cmd/Ctrl + K 或 Cmd/Ctrl + P 打开搜索模态框
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'p') && !open) {
         e.preventDefault();
-        onOpenChange(!open);
-      }
-
-      // ESC 键关闭
-      if (e.key === 'Escape' && open) {
-        e.preventDefault();
-        handleClose();
+        onOpenChange(true);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange, handleClose]);
+  }, [open, onOpenChange]);
 
   // 处理键盘导航
   const handleKeyDown = useCallback(

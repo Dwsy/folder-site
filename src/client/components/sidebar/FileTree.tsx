@@ -133,9 +133,17 @@ function FileTreeNodeComponent({
         } else {
           handleFileClick(e as any);
         }
+      } else if (e.key === 'ArrowRight' && node.type === 'directory' && !isExpanded) {
+        // 右箭头展开文件夹
+        e.preventDefault();
+        handleFolderClick(e as any);
+      } else if (e.key === 'ArrowLeft' && node.type === 'directory' && isExpanded) {
+        // 左箭头折叠文件夹
+        e.preventDefault();
+        handleFolderClick(e as any);
       }
     },
-    [node.type, handleFolderClick, handleFileClick]
+    [node.type, handleFolderClick, handleFileClick, isExpanded]
   );
 
   // 计算缩进

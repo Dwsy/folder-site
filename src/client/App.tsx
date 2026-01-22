@@ -1,16 +1,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RouterProvider, useLocation } from 'react-router-dom';
-import { ThemeProvider } from './providers/ThemeProvider.js';
+import { ThemeProvider, useTheme } from './providers/ThemeProvider.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { SearchModal } from './components/search/index.js';
 import { router } from './router/index.js';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 
 /**
  * App 内部组件，负责处理全局状态和搜索模态框
  */
 function AppContent() {
   const location = useLocation();
+  const { toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // 全局键盘快捷键
+  useKeyboardShortcuts(
+    {
+      'mod+k': () => setSearchOpen(true),
+      'mod+d': () => toggleTheme(),
+      'Escape': () => searchOpen && setSearchOpen(false),
+    },
+    [searchOpen, toggleTheme]
+  );
 
   // 模拟文件列表数据
   // TODO: 从 API 获取真实的文件列表
