@@ -6,7 +6,6 @@
 import type { Context, Next } from 'hono';
 import {
   AppError,
-  HttpError,
   NotFoundError,
   BadRequestError,
   ValidationError,
@@ -18,7 +17,6 @@ import {
   addMonitoringHook,
   removeMonitoringHook,
   classifyError,
-  LogLevel,
 } from '../lib/error-handler.js';
 import { logger, type LogContext } from '../lib/logger.js';
 

@@ -3,8 +3,7 @@
  * 提供全局错误捕获、分类、响应格式化和敏感信息过滤
  */
 
-import type { Context, Next } from 'hono';
-import type { ApiError } from '../../types/api.js';
+import type { Context } from 'hono';
 
 // ===== 自定义错误类 =====
 
@@ -491,7 +490,7 @@ function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#039;',
   };
-  return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+  return text.replace(/[&<>"']/g, (char: string) => htmlEscapes[char] || char);
 }
 
 // ===== 错误监控钩子 =====
