@@ -78,8 +78,8 @@ function SortDropdown({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-md border border-border bg-popover p-1 shadow-md">
+          <div className="absolute inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-popover p-1 shadow-md">
             {options.map((option) => (
               <button
                 key={option.value}
@@ -157,8 +157,8 @@ function StatusFilter({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md">
+          <div className="absolute inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md">
             <div className="space-y-1 p-1">
               {statuses.map((status) => (
                 <label
@@ -247,8 +247,8 @@ function PriorityFilter({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md">
+          <div className="absolute inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-md">
             <div className="space-y-1 p-1">
               {priorities.map((priority) => (
                 <label
@@ -406,7 +406,7 @@ export function IssueList({
   }, [issues, filteredAndSortedIssues.length]);
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('relative space-y-4', className)}>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -418,7 +418,7 @@ export function IssueList({
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-2">
           {showSearch && (
             <div className="relative">
               <FiSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

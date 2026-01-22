@@ -343,6 +343,7 @@ export function MarkdownPreview({
         enableHighlighting={true}
         enableMath={enableMath}
         highlightTheme={theme === 'dark' ? 'github-dark' : 'github'}
+        theme={theme || 'auto'}
         className={cn(
           getMarkdownBodyClass(theme || 'auto'),
           'p-6',

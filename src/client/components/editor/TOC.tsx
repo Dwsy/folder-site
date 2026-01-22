@@ -196,7 +196,7 @@ export function TOC({
       {/* Desktop: Fixed right sidebar */}
       <aside
         className={cn(
-          'hidden lg:block fixed right-0 top-0 bottom-0 w-64 bg-card border-l p-4 overflow-y-auto z-10',
+          'hidden lg:block fixed right-0 top-14 bottom-0 w-64 bg-card border-l p-4 overflow-y-auto z-10',
           className
         )}
         aria-label="Table of contents"
