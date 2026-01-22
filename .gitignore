@@ -33,6 +33,9 @@ tmp/
 temp/
 *.tmp
 
+# AI Code Editor
+.ace-tool/
+
 # OS
 Thumbs.db
 .DS_Store
