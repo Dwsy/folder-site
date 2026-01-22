@@ -75,7 +75,7 @@ export function FileTreeNode({
   const location = useLocation();
 
   // 判断当前节点是否为活动文件
-  const isActive = location.pathname === node.path;
+  const isActive = location.pathname === `/file/${node.path}`;
 
   // 处理文件夹点击
   const handleFolderClick = useCallback(() => {
@@ -116,6 +116,7 @@ export function FileTreeNode({
   // 渲染文件夹节点
   if (node.type === 'directory') {
     const paddingLeft = level * 12 + 8;
+    const originX = paddingLeft + 20; // 箭头图标的位置
 
     return (
       <div className={cn('select-none', className)}>
@@ -134,7 +135,14 @@ export function FileTreeNode({
           tabIndex={keyboardNavigable ? 0 : -1}
         >
           {/* 展开/折叠图标 */}
-          <span className="shrink-0" aria-hidden="true">
+          <span
+            className={cn(
+              'flex h-3.5 w-3.5 shrink-0 items-center justify-center',
+              'transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              !collapsed ? 'rotate-90' : 'rotate-0'
+            )}
+            aria-hidden="true"
+          >
             {collapsed ? (
               <FaChevronRight className="h-3 w-3 text-muted-foreground" />
             ) : (
@@ -144,7 +152,7 @@ export function FileTreeNode({
 
           {/* 文件夹图标 */}
           {showIcons && (
-            <span className="shrink-0" aria-hidden="true">
+            <span className="shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" aria-hidden="true">
               {collapsed ? (
                 <FolderIcon folderName={node.name} width={16} height={16} />
               ) : (
@@ -157,21 +165,40 @@ export function FileTreeNode({
           <span className="flex-1 truncate text-left">{node.name}</span>
         </button>
 
-        {/* 子节点 */}
-        {!collapsed && node.children && node.children.length > 0 && (
-          <div id={`folder-${node.path.replace(/\//g, '-')}`} role="group">
-            {node.children.map((child, index) => (
-              <FileTreeNode
-                key={`${child.path}-${index}`}
-                node={child}
-                level={level + 1}
-                onFileClick={onFileClick}
-                onFolderClick={onFolderClick}
-                onToggle={onToggle}
-                showIcons={showIcons}
-                keyboardNavigable={keyboardNavigable}
-              />
-            ))}
+        {/* 子节点 - 缩放展开动画 */}
+        {node.children && node.children.length > 0 && (
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              !collapsed ? 'opacity-100 max-h-[5000px]' : 'opacity-0 max-h-0'
+            )}
+            style={{
+              transformOrigin: `${originX}px 0px`,
+              transform: !collapsed ? 'scale(1)' : 'scale(0.85)',
+            }}
+          >
+            <div
+              className={cn(
+                'transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                'origin-top',
+                !collapsed ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              )}
+              id={`folder-${node.path.replace(/\//g, '-')}`}
+              role="group"
+            >
+              {node.children.map((child, index) => (
+                <FileTreeNode
+                  key={`${child.path}-${index}`}
+                  node={child}
+                  level={level + 1}
+                  onFileClick={onFileClick}
+                  onFolderClick={onFolderClick}
+                  onToggle={onToggle}
+                  showIcons={showIcons}
+                  keyboardNavigable={keyboardNavigable}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -183,7 +210,7 @@ export function FileTreeNode({
 
   return (
     <Link
-      to={node.path}
+      to={`/file/${node.path}`}
       onClick={handleFileClick}
       onKeyDown={handleKeyDown}
       className={cn(

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FaHome,
@@ -6,6 +6,11 @@ import {
   FaChevronRight,
   FaBars,
   FaTimes,
+  FaSync,
+  FaExpandAlt,
+  FaCompressAlt,
+  FaCrosshairs,
+  FaSearch,
 } from 'react-icons/fa';
 import {
   FileIcon,
@@ -13,6 +18,7 @@ import {
   DefaultFolderOpenedIcon,
 } from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
+import { SearchModal } from '../search/SearchModal.js';
 
 interface FileNode {
   name: string;
@@ -22,56 +28,24 @@ interface FileNode {
   collapsed?: boolean;
 }
 
-// Mock file tree - will be replaced with actual data from the backend
-const mockFileTree: FileNode[] = [
-  {
-    name: 'docs',
-    path: '/docs',
-    type: 'folder',
-    collapsed: false,
-    children: [
-      {
-        name: 'ADR',
-        path: '/docs/ADR',
-        type: 'folder',
-        collapsed: true,
-        children: [
-          { name: '001-decision.md', path: '/docs/ADR/001-decision.md', type: 'file' },
-          { name: '002-architecture.md', path: '/docs/ADR/002-architecture.md', type: 'file' },
-        ],
-      },
-      {
-        name: 'Issues',
-        path: '/docs/Issues',
-        type: 'folder',
-        collapsed: true,
-        children: [
-          { name: '001-bug-fix.md', path: '/docs/Issues/001-bug-fix.md', type: 'file' },
-        ],
-      },
-      {
-        name: 'PRs',
-        path: '/docs/PRs',
-        type: 'folder',
-        collapsed: true,
-        children: [
-          { name: '001-feature.md', path: '/docs/PRs/001-feature.md', type: 'file' },
-        ],
-      },
-      { name: 'README.md', path: '/docs/README.md', type: 'file' },
-      { name: 'getting-started.md', path: '/docs/getting-started.md', type: 'file' },
-    ],
-  },
-  {
-    name: 'examples',
-    path: '/examples',
-    type: 'folder',
-    collapsed: true,
-    children: [
-      { name: 'demo.md', path: '/examples/demo.md', type: 'file' },
-    ],
-  },
-];
+interface DirectoryTreeNode {
+  name: string;
+  path: string;
+  relativePath: string;
+  isDirectory: boolean;
+  children?: DirectoryTreeNode[];
+}
+
+interface TreeResponse {
+  success: boolean;
+  data: {
+    root: string;
+    tree: DirectoryTreeNode;
+    totalNodes: number;
+  };
+  timestamp: number;
+  error?: string;
+}
 
 function getFileIcon(filename: string) {
   return <FileIcon fileName={filename} width={16} height={16} />;
@@ -82,53 +56,86 @@ interface FileTreeNodeProps {
   level?: number;
   onFileClick?: (path: string) => void;
   activePath?: string;
+  onToggleCollapse?: (path: string) => void;
+  expandedPaths?: Set<string>;
 }
 
-function FileTreeNode({ node, level = 0, onFileClick, activePath }: FileTreeNodeProps) {
-  const [collapsed, setCollapsed] = useState(node.collapsed ?? false);
-
-  const isActive = activePath === node.path;
+function FileTreeNode({ node, level = 0, onFileClick, activePath, onToggleCollapse, expandedPaths }: FileTreeNodeProps) {
+  const isExpanded = expandedPaths?.has(node.path);
+  const isActive = activePath === `/file/${node.path}`;
 
   const handleFolderClick = useCallback(() => {
-    setCollapsed(!collapsed);
-  }, [collapsed]);
+    onToggleCollapse?.(node.path);
+  }, [node.path, onToggleCollapse]);
 
   const handleFileClick = useCallback(() => {
     onFileClick?.(node.path);
   }, [node.path, onFileClick]);
 
   if (node.type === 'folder') {
+    const paddingLeft = level * 12 + 8;
+    const originX = paddingLeft + 10; // 箭头图标的位置
+
     return (
-      <div role="treeitem" aria-expanded={!collapsed}>
+      <div role="treeitem" aria-expanded={isExpanded}>
         <button
           onClick={handleFolderClick}
           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted"
-          style={{ paddingLeft: `${level * 12 + 8}px` }}
-          aria-label={collapsed ? `Expand ${node.name}` : `Collapse ${node.name}`}
+          style={{ paddingLeft: `${paddingLeft}px` }}
+          aria-label={isExpanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
         >
-          {collapsed ? (
-            <FaChevronRight className="h-3 w-3 text-muted-foreground" />
-          ) : (
-            <FaChevronDown className="h-3 w-3 text-muted-foreground" />
-          )}
-          {collapsed ? (
-            <FolderIcon folderName={node.name} width={16} height={16} />
-          ) : (
-            <DefaultFolderOpenedIcon width={16} height={16} />
-          )}
+          <span
+            className={cn(
+              'flex h-3 w-3 items-center justify-center',
+              'transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              isExpanded ? 'rotate-90' : 'rotate-0'
+            )}
+          >
+            {isExpanded ? (
+              <FaChevronDown className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <FaChevronRight className="h-3 w-3 text-muted-foreground" />
+            )}
+          </span>
+          <span className="shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+            {isExpanded ? (
+              <DefaultFolderOpenedIcon width={16} height={16} />
+            ) : (
+              <FolderIcon folderName={node.name} width={16} height={16} />
+            )}
+          </span>
           <span className="flex-1 text-left">{node.name}</span>
         </button>
-        {!collapsed && node.children && (
-          <div>
-            {node.children.map((child, index) => (
-              <FileTreeNode
-                key={index}
-                node={child}
-                level={level + 1}
-                onFileClick={onFileClick}
-                activePath={activePath}
-              />
-            ))}
+        {node.children && (
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              isExpanded ? 'opacity-100 max-h-[5000px]' : 'opacity-0 max-h-0'
+            )}
+            style={{
+              transformOrigin: `${originX}px 0px`,
+              transform: isExpanded ? 'scale(1)' : 'scale(0.85)',
+            }}
+          >
+            <div
+              className={cn(
+                'transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                'origin-top',
+                isExpanded ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+              )}
+            >
+              {node.children.map((child, index) => (
+                <FileTreeNode
+                  key={index}
+                  node={child}
+                  level={level + 1}
+                  onFileClick={onFileClick}
+                  activePath={activePath}
+                  onToggleCollapse={onToggleCollapse}
+                  expandedPaths={expandedPaths}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -137,7 +144,7 @@ function FileTreeNode({ node, level = 0, onFileClick, activePath }: FileTreeNode
 
   return (
     <Link
-      to={node.path}
+      to={`/file/${node.path}`}
       onClick={handleFileClick}
       className={cn(
         'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted',
@@ -162,6 +169,7 @@ interface SidebarProps {
   onMobileClose?: () => void;
   fileTree?: FileNode[];
   activePath?: string;
+  width?: number;
 }
 
 export function Sidebar({
@@ -170,9 +178,173 @@ export function Sidebar({
   onToggleCollapse,
   isMobile = false,
   onMobileClose,
-  fileTree = mockFileTree,
+  fileTree: externalFileTree,
   activePath,
+  width = 256,
 }: SidebarProps) {
+  const [fileTree, setFileTree] = useState<FileNode[]>(externalFileTree || []);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
+
+  // Fetch file tree from API
+  useEffect(() => {
+    const fetchFileTree = async () => {
+      if (externalFileTree) {
+        setFileTree(externalFileTree);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/files/tree/list');
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file tree: ${response.statusText}`);
+        }
+
+        const result: TreeResponse = await response.json();
+
+        if (result.success && result.data) {
+          const convertedTree = convertToTreeNodes(result.data.tree.children || []);
+          setFileTree(convertedTree);
+        } else {
+          throw new Error(result.error || 'Failed to parse file tree');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to load file tree'));
+        console.error('Error fetching file tree:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFileTree();
+  }, [externalFileTree]);
+
+  // Convert DirectoryTreeNode to FileNode
+  const convertToTreeNodes = useCallback((nodes: DirectoryTreeNode[]): FileNode[] => {
+    return nodes.map((node) => ({
+      name: node.name,
+      path: node.relativePath || node.path,
+      type: node.isDirectory ? 'folder' : 'file',
+      collapsed: !node.isDirectory,
+      children: node.children ? convertToTreeNodes(node.children) : undefined,
+    }));
+  }, []);
+
+  // Handle refresh
+  const handleRefresh = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    window.location.reload();
+  }, []);
+
+  // Collect all folder paths
+  const collectFolderPaths = useCallback((nodes: FileNode[]): string[] => {
+    const paths: string[] = [];
+    const traverse = (node: FileNode) => {
+      if (node.type === 'folder') {
+        paths.push(node.path);
+        if (node.children) {
+          node.children.forEach(traverse);
+        }
+      }
+    };
+    nodes.forEach(traverse);
+    return paths;
+  }, []);
+
+  // Handle expand all
+  const handleExpandAll = useCallback(() => {
+    const allPaths = collectFolderPaths(fileTree);
+    setExpandedPaths(new Set(allPaths));
+  }, [fileTree, collectFolderPaths]);
+
+  // Handle collapse all
+  const handleCollapseAll = useCallback(() => {
+    setExpandedPaths(new Set());
+  }, []);
+
+  // Locate current file - expand all parent folders
+  const handleLocateCurrent = useCallback(() => {
+    if (!activePath) return;
+
+    const filePath = activePath.replace('/file/', '');
+    const pathsToExpand: string[] = [];
+
+    const findParentPaths = (nodes: FileNode[], targetPath: string, currentPrefix: string = ''): boolean => {
+      for (const node of nodes) {
+        const nodePath = currentPrefix ? `${currentPrefix}/${node.path}` : node.path;
+        
+        if (nodePath === filePath) {
+          return true;
+        }
+        
+        if (node.type === 'folder' && node.children) {
+          if (findParentPaths(node.children, targetPath, nodePath)) {
+            pathsToExpand.push(nodePath);
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    findParentPaths(fileTree, filePath);
+    setExpandedPaths(new Set(pathsToExpand));
+  }, [fileTree, activePath]);
+
+  // Toggle folder collapse
+  const handleToggleCollapse = useCallback((path: string) => {
+    setExpandedPaths(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  }, []);
+
+  // Collect all files for search
+  const collectAllFiles = useCallback((nodes: FileNode[]): Array<{ name: string; path: string; type: 'file' | 'folder'; extension?: string }> => {
+    const files: Array<{ name: string; path: string; type: 'file' | 'folder'; extension?: string }> = [];
+    const traverse = (node: FileNode, currentPrefix: string = '') => {
+      const nodePath = currentPrefix ? `${currentPrefix}/${node.path}` : node.path;
+      
+      if (node.type === 'file') {
+        const extension = node.name.split('.').pop();
+        files.push({
+          name: node.name,
+          path: `/file/${nodePath}`,
+          type: 'file',
+          extension,
+        });
+      } else if (node.type === 'folder') {
+        files.push({
+          name: node.name,
+          path: `/file/${nodePath}`,
+          type: 'folder',
+        });
+        if (node.children) {
+          node.children.forEach(child => traverse(child, nodePath));
+        }
+      }
+    };
+    nodes.forEach(node => traverse(node));
+    return files;
+  }, []);
+
+  // Handle open search
+  const handleOpenSearch = useCallback(() => {
+    setSearchOpen(true);
+  }, []);
 
   // Handle escape key to close mobile sidebar
   useEffect(() => {
@@ -198,17 +370,54 @@ export function Sidebar({
       <aside
         className={cn(
           'flex h-full flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
-          collapsed ? 'w-16' : 'w-64',
+          collapsed ? 'w-16' : '',
           isMobile && 'fixed inset-y-0 left-0 z-50 shadow-xl lg:static lg:shadow-none',
           className
         )}
+        style={!collapsed && !isMobile ? { width: `${width}px` } : undefined}
         aria-label="File navigation sidebar"
         role="navigation"
       >
         {/* Sidebar Header */}
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
-            <h2 className="text-sm font-semibold">Files</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold">Files</h2>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleExpandAll}
+                  className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label="Expand all folders"
+                  title="Expand all"
+                >
+                  <FaExpandAlt className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={handleCollapseAll}
+                  className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label="Collapse all folders"
+                  title="Collapse all"
+                >
+                  <FaCompressAlt className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={handleLocateCurrent}
+                  className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label="Locate current file"
+                  title="Locate current"
+                >
+                  <FaCrosshairs className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={handleOpenSearch}
+                  className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label="Search files"
+                  title="Search (Cmd+K / Ctrl+K)"
+                >
+                  <FaSearch className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
           )}
           {onToggleCollapse && !isMobile && (
             <button
@@ -250,23 +459,53 @@ export function Sidebar({
           </div>
 
           {!collapsed && (
-            <div className="mb-2 px-2">
-              <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="text-xs font-semibold uppercase text-muted-foreground">
                 Files
               </p>
+              {error && (
+                <button
+                  onClick={handleRefresh}
+                  className="rounded p-1 text-muted-foreground hover:text-foreground"
+                  aria-label="Refresh file tree"
+                  title="Retry loading"
+                >
+                  <FaSync className="h-3 w-3" />
+                </button>
+              )}
             </div>
           )}
 
           <div role="tree">
-            {fileTree.map((node, index) => (
+            {loading && !collapsed && (
+              <div className="flex items-center justify-center py-8">
+                <FaSync className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {error && !collapsed && (
+              <div className="px-2 py-4 text-center text-xs text-destructive">
+                Failed to load files
+              </div>
+            )}
+
+            {!loading && fileTree.map((node, index) => (
               <FileTreeNode
                 key={index}
                 node={node}
                 level={0}
                 onFileClick={handleFileClick}
                 activePath={activePath}
+                onToggleCollapse={handleToggleCollapse}
+                expandedPaths={expandedPaths}
               />
             ))}
+
+            {!loading && fileTree.length === 0 && !collapsed && (
+              <div className="px-2 py-4 text-center text-xs text-muted-foreground">
+                No files found
+              </div>
+            )}
           </div>
         </nav>
 
@@ -279,6 +518,14 @@ export function Sidebar({
           </div>
         )}
       </aside>
+
+      {/* Search Modal */}
+      <SearchModal
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        files={collectAllFiles(fileTree)}
+        activePath={activePath}
+      />
     </>
   );
 }

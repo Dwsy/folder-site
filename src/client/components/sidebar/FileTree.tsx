@@ -148,6 +148,7 @@ function FileTreeNodeComponent({
 
   // 计算缩进
   const paddingLeft = `${level * 16 + 8}px`;
+  const transformOrigin = `${parseInt(paddingLeft) + 8}px center`;
 
   // 渲染文件夹节点
   if (node.type === 'directory') {
@@ -169,8 +170,9 @@ function FileTreeNodeComponent({
           {/* 展开/折叠箭头 */}
           <span
             className={cn(
-              'flex h-4 w-4 items-center justify-center transition-transform duration-200',
-              isExpanded ? 'rotate-90' : 'rotate-0'
+              'flex h-4 w-4 items-center justify-center',
+              'transition-transform duration-250 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+              isExpanded ? 'rotate-90 scale-110' : 'rotate-0 scale-100'
             )}
           >
             <svg
@@ -194,14 +196,14 @@ function FileTreeNodeComponent({
               <DefaultFolderOpenedIcon
                 width={20}
                 height={20}
-                className="text-yellow-500"
+                className="text-yellow-500 transition-transform duration-250 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-110"
               />
             ) : (
               <FolderIcon
                 folderName={node.name}
                 width={20}
                 height={20}
-                className="text-yellow-500"
+                className="text-yellow-500 transition-transform duration-250 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-100"
               />
             )}
           </span>
@@ -211,15 +213,24 @@ function FileTreeNodeComponent({
 
           {/* 子节点数量提示 */}
           {node.children && node.children.length > 0 && (
-            <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100">
+            <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {node.children.length}
             </span>
           )}
         </button>
 
-        {/* 渲染子节点 */}
-        {shouldExpand && node.children && node.children.length > 0 && (
-          <div className="overflow-hidden">
+        {/* 渲染子节点 - 缩放展开动画 */}
+        {node.children && node.children.length > 0 && (
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              shouldExpand ? 'opacity-100 max-h-[5000px]' : 'opacity-0 max-h-0'
+            )}
+            style={{
+              transformOrigin,
+              transform: shouldExpand ? 'scale(1) translateY(0)' : 'scale(0.85) translateY(-12px)',
+            }}
+          >
             {node.children.map((child, index) => (
               <FileTreeNodeComponent
                 key={`${child.path}-${index}`}
@@ -412,7 +423,7 @@ export function FileTree({
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={1.5}
-            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2f"
           />
         </svg>
         <p className="mt-2 text-sm text-muted-foreground">
