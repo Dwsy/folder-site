@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ["react", "react-dom"],
     },
     server: {
-      port: parseInt(env.VITE_PORT || "3000"),
+      port: parseInt(env.VITE_PORT || "3009"),
       host: true,
       open: false,
       strictPort: false,
@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Proxy API requests to the Hono server during development
         "/api": {
-          target: `http://localhost:${env.PORT || "3001"}`,
+          target: `http://localhost:${env.PORT || "3008"}`,
           changeOrigin: true,
           secure: false,
         },
@@ -106,7 +106,7 @@ export default defineConfig(({ mode }) => {
       reportCompressedSize: false,
     },
     preview: {
-      port: parseInt(env.VITE_PORT || "3000"),
+      port: parseInt(env.VITE_PORT || "3009"),
       host: true,
       open: false,
       strictPort: false,
