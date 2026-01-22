@@ -1,6 +1,6 @@
 {
   "name": "folder-site",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "One-command local website generator for documentation and knowledge bases",
   "type": "module",
   "scripts": {
