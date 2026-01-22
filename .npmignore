@@ -7,9 +7,14 @@
 node_modules/
 .pnp/
 .pnp.js
+bun.lockb
+bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# Build outputs
-dist/
+# Build outputs (keep dist/ for npm publish)
+src/
 build/
 .vite/
 out/
@@ -18,6 +23,33 @@ out/
 # Task files
 task/
 任务索引.md
+
+# Ace tool
+.ace-tool/
+
+# Examples and plugins
+examples/
+plugins/
+
+# Public files
+public/
+
+# Scripts
+scripts/
+
+# Test files
+test_*.js
+test_*.ts
+test_*.tsx
+test_*.jsx
+test-error-handling.js
+test-watcher.ts
+
+# Tarball files
+*.tgz
+
+# Root files
+index.html
 
 # Documentation (keep only README and essential docs)
 docs/
@@ -82,3 +114,9 @@ Thumbs.db
 .eslintignore
 .stylelintrc*
 .stylelintignore
+bun.config.ts
+tsconfig.json
+vite.config.ts
+postcss.config.js
+tailwind.config.js
+tailwind.config.ts
