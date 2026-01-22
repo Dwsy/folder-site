@@ -40,40 +40,20 @@ export function ThemeToggle() {
 
   const cycleTheme = () => {
     triggerAnimation();
-    
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('auto');
-    } else {
-      setTheme('light');
-    }
+    // 只在 light 和 dark 之间切换
+    setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
   };
 
   const getIcon = () => {
-    if (theme === 'auto') {
-      return effectiveTheme === 'dark' 
-        ? <FaDesktop className="h-4 w-4" /> 
-        : <FaDesktop className="h-4 w-4" />;
-    }
-    return theme === 'dark' ? <FaMoon className="h-4 w-4" /> : <FaSun className="h-4 w-4" />;
+    return effectiveTheme === 'dark' ? <FaMoon className="h-4 w-4" /> : <FaSun className="h-4 w-4" />;
   };
 
   const getLabel = () => {
-    if (theme === 'auto') {
-      return `System (${effectiveTheme})`;
-    }
-    return theme.charAt(0).toUpperCase() + theme.slice(1);
+    return effectiveTheme === 'dark' ? 'Dark' : 'Light';
   };
 
   const getDescription = () => {
-    if (theme === 'light') {
-      return 'Light mode';
-    } else if (theme === 'dark') {
-      return 'Dark mode';
-    } else {
-      return `System (${effectiveTheme} mode)`;
-    }
+    return effectiveTheme === 'dark' ? 'Dark mode' : 'Light mode';
   };
 
   // 防止水合不匹配的占位符
@@ -156,33 +136,16 @@ export function ThemeToggleCompact() {
 
   const cycleTheme = () => {
     triggerAnimation();
-    
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('auto');
-    } else {
-      setTheme('light');
-    }
+    // 只在 light 和 dark 之间切换
+    setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
   };
 
   const getIcon = () => {
-    if (theme === 'auto') {
-      return effectiveTheme === 'dark' 
-        ? <FaDesktop className="h-5 w-5" /> 
-        : <FaDesktop className="h-5 w-5" />;
-    }
-    return theme === 'dark' ? <FaMoon className="h-5 w-5" /> : <FaSun className="h-5 w-5" />;
+    return effectiveTheme === 'dark' ? <FaMoon className="h-5 w-5" /> : <FaSun className="h-5 w-5" />;
   };
 
   const getDescription = () => {
-    if (theme === 'light') {
-      return 'Light mode';
-    } else if (theme === 'dark') {
-      return 'Dark mode';
-    } else {
-      return `System (${effectiveTheme} mode)`;
-    }
+    return effectiveTheme === 'dark' ? 'Dark mode' : 'Light mode';
   };
 
   if (!mounted) {

@@ -131,20 +131,6 @@ export function SearchModal({
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // 键盘快捷键监听（仅打开时的 Cmd/Ctrl + K/P，关闭由全局处理）
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K 或 Cmd/Ctrl + P 打开搜索模态框
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'p') && !open) {
-        e.preventDefault();
-        onOpenChange(true);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onOpenChange]);
-
   // 处理键盘导航
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -230,6 +216,10 @@ export function SearchModal({
           onPointerDownOutside={(e: any) => e.preventDefault()}
           onInteractOutside={(e: any) => e.preventDefault()}
         >
+          <Dialog.Title className="sr-only">
+            Quick Search
+          </Dialog.Title>
+
           <div
             ref={containerRef}
             className="flex flex-col max-h-[60vh]"

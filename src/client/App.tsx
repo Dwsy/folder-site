@@ -1,28 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RouterProvider, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './providers/ThemeProvider.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { SearchModal } from './components/search/index.js';
-import { router } from './router/index.js';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 
+// 导入布局和页面
+import { MainLayout } from './layouts/MainLayout.js';
+import { Home } from './pages/Home.js';
+import { NotFound } from './pages/NotFound.js';
+
 /**
- * App 内部组件，负责处理全局状态和搜索模态框
+ * 根布局组件，包含全局状态和搜索模态框
  */
-function AppContent() {
+function RootLayout() {
   const location = useLocation();
   const { toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // 全局键盘快捷键
-  useKeyboardShortcuts(
-    {
-      'mod+k': () => setSearchOpen(true),
-      'mod+d': () => toggleTheme(),
-      'Escape': () => searchOpen && setSearchOpen(false),
-    },
-    [searchOpen, toggleTheme]
-  );
+  useKeyboardShortcuts([
+    { key: 'Cmd+K', callback: () => setSearchOpen(true) },
+    { key: 'Cmd+D', callback: () => toggleTheme() },
+    { key: 'Escape', callback: () => searchOpen && setSearchOpen(false) },
+  ]);
 
   // 模拟文件列表数据
   // TODO: 从 API 获取真实的文件列表
@@ -55,7 +57,7 @@ function AppContent() {
 
   return (
     <>
-      <RouterProvider router={router} />
+      <Outlet />
       
       {/* 搜索模态框 */}
       <SearchModal
@@ -69,6 +71,23 @@ function AppContent() {
   );
 }
 
+// 创建路由
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { index: true, element: <Home /> },
+          { path: '*', element: <NotFound /> },
+        ],
+      },
+    ],
+  },
+]);
+
 /**
  * 主应用组件
  */
@@ -76,7 +95,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <AppContent />
+        <RouterProvider router={router} />
       </ThemeProvider>
     </ErrorBoundary>
   );

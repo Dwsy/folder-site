@@ -273,14 +273,14 @@ export function ThemeProvider({
     saveTheme(mode);
   }, [saveTheme]);
 
-  // 切换主题模式
+  // 切换主题模式（只在 light 和 dark 之间切换）
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const next: ThemeMode = prev === 'light' ? 'dark' : 'light';
+      const next: ThemeMode = effectiveTheme === 'light' ? 'dark' : 'light';
       saveTheme(next);
       return next;
     });
-  }, [saveTheme]);
+  }, [saveTheme, effectiveTheme]);
 
   // 设置主题颜色
   const setColors = useCallback((newColors: Partial<ThemePalette>) => {
@@ -368,13 +368,20 @@ export function ThemeProvider({
     root.classList.remove('theme-light', 'theme-dark');
     root.classList.add(`theme-${effectiveTheme}`);
 
+    // Tailwind dark mode: 添加/移除 dark 类
+    if (effectiveTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+
     // 设置数据属性
     root.setAttribute('data-theme', effectiveTheme);
 
     // 注入 CSS 变量
     const styleId = 'folder-site-theme-styles';
     let styleTag = document.getElementById(styleId) as HTMLStyleElement | null;
-    
+
     if (!styleTag) {
       styleTag = document.createElement('style');
       styleTag.id = styleId;

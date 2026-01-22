@@ -102,6 +102,21 @@ export type {
   HighlighterTheme,
 } from './highlighter.js';
 
+export type {
+  // WorkHub
+  ADREntry,
+  IssueEntry,
+  PREntry,
+  WorkHubMetadata,
+  WorkHubParserOptions,
+  WorkHubResult,
+  WorkHubStats,
+  WorkHubEntry,
+  IssueStatus,
+  PRStatus,
+  ADRStatus,
+} from './workhub.js';
+
 // 导出工具类型
 export type {
   DeepPartial,
