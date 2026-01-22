@@ -92,8 +92,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex h-screen flex-col bg-background text-foreground">
       {/* Header */}
       <Header
-        onMobileMenuClick={handleMobileSidebarOpen}
-        showMobileMenuButton={isMobile}
+        onSidebarToggle={handleMobileSidebarOpen}
+        showSidebarToggle={isMobile}
       />
 
       {/* Main Content */}
@@ -128,6 +128,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             isMobile={isMobile}
             onMobileClose={handleMobileSidebarClose}
             activePath={location.pathname}
+            width={sidebarWidth}
           />
         </div>
 
@@ -174,7 +175,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         <main
           className={cn(
             'flex-1 overflow-auto',
-            isMobile && 'w-full'
+            isMobile && 'w-full',
+            'lg:mr-64' // Add right margin for desktop TOC
           )}
         >
           {children || <Outlet />}

@@ -4,6 +4,7 @@ import { ContentDisplay } from '../components/editor/ContentDisplay.js';
 import { MarkdownPreview } from '../components/editor/MarkdownPreview.js';
 import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiCode, FiEye } from 'react-icons/fi';
+import { useTheme } from '../hooks/useTheme.js';
 
 interface FileViewProps {
   className?: string;
@@ -18,6 +19,12 @@ export function FileView({ className }: FileViewProps) {
   const [error, setError] = useState<Error | null>(null);
   const [language, setLanguage] = useState<string>('text');
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('code');
+  const { theme } = useTheme();
+
+  // Reset scroll position when file path changes
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [filePath]);
 
   // Detect language from file extension and set default view mode
   useEffect(() => {
@@ -86,6 +93,9 @@ export function FileView({ className }: FileViewProps) {
       setLoading(true);
       setError(null);
 
+      console.log('FileView - Fetching file:', filePath);
+      console.log('FileView - API URL:', `/api/files/content?path=${encodeURIComponent(filePath)}`);
+
       try {
         const response = await fetch(`/api/files/content?path=${encodeURIComponent(filePath)}`);
 
@@ -93,8 +103,13 @@ export function FileView({ className }: FileViewProps) {
           throw new Error(`Failed to fetch file: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        setContent(data.content || '');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setContent(result.data.content || '');
+        } else {
+          throw new Error(result.error || 'Failed to parse file content');
+        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to load file'));
         console.error('Error fetching file content:', err);
@@ -176,9 +191,10 @@ export function FileView({ className }: FileViewProps) {
       {language === 'markdown' && viewMode === 'preview' ? (
         <MarkdownPreview
           content={content}
-          theme="auto"
+          theme={theme}
           showCopyButton={true}
           showFrontmatter={true}
+          showTOC={true}
           enableMath={true}
           enableGfm={true}
           className="rounded-lg border bg-card p-6"

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { FaBars, FaGithub, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaBars, FaGithub } from 'react-icons/fa';
 import { ThemeToggle } from '../theme/ThemeToggle.js';
 import { cn } from '../../utils/cn.js';
 
