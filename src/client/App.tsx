@@ -11,6 +11,7 @@ import { MainLayout } from './layouts/MainLayout.js';
 import { Home } from './pages/Home.js';
 import { Docs } from './pages/Docs.js';
 import { Workhub } from './pages/Workhub.js';
+import { FileView } from './pages/FileView.js';
 import { Search as SearchPage } from './pages/Search.js';
 import { Help } from './pages/Help.js';
 import { NotFound } from './pages/NotFound.js';
@@ -22,6 +23,7 @@ function RootLayout() {
   const location = useLocation();
   const { toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [files, setFiles] = useState<SearchResultItem[]>([]);
 
   // 全局键盘快捷键
   useKeyboardShortcuts([
@@ -31,22 +33,53 @@ function RootLayout() {
     { key: 'Escape', callback: () => searchOpen && setSearchOpen(false) },
   ]);
 
-  // 模拟文件列表数据
-  // TODO: 从 API 获取真实的文件列表
-  const mockFiles = [
-    { name: 'README.md', path: '/README.md', type: 'file' as const, extension: 'md' },
-    { name: 'package.json', path: '/package.json', type: 'file' as const, extension: 'json' },
-    { name: 'tsconfig.json', path: '/tsconfig.json', type: 'file' as const, extension: 'json' },
-    { name: 'docs', path: '/docs', type: 'folder' as const },
-    { name: 'getting-started.md', path: '/docs/getting-started.md', type: 'file' as const, extension: 'md' },
-    { name: 'architecture.md', path: '/docs/architecture.md', type: 'file' as const, extension: 'md' },
-    { name: 'src', path: '/src', type: 'folder' as const },
-    { name: 'index.ts', path: '/src/index.ts', type: 'file' as const, extension: 'ts' },
-    { name: 'main.tsx', path: '/src/main.tsx', type: 'file' as const, extension: 'tsx' },
-    { name: 'components', path: '/src/components', type: 'folder' as const },
-    { name: 'Button.tsx', path: '/src/components/Button.tsx', type: 'file' as const, extension: 'tsx' },
-    { name: 'Card.tsx', path: '/src/components/Card.tsx', type: 'file' as const, extension: 'tsx' },
-  ];
+  // 从 API 获取文件列表
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const response = await fetch('/api/files/tree/list');
+
+        if (!response.ok) {
+          console.error('Failed to fetch files:', response.statusText);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const flatFiles = flattenTree(result.data.tree);
+          setFiles(flatFiles);
+        }
+      } catch (err) {
+        console.error('Error fetching files:', err);
+      }
+    };
+
+    fetchFiles();
+  }, []);
+
+  // 扁平化文件树
+  const flattenTree = useCallback((node: any): SearchResultItem[] => {
+    const items: SearchResultItem[] = [];
+
+    const traverse = (n: any) => {
+      if (!n.isDirectory) {
+        items.push({
+          name: n.name,
+          path: n.relativePath || n.path,
+          type: 'file',
+          extension: n.name.split('.').pop(),
+        });
+      }
+
+      if (n.children) {
+        n.children.forEach(traverse);
+      }
+    };
+
+    traverse(node);
+    return items;
+  }, []);
 
   // 处理搜索结果选择
   const handleSearchSelect = useCallback((item: SearchResultItem) => {
@@ -61,12 +94,12 @@ function RootLayout() {
   return (
     <>
       <Outlet />
-      
+
       {/* 搜索模态框 */}
       <SearchModal
         open={searchOpen}
         onOpenChange={setSearchOpen}
-        files={mockFiles}
+        files={files}
         activePath={location.pathname}
         onSelect={handleSearchSelect}
       />
@@ -86,6 +119,7 @@ const router = createBrowserRouter([
           { index: true, element: <Home /> },
           { path: 'docs', element: <Docs /> },
           { path: 'workhub', element: <Workhub /> },
+          { path: 'file/*', element: <FileView /> },
           { path: 'features', element: <Home /> },
           { path: 'about', element: <Home /> },
           { path: 'search', element: <SearchPage /> },

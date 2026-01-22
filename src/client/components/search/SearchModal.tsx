@@ -23,8 +23,8 @@ import Fuse from 'fuse.js';
 import { cn } from '../../utils/cn.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults, type SearchResultItem } from './SearchResults.js';
-import { LRUSearchCache } from '../../utils/searchCache.js';
-import { SearchPerformanceTracker } from '../../utils/searchPerformance.js';
+import { LRUSearchCache } from '../../../utils/searchCache.js';
+import { SearchPerformanceTracker } from '../../../utils/searchPerformance.js';
 
 /**
  * 搜索模态框属性
