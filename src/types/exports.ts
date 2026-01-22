@@ -121,7 +121,17 @@ export type {
   // Render Cache
   CacheEntry,
   CacheStatistics,
-  CacheConfig,
+  RenderCacheOptions,
+  CacheInvalidationReason,
+  CacheInvalidationEvent,
+  CacheEventListener,
+  CacheQueryResult,
+  CacheClearResult,
+  CacheWarmupResult,
+  CacheHealthStatus,
+  CacheKeyParams,
+  CacheItemMetadata,
+  BatchOperationResult,
 } from './render-cache.js';
 
 // 导出工具类型

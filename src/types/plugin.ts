@@ -1283,8 +1283,8 @@ export function canTransitionStatus(
     activating: ['active', 'error'],
     active: ['deactivating', 'error'],
     deactivating: ['inactive', 'error'],
-    inactive: ['activating', 'unload', 'error'],
-    error: ['validated', 'unload'],
+    inactive: ['activating', 'inactive', 'error'],
+    error: ['validated', 'inactive'],
   };
 
   return allowedTransitions[currentStatus]?.includes(targetStatus) ?? false;
