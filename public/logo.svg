@@ -1,13 +1,16 @@
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- 简洁蓝色圆角矩形 -->
-  <rect x="60" y="100" width="392" height="312" rx="40" fill="#0EA5E9" />
+  <!-- 细圆环 -->
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#2563EB" stroke-width="3" opacity="0.4" />
 
-  <!-- 文件夹标签 -->
-  <path d="M 60 140 L 180 140 L 210 170 L 452 170 L 452 380 L 60 380 Z" fill="white" opacity="0.3" />
-
-  <!-- 简洁线条装饰 -->
-  <g stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" opacity="0.9">
-    <line x1="120" y1="240" x2="392" y2="240" />
-    <line x1="120" y1="300" x2="300" y2="300" />
+  <!-- 文件夹线条 -->
+  <g fill="none" stroke="#2563EB" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 128 176 L 208 176 L 240 208 L 384 208 L 384 368 L 128 368 Z" />
+    <line x1="184" y1="256" x2="336" y2="256" />
+    <line x1="184" y1="304" x2="272" y2="304" />
   </g>
+
+  <!-- 装饰点 -->
+  <circle cx="384" cy="208" r="8" fill="#2563EB" />
+  <circle cx="256" cy="112" r="5" fill="#2563EB" opacity="0.5" />
+  <circle cx="432" cy="256" r="5" fill="#2563EB" opacity="0.5" />
 </svg>
