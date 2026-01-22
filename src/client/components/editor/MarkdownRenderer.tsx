@@ -6,14 +6,39 @@
  * - Frontmatter (YAML metadata)
  * - Code syntax highlighting
  * - LaTeX math formulas (KaTeX)
+ * - Mermaid diagrams
  * - Theme-aware styling
  * - Custom plugins support
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '../../utils/cn.js';
 import { markdownToHTMLAsync, markdownToHTML } from '../../../parsers/index.js';
 import type { ParseResult } from '../../../types/parser.js';
+
+// 动态导入 mermaid（仅在客户端）
+let mermaidInstance: any = null;
+
+async function initMermaid() {
+  if (typeof window === 'undefined') return;
+  if (mermaidInstance) return mermaidInstance;
+
+  try {
+    const mermaid = (await import('mermaid')).default;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: 'sans-serif',
+      fontSize: 16,
+    });
+    mermaidInstance = mermaid;
+    return mermaid;
+  } catch (error) {
+    console.error('Failed to initialize Mermaid:', error);
+    return null;
+  }
+}
 
 export interface MarkdownRendererProps {
   /** Markdown content to render */
@@ -80,6 +105,56 @@ export function MarkdownRenderer({
     parseTime: 0,
   });
 
+  const mermaidRef = useRef<HTMLDivElement>(null);
+
+  // 渲染 Mermaid 图表
+  useEffect(() => {
+    if (!state.html || !mermaidRef.current) return;
+
+    const renderMermaidDiagrams = async () => {
+      const mermaid = await initMermaid();
+      if (!mermaid) return;
+
+      const container = mermaidRef.current;
+      if (!container) return;
+
+      // 查找所有 mermaid 代码块
+      const mermaidBlocks = container.querySelectorAll('pre.mermaid code');
+
+      for (const block of Array.from(mermaidBlocks)) {
+        const code = block.textContent || '';
+        if (!code.trim()) continue;
+
+        // 生成唯一 ID
+        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        try {
+          // 渲染图表
+          const { svg } = await mermaid.render(id, code);
+
+          // 替换原始代码块为 SVG
+          const preElement = block.closest('pre');
+          if (preElement && preElement.parentNode) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mermaid-wrapper';
+            wrapper.innerHTML = svg;
+            preElement.parentNode.replaceChild(wrapper, preElement);
+          }
+        } catch (error) {
+          console.error('Failed to render Mermaid diagram:', error);
+          // 显示错误信息
+          const preElement = block.closest('pre');
+          if (preElement) {
+            preElement.classList.add('mermaid-error');
+            preElement.title = `Mermaid rendering error: ${error instanceof Error ? error.message : String(error)}`;
+          }
+        }
+      }
+    };
+
+    renderMermaidDiagrams();
+  }, [state.html]);
+
   // Memoize the parser options
   const parserOptions = useMemo(
     () => ({
@@ -87,6 +162,7 @@ export function MarkdownRenderer({
       frontmatter: enableFrontmatter,
       highlight: enableHighlighting,
       math: enableMath,
+      mermaid: true,
       highlightTheme,
       preserveContent: true,
       generateHTML: true,
@@ -242,6 +318,7 @@ export function MarkdownRenderer({
       )}
       style={{ '--class-prefix': classPrefix } as React.CSSProperties}
       dangerouslySetInnerHTML={{ __html: state.html }}
+      ref={mermaidRef}
     />
   );
 }
@@ -437,6 +514,21 @@ export function getMarkdownCSS(): string {
     .markdown-content del {
       text-decoration: line-through;
       opacity: 0.7;
+    }
+
+    .markdown-content .mermaid-wrapper {
+      margin: 1em 0;
+      text-align: center;
+    }
+
+    .markdown-content .mermaid-wrapper svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .markdown-content .mermaid-error {
+      border: 1px solid #ef4444;
+      background: rgba(239, 68, 68, 0.1);
     }
 
     /* Dark mode support */

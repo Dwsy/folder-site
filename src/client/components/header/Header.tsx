@@ -92,6 +92,11 @@ export function Header({
           </button>
         )}
 
+        <img
+          src="/logo.svg"
+          alt="Folder-Site Logo"
+          className="h-8 w-8"
+        />
         <div className="flex flex-col">
           <h1 className="text-lg font-semibold leading-tight">{title}</h1>
           {description && (
