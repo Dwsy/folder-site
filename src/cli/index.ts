@@ -77,3 +77,6 @@ async function main(): Promise<void> {
 
 // 执行主函数
 main();
+
+// 保持进程运行
+setInterval(() => {}, 1000);
