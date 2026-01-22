@@ -6,10 +6,13 @@
 
 - [API 概览](#api-概览)
 - [通用响应格式](#通用响应格式)
+- [认证](#认证)
+- [速率限制](#速率限制)
 - [端点说明](#端点说明)
 - [类型定义](#类型定义)
 - [代码示例](#代码示例)
 - [错误处理](#错误处理)
+- [最佳实践](#最佳实践)
 
 ---
 
@@ -33,8 +36,13 @@
 | `/api/files/:path` | GET | 获取文件内容 |
 | `/api/search` | GET | 执行搜索 |
 | `/api/search` | POST | 执行复杂搜索 |
-| `/api/workhub` | GET | 获取 Workhub 数据 |
-| `/api/export` | POST | 导出文件 |
+| `/api/workhub` | GET | 获取所有 Workhub 数据 |
+| `/api/workhub/adrs` | GET | 获取所有 ADR |
+| `/api/workhub/adrs/:id` | GET | 获取指定 ADR |
+| `/api/workhub/issues` | GET | 获取所有 Issues |
+| `/api/workhub/issues/:id` | GET | 获取指定 Issue |
+| `/api/workhub/prs` | GET | 获取所有 PRs |
+| `/api/workhub/prs/:id` | GET | 获取指定 PR |
 
 ---
 
@@ -74,6 +82,119 @@
 | `data` | any | 响应数据（成功时） |
 | `error` | ApiError | 错误信息（失败时） |
 | `timestamp` | number | Unix 时间戳（毫秒） |
+
+---
+
+## 认证
+
+当前版本 API 不需要认证，所有端点都是公开的。
+
+未来版本可能支持以下认证方式：
+
+- **API Key**: 通过 `Authorization: Bearer <api-key>` 头传递
+- **JWT Token**: 通过 `Authorization: Bearer <jwt-token>` 头传递
+
+### 认证头格式
+
+```http
+Authorization: Bearer your-api-key-here
+```
+
+### 请求示例（未来版本）
+
+```bash
+curl -H "Authorization: Bearer your-api-key" \
+  http://localhost:3000/api/files
+```
+
+### 认证错误响应（未来版本）
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing authentication credentials",
+    "details": {}
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+## 速率限制
+
+当前版本 API 没有强制速率限制，但建议客户端合理控制请求频率。
+
+### 推荐请求频率
+
+| 操作类型 | 建议频率 |
+|---------|---------|
+| 健康检查 | 每分钟最多 60 次 |
+| 文件列表 | 每分钟最多 30 次 |
+| 搜索 | 每分钟最多 20 次 |
+| 文件内容获取 | 每分钟最多 60 次 |
+| Workhub 数据 | 每分钟最多 10 次 |
+
+### 未来速率限制策略
+
+未来版本可能实施以下限制：
+
+| 限制类型 | 默认值 | 说明 |
+|---------|--------|------|
+| 每分钟请求数 | 100 | 每分钟最多 100 个请求 |
+| 每小时请求数 | 1000 | 每小时最多 1000 个请求 |
+| 并发连接数 | 10 | 同时最多 10 个并发连接 |
+
+### 速率限制响应头（未来）
+
+| 响应头 | 说明 |
+|--------|------|
+| `X-RateLimit-Limit` | 请求配额 |
+| `X-RateLimit-Remaining` | 剩余配额 |
+| `X-RateLimit-Reset` | 配额重置时间（Unix 时间戳） |
+
+### 速率限制错误响应（未来）
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please try again later.",
+    "details": {
+      "limit": 100,
+      "remaining": 0,
+      "resetAt": 1705867260000
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+### 实现客户端请求节流
+
+```typescript
+class RateLimitedClient {
+  private lastRequestTime = 0;
+  private minInterval = 1000; // 1 秒间隔
+
+  async request(url: string, options?: RequestInit) {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+
+    if (elapsed < this.minInterval) {
+      await new Promise(resolve =>
+        setTimeout(resolve, this.minInterval - elapsed)
+      );
+    }
+
+    this.lastRequestTime = Date.now();
+    return fetch(url, options);
+  }
+}
+```
 
 ---
 
@@ -455,20 +576,14 @@ curl -X POST http://localhost:3000/api/search \
 
 ### 8. 获取 Workhub 数据
 
-获取 Workhub 结构的文档数据。
+获取 Workhub 结构的文档数据（ADR、Issues、PRs）。
 
 **端点**: `GET /api/workhub`
-
-**查询参数**:
-
-| 参数 | 类型 | 必需 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `type` | string | 否 | all | 类型：all / adr / issues / pr |
 
 **请求示例**:
 
 ```bash
-curl "http://localhost:3000/api/workhub?type=adr"
+curl http://localhost:3000/api/workhub
 ```
 
 **响应示例**:
@@ -482,11 +597,297 @@ curl "http://localhost:3000/api/workhub?type=adr"
         "id": "001",
         "title": "Use Bun as Runtime",
         "status": "accepted",
-        "path": "docs/adr/001-use-bun-as-runtime.md"
+        "date": "2024-01-20",
+        "path": "docs/adr/001-use-bun-as-runtime.md",
+        "content": "# Status\n\nAccepted\n\n## Context\n\n..."
       }
     ],
-    "issues": [],
-    "pr": []
+    "issues": [
+      {
+        "id": "001",
+        "title": "Add dark mode support",
+        "status": "open",
+        "priority": "high",
+        "assignee": "john",
+        "path": "docs/issues/001-dark-mode.md",
+        "content": "## Description\n\nAdd dark mode support..."
+      }
+    ],
+    "pr": [
+      {
+        "id": "001",
+        "title": "Fix search performance",
+        "status": "merged",
+        "author": "jane",
+        "path": "docs/pr/001-fix-search.md",
+        "content": "## Changes\n\nOptimized search algorithm..."
+      }
+    ],
+    "stats": {
+      "totalADRs": 1,
+      "totalIssues": 1,
+      "totalPRs": 1,
+      "parseTime": 15
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.1 获取所有 ADR
+
+获取所有架构决策记录（ADR）。
+
+**端点**: `GET /api/workhub/adrs`
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/adrs
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "adrs": [
+      {
+        "id": "001",
+        "title": "Use Bun as Runtime",
+        "status": "accepted",
+        "date": "2024-01-20",
+        "path": "docs/adr/001-use-bun-as-runtime.md",
+        "content": "# Status\n\nAccepted\n\n## Context\n\n..."
+      }
+    ],
+    "stats": {
+      "totalADRs": 1,
+      "parseTime": 5
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.2 获取指定 ADR
+
+根据 ID 获取单个架构决策记录。
+
+**端点**: `GET /api/workhub/adrs/:id`
+
+**路径参数**:
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | ADR ID（如 "001"）或路径（如 "adr/001-use-bun"） |
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/adrs/001
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "001",
+    "title": "Use Bun as Runtime",
+    "status": "accepted",
+    "date": "2024-01-20",
+    "path": "docs/adr/001-use-bun-as-runtime.md",
+    "content": "# Status\n\nAccepted\n\n## Context\n\nWe need to choose a runtime for the application...",
+    "metadata": {
+      "author": "John Doe",
+      "created": "2024-01-20",
+      "updated": "2024-01-21"
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+**错误响应（未找到）**:
+
+```json
+{
+  "success": false,
+  "error": "ADR not found",
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.3 获取所有 Issues
+
+获取所有 Issue。
+
+**端点**: `GET /api/workhub/issues`
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/issues
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "issues": [
+      {
+        "id": "001",
+        "title": "Add dark mode support",
+        "status": "open",
+        "priority": "high",
+        "assignee": "john",
+        "labels": ["feature", "ui"],
+        "path": "docs/issues/001-dark-mode.md",
+        "content": "## Description\n\nAdd dark mode support..."
+      }
+    ],
+    "stats": {
+      "totalIssues": 1,
+      "parseTime": 5
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.4 获取指定 Issue
+
+根据 ID 获取单个 Issue。
+
+**端点**: `GET /api/workhub/issues/:id`
+
+**路径参数**:
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | Issue ID（如 "001"）或路径（如 "issues/001"） |
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/issues/001
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "001",
+    "title": "Add dark mode support",
+    "status": "open",
+    "priority": "high",
+    "assignee": "john",
+    "labels": ["feature", "ui"],
+    "path": "docs/issues/001-dark-mode.md",
+    "content": "## Description\n\nAdd dark mode support for better user experience...",
+    "metadata": {
+      "author": "Jane Doe",
+      "created": "2024-01-22",
+      "updated": "2024-01-22"
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.5 获取所有 PRs
+
+获取所有 Pull Request。
+
+**端点**: `GET /api/workhub/prs`
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/prs
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "prs": [
+      {
+        "id": "001",
+        "title": "Fix search performance",
+        "status": "merged",
+        "author": "jane",
+        "reviewers": ["john"],
+        "path": "docs/pr/001-fix-search.md",
+        "content": "## Changes\n\nOptimized search algorithm to improve performance..."
+      }
+    ],
+    "stats": {
+      "totalPRs": 1,
+      "parseTime": 5
+    }
+  },
+  "timestamp": 1705867200000
+}
+```
+
+---
+
+### 8.6 获取指定 PR
+
+根据 ID 获取单个 Pull Request。
+
+**端点**: `GET /api/workhub/prs/:id`
+
+**路径参数**:
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | PR ID（如 "001"）或路径（如 "pr/001"） |
+
+**请求示例**:
+
+```bash
+curl http://localhost:3000/api/workhub/prs/001
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "001",
+    "title": "Fix search performance",
+    "status": "merged",
+    "author": "jane",
+    "reviewers": ["john"],
+    "path": "docs/pr/001-fix-search.md",
+    "content": "## Changes\n\nOptimized search algorithm to improve performance...",
+    "metadata": {
+      "created": "2024-01-21",
+      "merged": "2024-01-22",
+      "updated": "2024-01-22"
+    }
   },
   "timestamp": 1705867200000
 }
@@ -778,6 +1179,242 @@ curl "http://localhost:3000/api/files/docs/README.md"
 curl -X POST http://localhost:3000/api/export \
   -H "Content-Type: application/json" \
   -d '{"format":"pdf","paths":["docs/README.md"]}'
+```
+
+---
+
+## 最佳实践
+
+### 1. 错误处理
+
+始终检查 `success` 字段，并妥善处理错误：
+
+```typescript
+async function safeApiRequest<T>(url: string, options?: RequestInit): Promise<T | null> {
+  try {
+    const response = await fetch(url, options);
+    const result = await response.json();
+
+    if (!result.success) {
+      console.error('API Error:', result.error);
+      return null;
+    }
+
+    return result.data as T;
+  } catch (error) {
+    console.error('Network Error:', error);
+    return null;
+  }
+}
+```
+
+### 2. 请求节流
+
+避免短时间内发送大量请求：
+
+```typescript
+class ApiClient {
+  private queue: Array<() => Promise<any>> = [];
+  private running = 0;
+  private maxConcurrent = 5;
+
+  async request(url: string, options?: RequestInit) {
+    return new Promise((resolve, reject) => {
+      const execute = async () => {
+        this.running++;
+        try {
+          const result = await fetch(url, options);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          this.running--;
+          this.processQueue();
+        }
+      };
+
+      this.queue.push(execute);
+      this.processQueue();
+    });
+  }
+
+  private processQueue() {
+    if (this.running < this.maxConcurrent && this.queue.length > 0) {
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+}
+```
+
+### 3. 缓存响应
+
+缓存不经常变化的数据：
+
+```typescript
+class CachedApiClient {
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private ttl = 60000; // 1 分钟
+
+  async get(url: string) {
+    const cached = this.cache.get(url);
+    if (cached && Date.now() - cached.timestamp < this.ttl) {
+      return cached.data;
+    }
+
+    const response = await fetch(url);
+    const result = await response.json();
+
+    this.cache.set(url, { data: result, timestamp: Date.now() });
+    return result;
+  }
+}
+```
+
+### 4. 分页处理
+
+正确处理分页请求：
+
+```typescript
+async function getAllFiles(path: string, limit = 100) {
+  const allFiles: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(
+      `/api/files?path=${path}&limit=${limit}&offset=${offset}`
+    );
+    const result = await response.json();
+
+    if (result.success && result.data.files.length > 0) {
+      allFiles.push(...result.data.files);
+      offset += limit;
+      hasMore = result.data.files.length === limit;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allFiles;
+}
+```
+
+### 5. 重试策略
+
+为失败的请求实现指数退避重试：
+
+```typescript
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  maxRetries = 3,
+  baseDelay = 1000
+) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) {
+        return response;
+      }
+
+      // 如果是客户端错误（4xx），不重试
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(`Client error: ${response.status}`);
+      }
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error;
+
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+}
+```
+
+### 6. 类型安全
+
+使用 TypeScript 类型确保类型安全：
+
+```typescript
+import type {
+  ApiResponse,
+  FileInfo,
+  SearchRequest,
+  SearchResponse,
+  FileContentResponse,
+} from '../types/api';
+
+async function searchFiles(query: string): Promise<SearchResponse> {
+  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+  const result = await response.json() as ApiResponse<SearchResponse>;
+
+  if (!result.success) {
+    throw new Error(result.error?.message || 'Search failed');
+  }
+
+  return result.data;
+}
+```
+
+### 7. 请求超时
+
+为请求设置超时：
+
+```typescript
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout = 5000
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+}
+```
+
+### 8. 监控和日志
+
+记录 API 调用用于监控：
+
+```typescript
+class MonitoredApiClient {
+  async request(url: string, options?: RequestInit) {
+    const startTime = Date.now();
+    const requestId = crypto.randomUUID();
+
+    console.log(`[${requestId}] Request: ${options?.method || 'GET'} ${url}`);
+
+    try {
+      const response = await fetch(url, options);
+      const duration = Date.now() - startTime;
+
+      console.log(`[${requestId}] Response: ${response.status} (${duration}ms)`);
+
+      return response;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${requestId}] Error: ${error} (${duration}ms)`);
+      throw error;
+    }
+  }
+}
 ```
 
 ---
