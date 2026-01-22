@@ -18,22 +18,30 @@ declare namespace Bun {
 }
 
 /**
- * Node.js 进环境扩展
+ * 全局服务器实例
  */
 declare global {
-  namespace NodeJS {
-    interface ProcessEnv {
-      /** Node 环境 */
-      NODE_ENV?: 'development' | 'production' | 'test';
-      /** 端口号 */
-      PORT?: string;
-      /** 主机地址 */
-      HOST?: string;
-      /** 调试模式 */
-      DEBUG?: string;
-      /** 自定义环境变量 */
-      [key: string]: any;
-    }
+  var server: {
+    port: number;
+    fetch: (request: Request) => Promise<Response>;
+  } | undefined;
+}
+
+/**
+ * Node.js 进环境扩展
+ */
+declare namespace NodeJS {
+  interface ProcessEnv {
+    /** Node 环境 */
+    NODE_ENV?: 'development' | 'production' | 'test';
+    /** 端口号 */
+    PORT?: string;
+    /** 主机地址 */
+    HOST?: string;
+    /** 调试模式 */
+    DEBUG?: string;
+    /** 自定义环境变量 */
+    [key: string]: any;
   }
 }
 
