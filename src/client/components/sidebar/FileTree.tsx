@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileIcon, FolderIcon, DefaultFolderOpenedIcon } from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
@@ -45,6 +45,10 @@ export interface FileTreeProps {
   maxDepth?: number;
   /** 当前活动文件路径 */
   activePath?: string;
+  /** 是否显示展开/折叠控制按钮 */
+  showControls?: boolean;
+  /** localStorage 存储键名 */
+  storageKey?: string;
 }
 
 /**
@@ -61,6 +65,10 @@ interface FileTreeNodeProps {
   onFileClick?: (path: string, node: FileTreeNode) => void;
   /** 文件夹点击回调 */
   onFolderClick?: (path: string, node: FileTreeNode) => void;
+  /** 折叠状态变化回调 */
+  onToggle?: (path: string) => void;
+  /** 展开的节点路径集合 */
+  expandedPaths: Set<string>;
   /** 活动路径 */
   activePath?: string;
   /** 最大展开深度 */
@@ -76,10 +84,11 @@ function FileTreeNodeComponent({
   isMatch = false,
   onFileClick,
   onFolderClick,
+  onToggle,
+  expandedPaths,
   activePath,
   maxDepth,
 }: FileTreeNodeProps) {
-  const [collapsed, setCollapsed] = useState(node.collapsed ?? true);
   const location = useLocation();
 
   // 判断是否为活动节点
@@ -87,18 +96,21 @@ function FileTreeNodeComponent({
     ? node.path === activePath
     : location.pathname === node.path;
 
+  // 判断是否展开
+  const isExpanded = expandedPaths.has(node.path);
+
   // 判断是否应该展开（搜索匹配时自动展开）
-  const shouldExpand = isMatch || !collapsed;
+  const shouldExpand = isMatch || isExpanded;
 
   // 处理文件夹点击
   const handleFolderClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setCollapsed(!collapsed);
+      onToggle?.(node.path);
       onFolderClick?.(node.path, node);
     },
-    [collapsed, node.path, node, onFolderClick]
+    [node.path, node, onToggle, onFolderClick]
   );
 
   // 处理文件点击
@@ -143,14 +155,14 @@ function FileTreeNodeComponent({
             'group'
           )}
           style={{ paddingLeft }}
-          aria-expanded={!collapsed}
+          aria-expanded={isExpanded}
           aria-label={`Toggle ${node.name} folder`}
         >
           {/* 展开/折叠箭头 */}
           <span
             className={cn(
               'flex h-4 w-4 items-center justify-center transition-transform duration-200',
-              collapsed ? 'rotate-0' : 'rotate-90'
+              isExpanded ? 'rotate-90' : 'rotate-0'
             )}
           >
             <svg
@@ -170,15 +182,15 @@ function FileTreeNodeComponent({
 
           {/* 文件夹图标 */}
           <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-            {collapsed ? (
-              <FolderIcon
-                folderName={node.name}
+            {isExpanded ? (
+              <DefaultFolderOpenedIcon
                 width={20}
                 height={20}
                 className="text-yellow-500"
               />
             ) : (
-              <DefaultFolderOpenedIcon
+              <FolderIcon
+                folderName={node.name}
                 width={20}
                 height={20}
                 className="text-yellow-500"
@@ -208,6 +220,8 @@ function FileTreeNodeComponent({
                 isMatch={isMatch}
                 onFileClick={onFileClick}
                 onFolderClick={onFolderClick}
+                onToggle={onToggle}
+                expandedPaths={expandedPaths}
                 activePath={activePath}
                 maxDepth={maxDepth}
               />
@@ -256,7 +270,71 @@ export function FileTree({
   showHidden = false,
   maxDepth,
   activePath,
+  showControls = false,
+  storageKey = 'file-tree-expanded-paths',
 }: FileTreeProps) {
+  // 从 localStorage 加载展开状态
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  // 持久化展开状态到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...expandedPaths]));
+    } catch (error) {
+      console.error('Failed to save expanded paths:', error);
+    }
+  }, [expandedPaths, storageKey]);
+
+  // 收集所有目录路径
+  const allDirectoryPaths = useMemo(() => {
+    const paths: string[] = [];
+    const collectPaths = (nodes: FileTreeNode[]) => {
+      nodes.forEach((node) => {
+        if (node.type === 'directory') {
+          paths.push(node.path);
+          if (node.children) {
+            collectPaths(node.children);
+          }
+        }
+      });
+    };
+    collectPaths(tree);
+    return paths;
+  }, [tree]);
+
+  // 切换展开/折叠状态
+  const handleToggle = useCallback(
+    (path: string) => {
+      setExpandedPaths((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(path)) {
+          newSet.delete(path);
+        } else {
+          newSet.add(path);
+        }
+        return newSet;
+      });
+    },
+    []
+  );
+
+  // 全部展开
+  const handleExpandAll = useCallback(() => {
+    setExpandedPaths(new Set(allDirectoryPaths));
+  }, [allDirectoryPaths]);
+
+  // 全部折叠
+  const handleCollapseAll = useCallback(() => {
+    setExpandedPaths(new Set());
+  }, []);
+
   // 过滤文件树
   const filteredTree = useMemo(() => {
     // 如果没有搜索查询，返回原始树（过滤隐藏文件）
@@ -338,6 +416,29 @@ export function FileTree({
 
   return (
     <div className={cn('space-y-0.5', className)}>
+      {/* 展开/折叠控制按钮 */}
+      {showControls && (
+        <div className="flex items-center gap-2 px-2 py-2 border-b border-border">
+          <button
+            type="button"
+            onClick={handleExpandAll}
+            className="text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
+            title="展开所有"
+          >
+            全部展开
+          </button>
+          <button
+            type="button"
+            onClick={handleCollapseAll}
+            className="text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
+            title="折叠所有"
+          >
+            全部折叠
+          </button>
+        </div>
+      )}
+
+      {/* 文件树节点 */}
       {filteredTree.map((node, index) => (
         <FileTreeNodeComponent
           key={`${node.path}-${index}`}
@@ -346,6 +447,8 @@ export function FileTree({
           isMatch={!!searchQuery.trim()}
           onFileClick={onFileClick}
           onFolderClick={onFolderClick}
+          onToggle={handleToggle}
+          expandedPaths={expandedPaths}
           activePath={activePath}
           maxDepth={maxDepth}
         />
@@ -379,7 +482,6 @@ export function convertIndexToTree(
       type: entry.isDirectory ? 'directory' : 'file',
       extension: entry.extension,
       hidden: entry.hidden,
-      collapsed: true,
       children: entry.isDirectory ? [] : undefined,
     };
     nodeMap.set(entry.path, node);
