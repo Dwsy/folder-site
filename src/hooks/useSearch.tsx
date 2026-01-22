@@ -9,14 +9,17 @@
  * - 子序列匹配（支持字符跳过，如 "fs" 匹配 "FolderSite"）
  * - 智能评分系统（考虑匹配位置、类型、路径深度等）
  * - 路径感知搜索
- * - 搜索结果缓存
+ * - 搜索结果缓存（LRU + TTL）
  * - 防抖搜索输入
+ * - 性能指标追踪
  * - 键盘导航支持
  * - 搜索结果高亮
  * - TypeScript 类型安全
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { LRUSearchCache } from '../utils/searchCache.js';
+import { SearchPerformanceTracker } from '../utils/searchPerformance.js';
 
 /**
  * 搜索结果项
@@ -90,13 +93,17 @@ export interface UseSearchReturn {
   getSelectedResult: () => SearchResult | null;
   /** 清除缓存 */
   clearCache: () => void;
+  /** 获取性能指标 */
+  getPerformanceMetrics: () => SearchMetrics;
+  /** 获取缓存统计 */
+  getCacheStats: () => import('../utils/searchCache.js').CacheStats;
 }
 
 /**
  * 默认搜索配置
  */
 const DEFAULT_SEARCH_CONFIG: Required<SearchConfig> = {
-  debounceDelay: 150,
+  debounceDelay: 300, // Increased to 300ms for better performance
   minQueryLength: 1,
   maxResults: 50,
   includeFolders: true,
@@ -108,59 +115,11 @@ const DEFAULT_SEARCH_CONFIG: Required<SearchConfig> = {
 };
 
 /**
- * 缓存条目
+ * 搜索缓存条目
  */
 interface CacheEntry {
   results: SearchResult[];
   timestamp: number;
-}
-
-/**
- * 搜索缓存
- */
-class SearchCache {
-  private cache: Map<string, CacheEntry> = new Map();
-  private maxSize: number;
-  private ttl: number;
-
-  constructor(maxSize: number = 100, ttl: number = 5000) {
-    this.maxSize = maxSize;
-    this.ttl = ttl;
-  }
-
-  get(key: string): SearchResult[] | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-
-    const now = Date.now();
-    if (now - entry.timestamp > this.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.results;
-  }
-
-  set(key: string, results: SearchResult[]): void {
-    if (this.cache.size >= this.maxSize) {
-      // 删除最旧的条目
-      const sortedEntries = Array.from(this.cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
-      if (sortedEntries.length > 0) {
-        const oldestKey = sortedEntries[0]![0];
-        this.cache.delete(oldestKey);
-      }
-    }
-
-    this.cache.set(key, {
-      results,
-      timestamp: Date.now(),
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
 }
 
 /**
@@ -459,9 +418,12 @@ export function fuzzySearch(
  *   selectNext,
  *   selectPrevious,
  *   getSelectedResult,
+ *   getPerformanceMetrics,
+ *   getCacheStats,
  * } = useSearch(items, {
- *   debounceDelay: 150,
+ *   debounceDelay: 300,
  *   maxResults: 50,
+ *   enableCache: true,
  * });
  * ```
  */
@@ -483,9 +445,28 @@ export function useSearch(
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchResultsRef = useRef<SearchResult[]>([]);
   const debounceTimerRef = useRef<NodeJS.Timeout>();
-  const cacheRef = useRef<SearchCache>(
-    new SearchCache(100, finalConfig.enableCache)
+
+  // Enhanced cache with LRU and performance tracking
+  const cacheRef = useRef<LRUSearchCache<SearchResult[]>>(
+    new LRUSearchCache<SearchResult[]>({
+      maxSize: 100,
+      ttl: finalConfig.enableCache,
+      enableStats: true,
+      cleanupInterval: 10000,
+    })
   );
+
+  // Performance tracker
+  const perfTrackerRef = useRef<SearchPerformanceTracker>(
+    new SearchPerformanceTracker()
+  );
+
+  // Track render performance
+  useEffect(() => {
+    const tracker = perfTrackerRef.current;
+    tracker.startMeasure('search-render');
+    return () => tracker.endMeasure('search-render');
+  });
 
   // 防抖处理搜索查询
   useEffect(() => {
@@ -513,15 +494,22 @@ export function useSearch(
       return [];
     }
 
+    const tracker = perfTrackerRef.current;
+    const measureId = tracker.startMeasure('search-execution');
+
     // 检查缓存
     const cacheKey = `${debouncedQuery}:${items.length}`;
     if (finalConfig.enableCache > 0) {
       const cached = cacheRef.current.get(cacheKey);
       if (cached) {
+        tracker.recordCacheHit(true);
+        tracker.endMeasure(measureId);
         searchResultsRef.current = cached;
         return cached;
       }
     }
+
+    tracker.recordCacheHit(false);
 
     // 执行搜索
     const searchResults = fuzzySearch(debouncedQuery, items, finalConfig);
@@ -531,6 +519,9 @@ export function useSearch(
     if (finalConfig.enableCache > 0) {
       cacheRef.current.set(cacheKey, searchResults);
     }
+
+    tracker.recordSearchResultCount(searchResults.length);
+    tracker.endMeasure(measureId);
 
     return searchResults;
   }, [debouncedQuery, items, finalConfig]);
@@ -555,6 +546,17 @@ export function useSearch(
   // 清除缓存
   const clearCache = useCallback(() => {
     cacheRef.current.clear();
+    perfTrackerRef.current.reset();
+  }, []);
+
+  // 获取性能指标
+  const getPerformanceMetrics = useCallback(() => {
+    return perfTrackerRef.current.getMetrics();
+  }, []);
+
+  // 获取缓存统计
+  const getCacheStats = useCallback(() => {
+    return cacheRef.current.getStats();
   }, []);
 
   // 选择上一个结果
@@ -590,6 +592,8 @@ export function useSearch(
     selectNext,
     getSelectedResult,
     clearCache,
+    getPerformanceMetrics,
+    getCacheStats,
   };
 }
 

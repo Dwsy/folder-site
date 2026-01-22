@@ -9,9 +9,10 @@
  * - 键盘导航：上下箭头选择、回车确认、ESC 关闭
  * - 高亮匹配文本
  * - 显示文件图标
- * - 防抖搜索输入
+ * - 防抖搜索输入（300ms）
  * - LRU 缓存优化性能
  * - 搜索历史记录
+ * - 性能指标追踪
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -22,6 +23,8 @@ import Fuse from 'fuse.js';
 import { cn } from '../../utils/cn.js';
 import { SearchInput } from './SearchInput.js';
 import { SearchResults, type SearchResultItem } from './SearchResults.js';
+import { LRUSearchCache } from '../../utils/searchCache.js';
+import { SearchPerformanceTracker } from '../../utils/searchPerformance.js';
 
 /**
  * 搜索模态框属性
@@ -48,6 +51,8 @@ export interface SearchModalProps {
   activePath?: string;
   /** 结果选择回调 */
   onSelect?: (item: SearchResultItem) => void;
+  /** 是否启用性能追踪 */
+  enablePerformanceTracking?: boolean;
 }
 
 /**
@@ -71,9 +76,10 @@ export function SearchModal({
   files = [],
   className,
   maxResults = 8,
-  debounceDelay = 150,
+  debounceDelay = 300,
   activePath,
   onSelect,
+  enablePerformanceTracking = process.env.NODE_ENV === 'development',
 }: SearchModalProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -92,8 +98,20 @@ export function SearchModal({
     }
   });
 
-  // 搜索缓存
-  const searchCache = useRef<Map<string, SearchResultItem[]>>(new Map());
+  // 增强的 LRU 搜索缓存
+  const searchCache = useRef<LRUSearchCache<SearchResultItem[]>>(
+    new LRUSearchCache<SearchResultItem[]>({
+      maxSize: 100,
+      ttl: 5000,
+      enableStats: true,
+      cleanupInterval: 10000,
+    })
+  );
+
+  // 性能追踪器
+  const perfTracker = useRef<SearchPerformanceTracker | null>(
+    enablePerformanceTracking ? new SearchPerformanceTracker() : null
+  );
 
   // Fuse.js 实例
   const fuse = useMemo(() => {
@@ -118,7 +136,7 @@ export function SearchModal({
     return () => clearTimeout(timer);
   }, [query, debounceDelay]);
 
-  // 模糊搜索（使用 Fuse.js + 缓存）
+  // 模糊搜索（使用 Fuse.js + LRU 缓存 + 性能追踪）
   const searchResults = useMemo(() => {
     if (!debouncedQuery.trim()) {
       // 如果没有查询，显示默认推荐
@@ -128,11 +146,20 @@ export function SearchModal({
       }));
     }
 
+    const tracker = perfTracker.current;
+    const measureId = tracker?.startMeasure('modal-search-execution');
+
     // 检查缓存
     const cacheKey = debouncedQuery.toLowerCase();
-    if (searchCache.current.has(cacheKey)) {
-      return searchCache.current.get(cacheKey)!;
+    const cached = searchCache.current.get(cacheKey);
+
+    if (cached) {
+      tracker?.recordCacheHit(true);
+      tracker?.endMeasure(measureId ?? '');
+      return cached;
     }
+
+    tracker?.recordCacheHit(false);
 
     // 使用 Fuse.js 搜索
     const fuseResults = fuse.search(debouncedQuery);
@@ -149,14 +176,11 @@ export function SearchModal({
     // 缓存结果
     searchCache.current.set(cacheKey, results);
 
-    // 限制缓存大小
-    if (searchCache.current.size > 100) {
-      const firstKey = searchCache.current.keys().next().value;
-      searchCache.current.delete(firstKey);
-    }
+    tracker?.recordSearchResultCount(results.length);
+    tracker?.endMeasure(measureId ?? '');
 
     return results;
-  }, [files, debouncedQuery, maxResults, searchHistory, fuse]);
+  }, [files, debouncedQuery, maxResults, fuse]);
 
   // 保存搜索历史
   useEffect(() => {
@@ -172,6 +196,7 @@ export function SearchModal({
   // 清除缓存当文件列表变化时
   useEffect(() => {
     searchCache.current.clear();
+    perfTracker.current?.reset();
   }, [files]);
 
   // 重置选中索引
