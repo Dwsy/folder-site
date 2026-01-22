@@ -5,7 +5,16 @@
 
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
-import { errorHandler, notFoundHandler, requestLogger, cors, bodyParser, debugLog } from './middleware/index.js';
+import {
+  globalErrorHandler,
+  onErrorHandler,
+  requestIdMiddleware,
+  notFoundHandler as newNotFoundHandler,
+  logger as newLogger,
+  requestLogger,
+  cors,
+  bodyParser,
+} from './middleware/index.js';
 import apiRoutes from './routes/api.js';
 import filesRoutes from './routes/files.js';
 import searchRoutes from './routes/search.js';
@@ -47,11 +56,31 @@ const mimeTypes = {
 export function createServer(): Hono {
   const app = new Hono();
 
-  // 全局中间件
+  // 全局错误处理（使用 Hono 的 onError 钩子）
+  // 这会捕获所有中间件和路由中抛出的错误
+  app.onError(onErrorHandler);
+
+  // 全局中间件顺序很重要
+  // 1. CORS
   app.use('*', cors());
+
+  // 2. Request ID 注入（必须在其他中间件之前）
+  app.use('*', requestIdMiddleware);
+
+  // 3. Body Parser
   app.use('*', bodyParser());
-  app.use('*', errorHandler);
+
+  // 4. 全局错误处理中间件（捕获 next() 中的错误）
+  app.use('*', globalErrorHandler);
+
+  // 5. 请求日志记录
   app.use('*', requestLogger);
+
+  // 设置监控钩子（可选，用于集成外部监控服务）
+  // addMonitoringHook((error, context, requestId) => {
+  //   // 这里可以集成 Sentry, DataDog 等监控服务
+  //   console.log('[Monitoring Hook]', requestId, error.message);
+  // });
 
   // API 路由 - 必须在静态文件路由之前
   app.route('/api', apiRoutes);
@@ -64,7 +93,7 @@ export function createServer(): Hono {
     root: './dist/client',
     // 启用 onNotFound 处理，用于 SPA fallback
     onNotFound: (path, c) => {
-      debugLog(`Static file not found: ${path}`);
+      newLogger.debug(`Static file not found: ${path}`);
     },
   }));
 
@@ -73,7 +102,7 @@ export function createServer(): Hono {
   app.get('*', (c) => {
     // 如果是 API 路径但未匹配，返回 404
     if (c.req.path.startsWith('/api')) {
-      return notFoundHandler(c);
+      return newNotFoundHandler(c);
     }
 
     // 对于前端路由，返回 index.html
@@ -87,10 +116,10 @@ export function createServer(): Hono {
     })(c);
   });
 
-  // 404 处理
-  app.notFound(notFoundHandler);
+  // 404 处理 - 使用新的处理器
+  app.notFound(newNotFoundHandler);
 
-  debugLog('Server initialized successfully');
+  newLogger.debug('Server initialized successfully with enhanced error handling');
 
   return app;
 }
