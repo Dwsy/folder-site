@@ -25,8 +25,8 @@ import type {
   TransformerPluginContext,
   NodeTransformer,
   TransformerStats,
-  CodeHighlightOptions,
 } from '../../types/transformer.js';
+import type { CodeHighlightOptions } from '../../types/highlighter.js';
 
 /**
  * 默认转换器配置选项
@@ -716,10 +716,8 @@ export function externalLinkPlugin(): TransformerPlugin {
 // 导出类型
 export type {
   TransformerOptions,
-  TransformerResult,
   TransformerPlugin,
   TransformerPluginContext,
   NodeTransformer,
-  TransformerStats,
-  CodeHighlightOptions,
 } from '../../types/transformer.js';
+export type { CodeHighlightOptions } from '../../types/highlighter.js';

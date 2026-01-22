@@ -87,13 +87,20 @@ export type {
 export type {
   // Transformer
   TransformerOptions,
-  TransformerResult,
   TransformerPlugin,
   TransformerPluginContext,
   NodeTransformer,
-  TransformerStats,
-  CodeHighlightOptions,
 } from './transformer.js';
+
+export type {
+  // Highlighter
+  CodeHighlightOptions,
+  HighlighterOptions,
+  HighlightedCode,
+  IHighlighter,
+  HighlighterLanguage,
+  HighlighterTheme,
+} from './highlighter.js';
 
 // 导出工具类型
 export type {

@@ -2,11 +2,15 @@
  * Code Block Component
  *
  * Displays code with syntax highlighting, line numbers, and interactive features
+ * Uses Shiki for syntax highlighting with support for 100+ languages
  */
 
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn.js';
 import { FiCopy, FiCheck } from 'react-icons/fi';
+import { MdWrapText } from 'react-icons/md';
+import { getHighlighter } from '../../../server/lib/highlighter.js';
+import type { CodeHighlightOptions } from '../../../types/highlighter.js';
 
 export interface CodeBlockProps {
   code: string;
@@ -14,6 +18,7 @@ export interface CodeBlockProps {
   filename?: string;
   showLineNumbers?: boolean;
   showCopyButton?: boolean;
+  showWrapToggle?: boolean;
   maxHeight?: string | number;
   wrapLines?: boolean;
   startLineNumber?: number;
@@ -31,41 +36,53 @@ export function CodeBlock({
   filename,
   showLineNumbers = true,
   showCopyButton = true,
+  showWrapToggle = true,
   maxHeight,
-  wrapLines = false,
+  wrapLines: initialWrapLines = false,
   startLineNumber = 1,
+  theme = 'github-dark',
   className,
   onCopy,
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [wrapLines, setWrapLines] = useState(initialWrapLines);
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Calculate lines
   const lines = useMemo(() => {
     return code.split('\n');
   }, [code]);
 
-  // Simple syntax highlighting (placeholder)
-  // In production, integrate with Shiki or Prism.js
+  // Highlight code using Shiki
   useEffect(() => {
     const highlightCode = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // For now, use simple highlighting
-        // In production, integrate with Shiki
-        const highlighted = applySimpleHighlighting(code, language);
-        setHighlightedCode(highlighted);
+        const highlighter = getHighlighter();
+        const options: CodeHighlightOptions = {
+          lang: language as any, // Language is validated by Shiki
+          theme: theme as any, // Theme is validated by Shiki
+          lineNumbers: false, // We handle line numbers separately
+          startLineNumber,
+        };
+
+        const html = await highlighter.codeToHtml(code, options);
+        setHighlightedCode(html);
       } catch (err) {
         console.error('Highlighting error:', err);
-        setHighlightedCode(escapeHtml(code));
+        setError('Failed to highlight code');
+        // Fallback to escaped HTML
+        setHighlightedCode(`<pre><code>${escapeHtml(code)}</code></pre>`);
       } finally {
         setLoading(false);
       }
     };
 
     highlightCode();
-  }, [code, language]);
+  }, [code, language, theme, startLineNumber]);
 
   // Handle copy
   const handleCopy = async () => {
@@ -81,6 +98,11 @@ export function CodeBlock({
     }
   };
 
+  // Toggle word wrap
+  const handleToggleWrap = () => {
+    setWrapLines((prev) => !prev);
+  };
+
   // Escape HTML
   const escapeHtml = (text: string) => {
     const div = document.createElement('div');
@@ -88,104 +110,20 @@ export function CodeBlock({
     return div.innerHTML;
   };
 
-  // Apply simple syntax highlighting
-  const applySimpleHighlighting = (code: string, lang: string): string => {
-    let html = escapeHtml(code);
-
-    // Language-specific highlighting
-    if (['javascript', 'typescript', 'js', 'ts'].includes(lang)) {
-      // Keywords
-      html = html.replace(
-        /\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|try|catch|throw|new|this|typeof|instanceof)\b/g,
-        '<span class="text-purple-500">$1</span>'
-      );
-      // Strings
-      html = html.replace(
-        /(['"`])((?:\\.|(?!\1)[^\\])*?)\1/g,
-        '<span class="text-green-500">$1$2$1</span>'
-      );
-      // Comments
-      html = html.replace(
-        /(\/\/.*$)/gm,
-        '<span class="text-gray-500">$1</span>'
-      );
-      html = html.replace(
-        /(\/\*[\s\S]*?\*\/)/g,
-        '<span class="text-gray-500">$1</span>'
-      );
-      // Numbers
-      html = html.replace(
-        /\b(\d+\.?\d*)\b/g,
-        '<span class="text-blue-500">$1</span>'
-      );
-    } else if (['python', 'py'].includes(lang)) {
-      // Keywords
-      html = html.replace(
-        /\b(def|class|if|else|elif|for|while|return|import|from|as|try|except|raise|with|lambda|yield|True|False|None|and|or|not|in|is)\b/g,
-        '<span class="text-purple-500">$1</span>'
-      );
-      // Strings
-      html = html.replace(
-        /(['"])((?:\\.|(?!\1)[^\\])*?)\1/g,
-        '<span class="text-green-500">$1$2$1</span>'
-      );
-      // Comments
-      html = html.replace(
-        /(#.*$)/gm,
-        '<span class="text-gray-500">$1</span>'
-      );
-      // Numbers
-      html = html.replace(
-        /\b(\d+\.?\d*)\b/g,
-        '<span class="text-blue-500">$1</span>'
-      );
-    } else if (['css', 'scss'].includes(lang)) {
-      // Properties
-      html = html.replace(
-        /([a-z-]+)(\s*:)/g,
-        '<span class="text-blue-500">$1</span>$2'
-      );
-      // Values
-      html = html.replace(
-        /:\s*([^;{]+)/g,
-        ': <span class="text-green-500">$1</span>'
-      );
-      // Selectors
-      html = html.replace(
-        /^([.#]?[a-zA-Z][\w-]*)/gm,
-        '<span class="text-purple-500">$1</span>'
-      );
-    } else if (['json'].includes(lang)) {
-      // Keys
-      html = html.replace(
-        /"([^"]+)":/g,
-        '<span class="text-blue-500">"$1"</span>:'
-      );
-      // String values
-      html = html.replace(
-        /:\s*"([^"]*)"/g,
-        ': <span class="text-green-500">"$1"</span>'
-      );
-      // Numbers
-      html = html.replace(
-        /:\s*(\d+)/g,
-        ': <span class="text-orange-500">$1</span>'
-      );
-      // Booleans
-      html = html.replace(
-        /:\s*(true|false|null)/g,
-        ': <span class="text-purple-500">$1</span>'
-      );
-    }
-
-    return html;
-  };
-
   // Render loading state
   if (loading) {
     return (
-      <div className={cn('flex items-center justify-center p-8', className)}>
+      <div className={cn('flex items-center justify-center p-8 bg-muted/30 rounded-lg', className)}>
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div className={cn('p-4 bg-destructive/10 border border-destructive/20 rounded-lg', className)}>
+        <p className="text-sm text-destructive">{error}</p>
       </div>
     );
   }
@@ -193,44 +131,76 @@ export function CodeBlock({
   return (
     <div
       className={cn(
-        'relative group',
+        'relative group rounded-lg overflow-hidden border bg-muted/30',
         className
       )}
       role="region"
       aria-label={`Code block${filename ? ` for ${filename}` : ''}`}
     >
-      {/* Copy button */}
-      {showCopyButton && (
-        <button
-          onClick={handleCopy}
-          className={cn(
-            'absolute right-2 top-2 z-10 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-all',
-            'bg-background/80 backdrop-blur-sm border shadow-sm',
-            'opacity-0 group-hover:opacity-100',
-            'hover:bg-background'
+      {/* Header with filename and controls */}
+      {(filename || showCopyButton || showWrapToggle) && (
+        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/50">
+          {/* Filename */}
+          {filename && (
+            <div className="flex-1 text-sm font-medium text-muted-foreground truncate">
+              {filename}
+            </div>
           )}
-          title={copied ? 'Copied!' : 'Copy code'}
-        >
-          {copied ? (
-            <>
-              <FiCheck className="h-4 w-4 text-green-500" />
-              <span className="text-green-500">Copied!</span>
-            </>
-          ) : (
-            <>
-              <FiCopy className="h-4 w-4" />
-              <span>Copy</span>
-            </>
-          )}
-        </button>
+
+          {/* Controls */}
+          <div className="flex items-center gap-1">
+            {/* Word wrap toggle */}
+            {showWrapToggle && (
+              <button
+                onClick={handleToggleWrap}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-all',
+                  'hover:bg-background border',
+                  wrapLines && 'bg-primary/10 text-primary border-primary/20'
+                )}
+                title={wrapLines ? 'Disable word wrap' : 'Enable word wrap'}
+                aria-label={wrapLines ? 'Disable word wrap' : 'Enable word wrap'}
+                aria-pressed={wrapLines}
+              >
+                <MdWrapText className="h-4 w-4" />
+                <span className="hidden sm:inline">Wrap</span>
+              </button>
+            )}
+
+            {/* Copy button */}
+            {showCopyButton && (
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-all',
+                  'hover:bg-background border',
+                  copied && 'bg-green-500/10 text-green-500 border-green-500/20'
+                )}
+                title={copied ? 'Copied!' : 'Copy code'}
+                aria-label={copied ? 'Copied!' : 'Copy code'}
+              >
+                {copied ? (
+                  <>
+                    <FiCheck className="h-4 w-4" />
+                    <span className="hidden sm:inline">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <FiCopy className="h-4 w-4" />
+                    <span className="hidden sm:inline">Copy</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Code display */}
       <div
         className={cn(
-          'relative font-mono text-sm',
-          showLineNumbers && 'flex',
-          wrapLines ? 'whitespace-pre-wrap' : 'whitespace-pre'
+          'relative overflow-auto',
+          showLineNumbers && 'flex'
         )}
         style={{
           maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
@@ -238,11 +208,12 @@ export function CodeBlock({
       >
         {/* Line numbers */}
         {showLineNumbers && (
-          <div className="sticky left-0 select-none border-r bg-muted/50 px-3 py-4 text-right text-muted-foreground">
+          <div className="sticky left-0 select-none border-r bg-muted/50 px-3 py-4 text-right text-muted-foreground font-mono text-sm">
             {lines.map((_, index) => (
               <div
                 key={index}
                 className="leading-6"
+                aria-hidden="true"
               >
                 {startLineNumber + index}
               </div>
@@ -251,14 +222,18 @@ export function CodeBlock({
         )}
 
         {/* Code content */}
-        <div className="flex-1 overflow-auto px-4 py-4">
-          <pre className="m-0">
-            <code
-              dangerouslySetInnerHTML={{
-                __html: highlightedCode || escapeHtml(code),
-              }}
-            />
-          </pre>
+        <div
+          className={cn(
+            'flex-1 overflow-auto',
+            wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
+          )}
+        >
+          <div
+            className="shiki-wrapper"
+            dangerouslySetInnerHTML={{
+              __html: highlightedCode || '',
+            }}
+          />
         </div>
       </div>
     </div>
