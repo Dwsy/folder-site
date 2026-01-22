@@ -10,6 +10,7 @@
 
 import { useState, useMemo } from 'react';
 import { CodeBlock } from './CodeBlock.js';
+import { MarkdownPreview } from './MarkdownPreview.js';
 import { cn } from '../../utils/cn.js';
 import {
   FiFileText,
@@ -25,6 +26,7 @@ import type {
   ContentDisplaySimpleProps,
   ContentDisplayState,
 } from '../../../types/editor.js';
+import type { ThemeMode } from '../../../types/theme.js';
 
 /**
  * Loading Spinner Component
@@ -151,6 +153,8 @@ export function ContentDisplay({
   renderCustom,
   className,
 }: ContentDisplaySimpleProps) {
+  // Determine theme mode from theme name
+  const themeMode: ThemeMode = theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto';
   const [selectedMode, setSelectedMode] = useState<DisplayMode>(displayMode);
   const [copied, setCopied] = useState(false);
 
@@ -325,11 +329,14 @@ export function ContentDisplay({
           />
         ) : (
           <div className="p-6">
-            <div
-              className="prose prose-sm dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{
-                __html: renderMarkdownPreview(content),
-              }}
+            <MarkdownPreview
+              content={content}
+              theme={themeMode}
+              showCopyButton={false}
+              showFrontmatter={false}
+              enableMath={true}
+              enableGfm={true}
+              className="border-0 p-0"
             />
           </div>
         )}
@@ -338,30 +345,3 @@ export function ContentDisplay({
   );
 }
 
-/**
- * Simple markdown preview renderer
- * Note: This is a basic implementation. For full markdown support,
- * integrate with a markdown parser like remark/rehype.
- */
-function renderMarkdownPreview(markdown: string): string {
-  // Basic markdown to HTML conversion
-  let html = markdown
-    // Headers
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    // Code blocks
-    .replace(/```(\w+)?\n([\s\S]*?)```/gim, '<pre><code>$2</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/gim, '<code class="bg-muted px-1 py-0.5 rounded">$1</code>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" class="text-primary hover:underline">$1</a>')
-    // Line breaks
-    .replace(/\n/gim, '<br />');
-
-  return html;
-}

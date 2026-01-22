@@ -1,8 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ContentDisplay } from '../components/editor/ContentDisplay.js';
+import { MarkdownPreview } from '../components/editor/MarkdownPreview.js';
 import { cn } from '../utils/cn.js';
-import { FiFileText, FiRefreshCw } from 'react-icons/fi';
+import { FiFileText, FiRefreshCw, FiCode, FiEye } from 'react-icons/fi';
 
 interface FileViewProps {
   className?: string;
@@ -16,8 +17,9 @@ export function FileView({ className }: FileViewProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const [language, setLanguage] = useState<string>('text');
+  const [viewMode, setViewMode] = useState<'code' | 'preview'>('code');
 
-  // Detect language from file extension
+  // Detect language from file extension and set default view mode
   useEffect(() => {
     if (!filePath) return;
 
@@ -64,6 +66,13 @@ export function FileView({ className }: FileViewProps) {
     };
 
     setLanguage(languageMap[extension] || 'text');
+
+    // Set default view mode for markdown files
+    if (extension === 'md' || extension === 'markdown') {
+      setViewMode('preview');
+    } else {
+      setViewMode('code');
+    }
   }, [filePath]);
 
   // Fetch file content
@@ -119,6 +128,37 @@ export function FileView({ className }: FileViewProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* View mode toggle for markdown files */}
+          {language === 'markdown' && (
+            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
+              <button
+                onClick={() => setViewMode('code')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
+                  viewMode === 'code'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="Code view"
+              >
+                <FiCode className="h-4 w-4" />
+                <span>Code</span>
+              </button>
+              <button
+                onClick={() => setViewMode('preview')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
+                  viewMode === 'preview'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title="Preview view"
+              >
+                <FiEye className="h-4 w-4" />
+                <span>Preview</span>
+              </button>
+            </div>
+          )}
           {error && (
             <button
               onClick={handleRetry}
@@ -133,17 +173,32 @@ export function FileView({ className }: FileViewProps) {
       </div>
 
       {/* Content Display */}
-      <ContentDisplay
-        content={content}
-        language={language}
-        filename={filename}
-        loading={loading}
-        error={error}
-        onRetry={handleRetry}
-        showLineNumbers={true}
-        wrapLines={false}
-        className="rounded-lg border"
-      />
+      {language === 'markdown' && viewMode === 'preview' ? (
+        <MarkdownPreview
+          content={content}
+          theme="auto"
+          showCopyButton={true}
+          showFrontmatter={true}
+          enableMath={true}
+          enableGfm={true}
+          className="rounded-lg border bg-card p-6"
+          onError={setError}
+          onRetry={handleRetry}
+        />
+      ) : (
+        <ContentDisplay
+          content={content}
+          language={language}
+          filename={filename}
+          loading={loading}
+          error={error}
+          displayMode={viewMode}
+          onRetry={handleRetry}
+          showLineNumbers={true}
+          wrapLines={false}
+          className="rounded-lg border"
+        />
+      )}
 
       {/* Footer Info */}
       {!loading && !error && content && (
