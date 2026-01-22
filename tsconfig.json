@@ -1,1 +1,77 @@
-{"compilerOptions": {"target": "ES2022", "module": "ESNext", "lib": ["ES2022", "DOM", "DOM.Iterable"], "jsx": "react-jsx", "strict": true, "esModuleInterop": true, "skipLibCheck": true, "forceConsistentCasingInFileNames": true, "resolveJsonModule": true, "moduleResolution": "bundler", "allowImportingTsExtensions": true, "noEmit": true, "isolatedModules": true, "paths": {"@/*": ["./src/*"]}}, "include": ["src/**/*"], "exclude": ["node_modules", "dist"]}
+{
+  "compilerOptions": {
+    // Language and Environment
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // Modules
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+
+    // Emit
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "removeComments": false,
+    "noEmit": false,
+
+    // Interop Constraints
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Type Checking
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+
+    // Completeness
+    "skipLibCheck": true,
+
+    // JSX
+    "jsx": "react-jsx",
+
+    // Advanced
+    "isolatedModules": true,
+
+    // Path Aliases
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@cli/*": ["./src/cli/*"],
+      "@server/*": ["./src/server/*"],
+      "@client/*": ["./src/client/*"],
+      "@types/*": ["./src/types/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "tests",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.tsx",
+    "**/*.spec.tsx"
+  ]
+}
