@@ -6,6 +6,8 @@
  * 功能特性：
  * - 支持三种主题模式：light（浅色）、dark（深色）、auto（自动）
  * - 主题配置持久化到 localStorage
+ * - 跨标签页主题同步
+ * - 主题数据迁移支持
  * - 监听系统主题变化
  * - 提供主题切换 API
  * - 支持自定义主题颜色
@@ -15,6 +17,110 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import type { ThemeMode, ThemeConfig, ThemePalette } from '../../types/theme.js';
 import { DEFAULT_THEME_CONFIG } from '../../types/theme.js';
+
+/**
+ * 主题数据迁移
+ * 
+ * 处理旧版本的主题数据格式，确保向后兼容
+ * 
+ * @param stored - 存储的主题数据
+ * @returns 迁移后的主题模式
+ */
+function migrateThemeData(stored: string): ThemeMode | null {
+  try {
+    // 尝试解析 JSON 格式
+    const parsed = JSON.parse(stored);
+    
+    // 新格式: { mode: 'light' | 'dark' | 'auto' }
+    if (parsed.mode && ['light', 'dark', 'auto'].includes(parsed.mode)) {
+      return parsed.mode;
+    }
+    
+    // 旧格式1: { theme: 'light' | 'dark' }
+    if (parsed.theme && ['light', 'dark'].includes(parsed.theme)) {
+      return parsed.theme;
+    }
+    
+    // 旧格式2: 直接存储字符串 "light" | "dark"
+    if (typeof parsed === 'string' && ['light', 'dark', 'auto'].includes(parsed)) {
+      return parsed;
+    }
+    
+    return null;
+  } catch (error) {
+    // 如果不是 JSON，尝试直接作为字符串解析
+    if (typeof stored === 'string' && ['light', 'dark', 'auto'].includes(stored)) {
+      return stored as ThemeMode;
+    }
+    
+    return null;
+  }
+}
+
+/**
+ * 安全地从 localStorage 读取主题
+ * 
+ * @param key - 存储键名
+ * @param fallback - 默认值
+ * @returns 主题模式
+ */
+function safeGetTheme(key: string, fallback: ThemeMode): ThemeMode {
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+  
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) {
+      return fallback;
+    }
+    
+    const migrated = migrateThemeData(stored);
+    if (migrated) {
+      // 如果是旧格式，迁移到新格式
+      if (stored !== JSON.stringify({ mode: migrated })) {
+        localStorage.setItem(key, JSON.stringify({ mode: migrated }));
+      }
+      return migrated;
+    }
+    
+    return fallback;
+  } catch (error) {
+    console.warn('Failed to load theme from localStorage:', error);
+    return fallback;
+  }
+}
+
+/**
+ * 安全地从 localStorage 读取颜色配置
+ * 
+ * @param key - 存储键名
+ * @returns 颜色配置
+ */
+function safeGetColors(key: string): Partial<ThemePalette> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+  
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) {
+      return {};
+    }
+    
+    const parsed = JSON.parse(stored);
+    
+    // 验证颜色格式
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed;
+    }
+    
+    return {};
+  } catch (error) {
+    console.warn('Failed to load theme colors from localStorage:', error);
+    return {};
+  }
+}
 
 /**
  * 主题上下文值
@@ -114,21 +220,7 @@ export function ThemeProvider({
 
   // 初始化主题状态
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    if (typeof window === 'undefined') {
-      return config.mode;
-    }
-    
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.mode || config.mode;
-      }
-    } catch (error) {
-      console.warn('Failed to load theme from localStorage:', error);
-    }
-    
-    return config.mode;
+    return safeGetTheme(storageKey, config.mode);
   });
 
   // 系统主题偏好
@@ -141,20 +233,7 @@ export function ThemeProvider({
 
   // 自定义颜色
   const [customColors, setCustomColors] = useState<Partial<ThemePalette>>(() => {
-    if (typeof window === 'undefined') {
-      return {};
-    }
-    
-    try {
-      const stored = localStorage.getItem(`${storageKey}-colors`);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.warn('Failed to load theme colors from localStorage:', error);
-    }
-    
-    return {};
+    return safeGetColors(`${storageKey}-colors`);
   });
 
   // 计算有效主题
@@ -243,6 +322,41 @@ export function ThemeProvider({
       mediaQuery.removeEventListener('change', handleChange);
     };
   }, []);
+
+  // 跨标签页同步主题
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // 只处理主题相关的存储变化
+      if (e.key === storageKey && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.mode && parsed.mode !== theme) {
+            setThemeState(parsed.mode);
+          }
+        } catch (error) {
+          console.warn('Failed to parse theme from storage event:', error);
+        }
+      }
+
+      // 处理自定义颜色的同步
+      if (e.key === `${storageKey}-colors` && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          setCustomColors(parsed);
+        } catch (error) {
+          console.warn('Failed to parse theme colors from storage event:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [storageKey, theme]);
 
   // 应用主题到 DOM
   useEffect(() => {
