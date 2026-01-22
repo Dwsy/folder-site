@@ -703,6 +703,92 @@ export interface PluginValidationResult {
   warnings: string[];
 }
 
+/**
+ * 插件加载结果
+ */
+export interface PluginLoadResult {
+  /** 是否加载成功 */
+  success: boolean;
+  
+  /** 加载的插件实例 */
+  plugin?: Plugin;
+  
+  /** 加载错误（如果失败） */
+  error?: PluginLoadError;
+  
+  /** 加载耗时（毫秒） */
+  duration: number;
+  
+  /** 缓存命中 */
+  cached?: boolean;
+}
+
+/**
+ * 插件加载错误
+ */
+export interface PluginLoadError {
+  /** 错误类型 */
+  type: PluginErrorType;
+  
+  /** 错误消息 */
+  message: string;
+  
+  /** 插件 ID */
+  pluginId: string;
+  
+  /** 插件版本 */
+  pluginVersion: string;
+  
+  /** 原始错误 */
+  cause?: Error;
+  
+  /** 错误发生的时间戳 */
+  timestamp: number;
+}
+
+/**
+ * 插件依赖解析结果
+ */
+export interface PluginDependencyResolution {
+  /** 是否成功解析 */
+  resolved: boolean;
+  
+  /** 解析的依赖 */
+  dependencies: Record<string, string>;
+  
+  /** 解析的对等依赖 */
+  peerDependencies?: Record<string, string>;
+  
+  /** 解析错误 */
+  errors: string[];
+  
+  /** 解析警告 */
+  warnings: string[];
+  
+  /** 解析耗时（毫秒） */
+  duration: number;
+}
+
+/**
+ * 插件缓存项
+ */
+export interface PluginCacheItem {
+  /** 插件实例 */
+  plugin: Plugin;
+  
+  /** 缓存时间戳 */
+  timestamp: number;
+  
+  /** 缓存大小（字节） */
+  size: number;
+  
+  /** 缓存键 */
+  key: string;
+  
+  /** 插件路径或包名 */
+  source: string;
+}
+
 // =============================================================================
 // 插件沙箱 (Plugin Sandbox)
 // =============================================================================
