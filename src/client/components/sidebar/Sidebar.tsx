@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   FaHome,
   FaChevronDown,
   FaChevronRight,
   FaBars,
   FaTimes,
-  FaSearch,
 } from 'react-icons/fa';
 import {
   FileIcon,
@@ -82,13 +81,13 @@ interface FileTreeNodeProps {
   node: FileNode;
   level?: number;
   onFileClick?: (path: string) => void;
+  activePath?: string;
 }
 
-function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
+function FileTreeNode({ node, level = 0, onFileClick, activePath }: FileTreeNodeProps) {
   const [collapsed, setCollapsed] = useState(node.collapsed ?? false);
-  const location = useLocation();
 
-  const isActive = location.pathname === node.path;
+  const isActive = activePath === node.path;
 
   const handleFolderClick = useCallback(() => {
     setCollapsed(!collapsed);
@@ -100,11 +99,12 @@ function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
 
   if (node.type === 'folder') {
     return (
-      <div>
+      <div role="treeitem" aria-expanded={!collapsed}>
         <button
           onClick={handleFolderClick}
           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted"
           style={{ paddingLeft: `${level * 12 + 8}px` }}
+          aria-label={collapsed ? `Expand ${node.name}` : `Collapse ${node.name}`}
         >
           {collapsed ? (
             <FaChevronRight className="h-3 w-3 text-muted-foreground" />
@@ -121,7 +121,13 @@ function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
         {!collapsed && node.children && (
           <div>
             {node.children.map((child, index) => (
-              <FileTreeNode key={index} node={child} level={level + 1} onFileClick={onFileClick} />
+              <FileTreeNode
+                key={index}
+                node={child}
+                level={level + 1}
+                onFileClick={onFileClick}
+                activePath={activePath}
+              />
             ))}
           </div>
         )}
@@ -138,6 +144,9 @@ function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
         isActive && 'bg-accent text-accent-foreground'
       )}
       style={{ paddingLeft: `${level * 12 + 28}px` }}
+      role="treeitem"
+      aria-current={isActive ? 'page' : undefined}
+      aria-label={node.name}
     >
       {getFileIcon(node.name)}
       <span className="flex-1 truncate">{node.name}</span>
@@ -152,6 +161,7 @@ interface SidebarProps {
   isMobile?: boolean;
   onMobileClose?: () => void;
   fileTree?: FileNode[];
+  activePath?: string;
 }
 
 export function Sidebar({
@@ -161,8 +171,8 @@ export function Sidebar({
   isMobile = false,
   onMobileClose,
   fileTree = mockFileTree,
+  activePath,
 }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Handle escape key to close mobile sidebar
   useEffect(() => {
@@ -175,38 +185,6 @@ export function Sidebar({
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isMobile, onMobileClose]);
-
-  // Filter file tree based on search query
-  const filteredFileTree = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return fileTree;
-    }
-
-    const filterNodes = (nodes: FileNode[]): FileNode[] => {
-      return nodes
-        .map((node) => {
-          if (node.type === 'file') {
-            return node.name.toLowerCase().includes(searchQuery.toLowerCase()) ? node : null;
-          } else {
-            const filteredChildren = filterNodes(node.children || []);
-            if (
-              filteredChildren.length > 0 ||
-              node.name.toLowerCase().includes(searchQuery.toLowerCase())
-            ) {
-              return {
-                ...node,
-                children: filteredChildren,
-                collapsed: false, // Auto-expand when searching
-              };
-            }
-            return null;
-          }
-        })
-        .filter((node): node is FileNode => node !== null);
-    };
-
-    return filterNodes(fileTree);
-  }, [searchQuery, fileTree]);
 
   const handleFileClick = useCallback(() => {
     if (isMobile) {
@@ -224,6 +202,8 @@ export function Sidebar({
           isMobile && 'fixed inset-y-0 left-0 z-50 shadow-xl lg:static lg:shadow-none',
           className
         )}
+        aria-label="File navigation sidebar"
+        role="navigation"
       >
         {/* Sidebar Header */}
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
@@ -254,24 +234,8 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Search */}
-        {!collapsed && (
-          <div className="border-b border-sidebar-border p-3">
-            <div className="relative">
-              <FaSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search files..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-            </div>
-          </div>
-        )}
-
         {/* Navigation */}
-        <nav className="flex-1 overflow-auto p-2">
+        <nav className="flex-1 overflow-auto p-2" aria-label="File navigation">
           <div className="mb-2">
             <Link
               to="/"
@@ -293,18 +257,17 @@ export function Sidebar({
             </div>
           )}
 
-          <div>
-            {filteredFileTree.map((node, index) => (
-              <FileTreeNode key={index} node={node} onFileClick={handleFileClick} />
+          <div role="tree">
+            {fileTree.map((node, index) => (
+              <FileTreeNode
+                key={index}
+                node={node}
+                level={0}
+                onFileClick={handleFileClick}
+                activePath={activePath}
+              />
             ))}
           </div>
-
-          {/* Empty state when search has no results */}
-          {searchQuery && filteredFileTree.length === 0 && (
-            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-              No files found
-            </div>
-          )}
         </nav>
 
         {/* Footer */}

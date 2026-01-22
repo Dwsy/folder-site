@@ -92,7 +92,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       const { error, errorInfo, errorId } = this.state;
       const showDetails = this.props.showDetails !== false; // 默认显示详情
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      const isDevelopment = import.meta.env.DEV;
 
       return (
         <div className="flex h-screen items-center justify-center bg-background p-4">

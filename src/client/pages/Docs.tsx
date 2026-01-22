@@ -6,16 +6,19 @@
 
 import { useState, useEffect } from 'react';
 import { ADRListWithDetail } from '../components/workhub/ADRList.js';
+import { IssueListWithDetail } from '../components/workhub/IssueList.js';
 import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
-import type { ADREntry } from '../../types/workhub.js';
+import type { ADREntry, IssueEntry } from '../../types/workhub.js';
 
 interface WorkHubResponse {
   success: boolean;
   data: {
     adrs: ADREntry[];
+    issues?: IssueEntry[];
     stats: {
       totalADRs: number;
+      totalIssues?: number;
       parseTime: number;
     };
   };
@@ -28,6 +31,7 @@ type TabType = 'adrs' | 'issues' | 'prs' | 'all';
 export function Docs({ className }: { className?: string }) {
   const [activeTab, setActiveTab] = useState<TabType>('adrs');
   const [adrs, setADRs] = useState<ADREntry[]>([]);
+  const [issues, setIssues] = useState<IssueEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -60,6 +64,32 @@ export function Docs({ className }: { className?: string }) {
     };
 
     fetchADRs();
+  }, []);
+
+  // Fetch Issues
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        const response = await fetch('/api/workhub/issues');
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Issues: ${response.statusText}`);
+        }
+
+        const result: WorkHubResponse = await response.json();
+
+        if (result.success && result.data) {
+          setIssues(result.data.issues || []);
+        } else {
+          throw new Error(result.error || 'Failed to parse Issues');
+        }
+      } catch (err) {
+        console.error('Error fetching Issues:', err);
+        // Don't set error state for issues, just log it
+      }
+    };
+
+    fetchIssues();
   }, []);
 
   // Handle retry
@@ -152,13 +182,7 @@ export function Docs({ className }: { className?: string }) {
               <ADRListWithDetail adrs={adrs} />
             )}
             {activeTab === 'issues' && (
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 py-12 text-center">
-                <FiAlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
-                <h2 className="mb-2 text-xl font-semibold text-foreground">Issues Coming Soon</h2>
-                <p className="text-sm text-muted-foreground">
-                  Issue display functionality will be implemented in task 041.
-                </p>
-              </div>
+              <IssueListWithDetail issues={issues} />
             )}
             {activeTab === 'prs' && (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 py-12 text-center">
@@ -175,12 +199,9 @@ export function Docs({ className }: { className?: string }) {
                   <h2 className="mb-4 text-xl font-semibold text-foreground">Architecture Decision Records</h2>
                   <ADRListWithDetail adrs={adrs} />
                 </div>
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 py-12 text-center">
-                  <FiAlertCircle className="mb-4 h-12 w-12 text-muted-foreground" />
-                  <h2 className="mb-2 text-xl font-semibold text-foreground">More Content Coming Soon</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Issues and PRs will be displayed here in upcoming tasks.
-                  </p>
+                <div>
+                  <h2 className="mb-4 text-xl font-semibold text-foreground">Issues</h2>
+                  <IssueListWithDetail issues={issues} />
                 </div>
               </div>
             )}

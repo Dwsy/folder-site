@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './providers/ThemeProvider.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
-import { SearchModal } from './components/search/index.js';
+import { SearchModal, type SearchResultItem } from './components/search/index.js';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 
 // 导入布局和页面
 import { MainLayout } from './layouts/MainLayout.js';
 import { Home } from './pages/Home.js';
+import { Docs } from './pages/Docs.js';
+import { Search as SearchPage } from './pages/Search.js';
+import { Help } from './pages/Help.js';
 import { NotFound } from './pages/NotFound.js';
 
 /**
@@ -45,17 +48,13 @@ function RootLayout() {
   ];
 
   // 处理搜索结果选择
-  const handleSearchSelect = useCallback((item: any) => {
+  const handleSearchSelect = useCallback((item: SearchResultItem) => {
     console.log('Selected:', item);
   }, []);
 
   // 关闭搜索模态框当路由变化时
   useEffect(() => {
-    // 只在用户真正导航到其他页面时关闭搜索框
-    // 首次加载或哈希变化时不关闭
-    if (searchOpen && location.pathname !== '/' && !location.hash) {
-      setSearchOpen(false);
-    }
+    // 不自动关闭搜索框，让用户通过 ESC 关闭或选择结果后导航
   }, [location.pathname, location.hash, searchOpen]);
 
   return (
@@ -84,9 +83,11 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { index: true, element: <Home /> },
-          { path: 'docs', element: <Home /> },  // 临时指向 Home，后续添加真实文档页面
+          { path: 'docs', element: <Docs /> },
           { path: 'features', element: <Home /> },
           { path: 'about', element: <Home /> },
+          { path: 'search', element: <SearchPage /> },
+          { path: 'help', element: <Help /> },
           { path: '*', element: <NotFound /> },
         ],
       },

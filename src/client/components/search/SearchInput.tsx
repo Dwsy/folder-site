@@ -56,7 +56,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     // 自动聚焦
     useEffect(() => {
       if (autoFocus && inputRef.current && !disabled) {
-        inputRef.current.focus();
+        inputRef.current.focus({ preventScroll: true });
       }
     }, [autoFocus, disabled, inputRef]);
 

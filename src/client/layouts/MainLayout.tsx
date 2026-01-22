@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/sidebar/Sidebar.js';
 import { Header } from '../components/header/Header.js';
 import { cn } from '../utils/cn';
@@ -9,25 +9,29 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-      // Auto-collapse sidebar on mobile
-      if (window.innerWidth < 1024) {
-        setSidebarCollapsed(true);
+      const isMobileDevice = window.innerWidth < 1024;
+      setIsMobile(isMobileDevice);
+      // 只在首次加载时自动折叠侧边栏
+      if (!initialized) {
+        setSidebarCollapsed(isMobileDevice);
+        setInitialized(true);
       }
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [initialized]);
 
   // Load saved sidebar width from localStorage
   useEffect(() => {
@@ -123,6 +127,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             onToggleCollapse={handleSidebarToggle}
             isMobile={isMobile}
             onMobileClose={handleMobileSidebarClose}
+            activePath={location.pathname}
           />
         </div>
 
