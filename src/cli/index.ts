@@ -77,25 +77,3 @@ async function main(): Promise<void> {
 
 // 执行主函数
 main();
-
-// 导出 server 供 Bun 使用
-const port = parseInt(process.env.PORT || "3000");
-
-async function handleRequest(request: Request): Promise<Response> {
-  const server = globalThis.server as { port: number; fetch: (req: Request) => Response | Promise<Response> } | undefined;
-  if (!server) {
-    const { createServer } = await import('../server/index.js');
-    const app = createServer();
-    const result = app.fetch(request);
-    return result instanceof Promise ? await result : result;
-  }
-  const result = server.fetch(request);
-  return result instanceof Promise ? await result : result;
-}
-
-const serverExport = {
-  port,
-  fetch: handleRequest,
-};
-
-export default serverExport as any;
