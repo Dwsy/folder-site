@@ -5,6 +5,11 @@
  *
  * 功能特性：
  * - 模糊搜索算法（支持文件名、路径匹配）
+ * - Levenshtein 距离计算
+ * - 子序列匹配（支持字符跳过，如 "fs" 匹配 "FolderSite"）
+ * - 智能评分系统（考虑匹配位置、类型、路径深度等）
+ * - 路径感知搜索
+ * - 搜索结果缓存
  * - 防抖搜索输入
  * - 键盘导航支持
  * - 搜索结果高亮
@@ -27,10 +32,12 @@ export interface SearchResult {
   type: 'file' | 'directory';
   /** 文件扩展名 */
   extension?: string;
-  /** 匹配分数（用于排序） */
+  /** 匹配分数（用于排序，0-1） */
   score: number;
   /** 匹配的索引位置 */
   matches: number[];
+  /** 匹配类型 */
+  matchType: 'exact' | 'prefix' | 'substring' | 'subsequence' | 'path' | 'fuzzy';
 }
 
 /**
@@ -47,6 +54,14 @@ export interface SearchConfig {
   includeFolders?: boolean;
   /** 是否使用模糊匹配 */
   fuzzyMatch?: boolean;
+  /** 是否启用缓存 */
+  enableCache?: number; // 缓存过期时间（毫秒）
+  /** 模糊匹配阈值（0-1） */
+  fuzzyThreshold?: number;
+  /** 路径权重（0-1，越高表示路径越重要） */
+  pathWeight?: number;
+  /** 目录深度权重（越浅的目录权重越高） */
+  depthWeight?: number;
 }
 
 /**
@@ -73,6 +88,8 @@ export interface UseSearchReturn {
   selectNext: () => void;
   /** 获取当前选中的结果 */
   getSelectedResult: () => SearchResult | null;
+  /** 清除缓存 */
+  clearCache: () => void;
 }
 
 /**
@@ -84,7 +101,107 @@ const DEFAULT_SEARCH_CONFIG: Required<SearchConfig> = {
   maxResults: 50,
   includeFolders: true,
   fuzzyMatch: true,
+  enableCache: 5000, // 5秒缓存
+  fuzzyThreshold: 0.6,
+  pathWeight: 0.3,
+  depthWeight: 0.1,
 };
+
+/**
+ * 缓存条目
+ */
+interface CacheEntry {
+  results: SearchResult[];
+  timestamp: number;
+}
+
+/**
+ * 搜索缓存
+ */
+class SearchCache {
+  private cache: Map<string, CacheEntry> = new Map();
+  private maxSize: number;
+  private ttl: number;
+
+  constructor(maxSize: number = 100, ttl: number = 5000) {
+    this.maxSize = maxSize;
+    this.ttl = ttl;
+  }
+
+  get(key: string): SearchResult[] | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now - entry.timestamp > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.results;
+  }
+
+  set(key: string, results: SearchResult[]): void {
+    if (this.cache.size >= this.maxSize) {
+      // 删除最旧的条目
+      const sortedEntries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      if (sortedEntries.length > 0) {
+        const oldestKey = sortedEntries[0]![0];
+        this.cache.delete(oldestKey);
+      }
+    }
+
+    this.cache.set(key, {
+      results,
+      timestamp: Date.now(),
+    });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+/**
+ * 计算 Levenshtein 编辑距离
+ *
+ * @param str1 - 第一个字符串
+ * @param str2 - 第二个字符串
+ * @returns 编辑距离
+ */
+export function levenshteinDistance(str1: string, str2: string): number {
+  const len1 = str1.length;
+  const len2 = str2.length;
+
+  if (len1 === 0) return len2;
+  if (len2 === 0) return len1;
+
+  // 使用一维数组优化空间复杂度
+  const dp = new Array(len2 + 1);
+
+  for (let j = 0; j <= len2; j++) {
+    dp[j] = j;
+  }
+
+  for (let i = 1; i <= len1; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+
+    for (let j = 1; j <= len2; j++) {
+      const temp = dp[j];
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      dp[j] = Math.min(
+        dp[j] + 1, // 删除
+        dp[j - 1] + 1, // 插入
+        prev + cost // 替换
+      );
+      prev = temp;
+    }
+  }
+
+  return dp[len2];
+}
 
 /**
  * 计算字符串相似度分数（基于 Levenshtein 距离）
@@ -93,26 +210,97 @@ const DEFAULT_SEARCH_CONFIG: Required<SearchConfig> = {
  * @param str2 - 第二个字符串
  * @returns 相似度分数（0-1，1表示完全匹配）
  */
-function calculateSimilarity(str1: string, str2: string): number {
+export function calculateSimilarity(str1: string, str2: string): number {
   const len1 = str1.length;
   const len2 = str2.length;
 
   if (len1 === 0) return 0;
   if (len2 === 0) return 0;
 
-  // 简单的字符匹配分数
-  let matches = 0;
-  const str2Lower = str2.toLowerCase();
-  const str1Lower = str1.toLowerCase();
+  const distance = levenshteinDistance(str1, str2);
+  const maxLen = Math.max(len1, len2);
 
-  for (let i = 0; i < len1; i++) {
-    const char = str1Lower[i];
-    if (str2Lower.includes(char)) {
-      matches++;
+  // 转换为相似度分数（0-1）
+  return 1 - distance / maxLen;
+}
+
+/**
+ * 子序列模糊匹配（支持字符跳过）
+ * 例如 "fs" 可以匹配 "FolderSite"（匹配 F 和 S）
+ *
+ * @param pattern - 搜索模式
+ * @param text - 目标文本
+ * @returns 匹配的索引数组，如果不匹配返回 null
+ */
+export function fuzzySubsequenceMatch(pattern: string, text: string): number[] | null {
+  const patternLower = pattern.toLowerCase();
+  const textLower = text.toLowerCase();
+  const matches: number[] = [];
+
+  let patternIndex = 0;
+  for (let i = 0; i < textLower.length && patternIndex < patternLower.length; i++) {
+    if (textLower[i] === patternLower[patternIndex]) {
+      matches.push(i);
+      patternIndex++;
     }
   }
 
-  return matches / len1;
+  // 如果所有字符都匹配到了
+  if (patternIndex === patternLower.length) {
+    return matches;
+  }
+
+  return null;
+}
+
+/**
+ * 计算路径深度（目录层级数）
+ */
+export function calculatePathDepth(path: string): number {
+  return path.split(/[\/\\]/).filter(p => p !== '').length;
+}
+
+/**
+ * 计算匹配得分
+ *
+ * @param matchType - 匹配类型
+ * @param matchIndex - 匹配起始位置
+ * @param queryLength - 查询长度
+ * @param pathDepth - 路径深度
+ * @param maxPathDepth - 最大路径深度
+ * @param config - 搜索配置
+ * @returns 得分（0-1）
+ */
+export function calculateScore(
+  matchType: SearchResult['matchType'],
+  matchIndex: number,
+  pathDepth: number,
+  maxPathDepth: number,
+  config: Required<SearchConfig>
+): number {
+  // 基础分数（基于匹配类型）
+  const baseScores: Record<SearchResult['matchType'], number> = {
+    exact: 1.0,
+    prefix: 0.95,
+    subsequence: 0.85,
+    substring: 0.75,
+    path: 0.65,
+    fuzzy: 0.5,
+  };
+
+  let score = baseScores[matchType];
+
+  // 位置加成：匹配越靠前，分数越高
+  const positionBonus = Math.max(0, 1 - matchIndex / 10) * 0.1;
+  score += positionBonus;
+
+  // 深度加成：越浅的目录，分数越高
+  if (maxPathDepth > 0) {
+    const depthScore = 1 - (pathDepth / maxPathDepth) * config.depthWeight;
+    score = score * depthScore + (1 - depthScore) * score * (1 - config.depthWeight);
+  }
+
+  return Math.min(1, Math.max(0, score));
 }
 
 /**
@@ -123,7 +311,7 @@ function calculateSimilarity(str1: string, str2: string): number {
  * @param config - 搜索配置
  * @returns 搜索结果列表
  */
-function fuzzySearch(
+export function fuzzySearch(
   query: string,
   items: Array<{
     name: string;
@@ -141,6 +329,10 @@ function fuzzySearch(
   const queryLower = query.toLowerCase();
   const results: SearchResult[] = [];
 
+  // 计算最大路径深度用于归一化
+  const pathDepths = items.map(item => calculatePathDepth(item.relativePath));
+  const maxPathDepth = Math.max(...pathDepths, 1);
+
   for (const item of items) {
     // 跳过文件夹（如果配置不包含文件夹）
     if (item.type === 'directory' && !config.includeFolders) {
@@ -148,61 +340,90 @@ function fuzzySearch(
     }
 
     const nameLower = item.name.toLowerCase();
-    const pathLower = item.path.toLowerCase();
     const relativePathLower = item.relativePath.toLowerCase();
+    const pathDepth = calculatePathDepth(item.relativePath);
 
+    let matchType: SearchResult['matchType'] | null = null;
     let score = 0;
     const matches: number[] = [];
+    let matchIndex = 0;
 
-    // 完全匹配（文件名）
+    // 1. 完全匹配（文件名）
     if (nameLower === queryLower) {
+      matchType = 'exact';
       score = 1.0;
       matches.push(0);
+      matchIndex = 0;
     }
-    // 前缀匹配（文件名）
+    // 2. 前缀匹配（文件名）
     else if (nameLower.startsWith(queryLower)) {
-      score = 0.9;
+      matchType = 'prefix';
       for (let i = 0; i < queryLower.length; i++) {
         matches.push(i);
       }
+      matchIndex = 0;
     }
-    // 包含匹配（文件名）
-    else if (nameLower.includes(queryLower)) {
-      score = 0.8;
+    // 3. 子序列匹配（文件名）- 支持字符跳过
+    else if (config.fuzzyMatch) {
+      const subsequenceMatches = fuzzySubsequenceMatch(queryLower, nameLower);
+      if (subsequenceMatches && subsequenceMatches.length > 0) {
+        matchType = 'subsequence';
+        matches.push(...subsequenceMatches);
+        matchIndex = subsequenceMatches[0]!;
+      }
+    }
+    // 4. 包含匹配（文件名）
+    if (!matchType && nameLower.includes(queryLower)) {
+      matchType = 'substring';
       const index = nameLower.indexOf(queryLower);
       for (let i = 0; i < queryLower.length; i++) {
         matches.push(index + i);
       }
+      matchIndex = index;
     }
-    // 路径匹配
-    else if (relativePathLower.includes(queryLower)) {
-      score = 0.7;
+    // 5. 路径匹配
+    if (!matchType && relativePathLower.includes(queryLower)) {
+      matchType = 'path';
       const index = relativePathLower.indexOf(queryLower);
       for (let i = 0; i < queryLower.length; i++) {
         matches.push(index + i);
       }
+      matchIndex = index;
     }
-    // 模糊匹配
-    else if (config.fuzzyMatch) {
+    // 6. 模糊匹配（基于编辑距离）
+    if (!matchType && config.fuzzyMatch) {
       const similarity = calculateSimilarity(queryLower, nameLower);
-      if (similarity > 0.5) {
-        score = similarity * 0.6;
+      if (similarity >= config.fuzzyThreshold) {
+        matchType = 'fuzzy';
+        score = similarity;
       }
     }
 
-    // 如果有匹配分数，添加到结果
-    if (score > 0) {
+    // 如果有匹配，计算得分并添加到结果
+    if (matchType) {
+      // 如果没有通过相似度计算得分，则使用评分函数
+      if (score === 0) {
+        score = calculateScore(
+          matchType,
+          matchIndex,
+          pathDepth,
+          maxPathDepth,
+          config
+        );
+      }
+
       results.push({
         ...item,
         score,
         matches,
+        matchType,
       });
     }
   }
 
-  // 按分数排序（降序），然后按名称排序
+  // 按分数排序（降序），分数相同时按名称排序
   results.sort((a, b) => {
-    if (b.score !== a.score) {
+    if (Math.abs(b.score - a.score) > 0.001) {
       return b.score - a.score;
     }
     return a.name.localeCompare(b.name);
@@ -262,6 +483,9 @@ export function useSearch(
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchResultsRef = useRef<SearchResult[]>([]);
   const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const cacheRef = useRef<SearchCache>(
+    new SearchCache(100, finalConfig.enableCache)
+  );
 
   // 防抖处理搜索查询
   useEffect(() => {
@@ -285,8 +509,29 @@ export function useSearch(
 
   // 执行搜索
   const results = useMemo(() => {
+    if (!debouncedQuery || debouncedQuery.length < finalConfig.minQueryLength) {
+      return [];
+    }
+
+    // 检查缓存
+    const cacheKey = `${debouncedQuery}:${items.length}`;
+    if (finalConfig.enableCache > 0) {
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached) {
+        searchResultsRef.current = cached;
+        return cached;
+      }
+    }
+
+    // 执行搜索
     const searchResults = fuzzySearch(debouncedQuery, items, finalConfig);
     searchResultsRef.current = searchResults;
+
+    // 缓存结果
+    if (finalConfig.enableCache > 0) {
+      cacheRef.current.set(cacheKey, searchResults);
+    }
+
     return searchResults;
   }, [debouncedQuery, items, finalConfig]);
 
@@ -305,6 +550,11 @@ export function useSearch(
     setQueryState('');
     setDebouncedQuery('');
     setSelectedIndex(0);
+  }, []);
+
+  // 清除缓存
+  const clearCache = useCallback(() => {
+    cacheRef.current.clear();
   }, []);
 
   // 选择上一个结果
@@ -339,6 +589,7 @@ export function useSearch(
     selectPrevious,
     selectNext,
     getSelectedResult,
+    clearCache,
   };
 }
 
@@ -354,6 +605,34 @@ export function highlightMatches(text: string, query: string): string {
 
   const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
   return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current px-0.5 rounded">$1</mark>');
+}
+
+/**
+ * 高亮匹配文本（基于匹配索引）
+ *
+ * @param text - 原始文本
+ * @param matches - 匹配的索引数组
+ * @returns 高亮的 HTML 字符串
+ */
+export function highlightMatchesByIndex(text: string, matches: number[]): string {
+  if (!matches || matches.length === 0) return text;
+
+  // 按索引排序并去重
+  const sortedMatches = [...new Set(matches)].sort((a, b) => a - b);
+
+  let result = '';
+  let lastIndex = 0;
+
+  for (const index of sortedMatches) {
+    if (index < text.length) {
+      result += text.slice(lastIndex, index);
+      result += `<mark class="bg-yellow-200 dark:bg-yellow-800 text-current px-0.5 rounded">${text[index]}</mark>`;
+      lastIndex = index + 1;
+    }
+  }
+
+  result += text.slice(lastIndex);
+  return result;
 }
 
 /**
