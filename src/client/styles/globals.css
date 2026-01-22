@@ -32,6 +32,9 @@
     --sidebar-accent-foreground: 222.2 47.4% 11.2%;
     --sidebar-border: 214.3 31.8% 91.4%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Font settings */
+    --font-family: Inter, system-ui, sans-serif;
+    --font-size: 16px;
   }
 
   .dark {
@@ -72,6 +75,8 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-family);
+    font-size: var(--font-size);
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 

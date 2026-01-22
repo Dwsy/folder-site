@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family, Inter, system-ui, sans-serif);
+      font-size: var(--font-size, 16px);
+      line-height: 1.6;
+      color: var(--foreground, #0a0a0a);
+      background-color: var(--background, #ffffff);
+      transition: all 0.3s ease;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--primary, #0066cc);
+    }
+
+    h2 {
+      font-size: 2rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    .demo-box {
+      border: 2px solid var(--border, #d4d4d4);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      background-color: var(--card, #ffffff);
+    }
+
+    .settings-hint {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary, #0066cc);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    code {
+      background-color: var(--muted, #f5f5f5);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    pre {
+      background-color: var(--muted, #f5f5f5);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    pre code {
+      background-color: transparent;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Settings Demo</h1>
+
+    <p>
+      This page demonstrates the settings functionality. Click the ⚙️ button
+      in the footer to open the settings panel and customize your experience.
+    </p>
+
+    <div class="demo-box">
+      <h2>Available Settings</h2>
+      <ul>
+        <li><strong>Theme</strong>: Light, Dark, Auto</li>
+        <li><strong>Font Family</strong>: System, Serif, Monospace, Cursive</li>
+        <li><strong>Font Size</strong>: Small, Medium, Large, Extra Large</li>
+      </ul>
+    </div>
+
+    <div class="demo-box">
+      <h2>Sample Text</h2>
+      <p>
+        The quick brown fox jumps over the lazy dog. This is a sample paragraph
+        to demonstrate how different fonts and sizes affect readability.
+      </p>
+      <p>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua.
+      </p>
+    </div>
+
+    <div class="demo-box">
+      <h2>Code Example</h2>
+      <pre><code>// JavaScript example
+function greet(name) {
+  return `Hello, ${name}!`;
+}
+
+console.log(greet("World"));</code></pre>
+    </div>
+
+    <div class="demo-box">
+      <h2>Typography Test</h2>
+      <h3>Heading 3</h3>
+      <h4>Heading 4</h4>
+      <h5>Heading 5</h5>
+      <p>Regular paragraph text.</p>
+      <p><strong>Bold text</strong> and <em>italic text</em>.</p>
+      <p><a href="#">Link example</a></p>
+    </div>
+
+    <div class="settings-hint">
+      ⚙️ Click the settings button in the footer!
+    </div>
+  </div>
+
+  <script>
+    // Initialize CSS variables from localStorage
+    function initSettings() {
+      const fontFamily = localStorage.getItem('folder-site-font-family');
+      const fontSize = localStorage.getItem('folder-site-font-size');
+      const theme = localStorage.getItem('folder-site-theme');
+
+      if (fontFamily) {
+        document.documentElement.style.setProperty('--font-family', fontFamily);
+      }
+
+      if (fontSize) {
+        document.documentElement.style.setProperty('--font-size', fontSize);
+      }
+
+      if (theme) {
+        try {
+          const parsed = JSON.parse(theme);
+          if (parsed.mode === 'dark') {
+            document.documentElement.style.setProperty('--background', '#0a0a0a');
+            document.documentElement.style.setProperty('--foreground', '#fafafa');
+            document.documentElement.style.setProperty('--card', '#1a1a1a');
+            document.documentElement.style.setProperty('--border', '#404040');
+            document.documentElement.style.setProperty('--primary', '#3b82f6');
+            document.documentElement.style.setProperty('--muted', '#2a2a2a');
+          }
+        } catch (e) {
+          console.error('Failed to parse theme:', e);
+        }
+      }
+    }
+
+    // Listen for storage changes
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'folder-site-font-family' && e.newValue) {
+        document.documentElement.style.setProperty('--font-family', e.newValue);
+      }
+      if (e.key === 'folder-site-font-size' && e.newValue) {
+        document.documentElement.style.setProperty('--font-size', e.newValue);
+      }
+    });
+
+    // Initialize on load
+    initSettings();
+  </script>
+</body>
+</html>

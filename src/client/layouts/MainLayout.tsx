@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/sidebar/Sidebar.js';
 import { Header } from '../components/header/Header.js';
+import { SettingsPanel, SettingsButton } from '../components/settings/index.js';
 import { cn } from '../utils/cn';
 
 interface MainLayoutProps {
@@ -15,6 +16,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Check if device is mobile
   useEffect(() => {
@@ -182,6 +184,20 @@ export function MainLayout({ children }: MainLayoutProps) {
           {children || <Outlet />}
         </main>
       </div>
+
+      {/* Footer Bar */}
+      <footer className="flex items-center justify-between border-t bg-card px-4 py-2">
+        <div className="text-xs text-muted-foreground">
+          {isMobile ? 'Folder-Site' : 'Folder-Site CLI - One-command local website generator'}
+        </div>
+        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+      </footer>
+
+      {/* Settings Panel */}
+      <SettingsPanel
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }
