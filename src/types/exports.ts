@@ -76,6 +76,14 @@ export type {
   FileIndexUpdateSummary,
 } from './indexing.js';
 
+export type {
+  // Parser
+  MarkdownParserOptions,
+  ParseResult,
+  FrontmatterData,
+  ParseMetadata,
+} from './parser.js';
+
 // 导出工具类型
 export type {
   DeepPartial,
