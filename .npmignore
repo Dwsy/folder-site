@@ -1,0 +1,84 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.vite/
+out/
+*.tsbuildinfo
+
+# Task files
+task/
+任务索引.md
+
+# Documentation (keep only README and essential docs)
+docs/
+*.md
+!README.md
+!CHANGELOG.md
+!RELEASE_NOTES.md
+!LICENSE
+
+# Testing
+tests/
+test/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Misc
+.editorconfig
+.prettierrc
+.prettierignore
+.eslintrc*
+.eslintignore
+.stylelintrc*
+.stylelintignore
