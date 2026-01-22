@@ -140,7 +140,7 @@ export interface FileWatchEvent {
  */
 export interface FileWatchOptions {
   /** 忽略模式 */
-  ignored?: string | RegExp | (string | RegExp)[];
+  ignored?: string | RegExp | (string | RegExp)[] | ((path: string) => boolean);
   /** 是否忽略初始扫描 */
   ignoreInitial?: boolean;
   /** 是否使用轮询 */
@@ -152,4 +152,22 @@ export interface FileWatchOptions {
     stabilityThreshold: number;
     pollInterval: number;
   };
+  /** 监听根目录 */
+  rootDir: string;
+  /** 包含的文件扩展名 */
+  extensions?: string[];
+  /** 排除的目录名称 */
+  excludeDirs?: string[];
+  /** 防抖延迟 */
+  debounceDelay?: number;
+}
+
+/**
+ * 文件监听器状态
+ */
+export interface FileWatcherStatus {
+  /** 是否正在监听 */
+  isWatching: boolean;
+  /** 监听的路径列表 */
+  watchedPaths: string[];
 }
