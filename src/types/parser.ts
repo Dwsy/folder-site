@@ -35,6 +35,12 @@ export interface MarkdownParserOptions {
   math?: boolean;
 
   /**
+   * 是否支持 Mermaid 图表
+   * @default true
+   */
+  mermaid?: boolean;
+
+  /**
    * 代码高亮主题
    * @default 'github'
    */

@@ -1,16 +1,17 @@
 /**
  * 文件扫描服务
  *
- * 提供递归目录扫描、文件扩展名过滤和文件元数据生成功能
+ * 使用 fast-glob 进行高性能文件扫描，支持 .gitignore 规则
  */
 
-import { readdir, stat } from 'node:fs/promises';
+import fg from 'fast-glob';
+import { stat } from 'node:fs/promises';
 import { join, relative, normalize } from 'node:path';
 
 // 支持的文件扩展名
-const SUPPORTED_EXTENSIONS = ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml'];
+const SUPPORTED_EXTENSIONS = ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml', '.ts', '.tsx', '.js', '.jsx'];
 
-// 默认排除的目录
+// 默认排除的目录（fast-glob 会自动读取 .gitignore）
 const DEFAULT_EXCLUDE_DIRS = [
   'node_modules',
   '.git',
@@ -46,6 +47,8 @@ export interface ScanOptions {
   followSymlinks?: boolean;
   /** 扫描策略：'depth'（深度优先）或 'breadth'（广度优先） */
   strategy?: 'depth' | 'breadth';
+  /** 是否使用 .gitignore */
+  useGitignore?: boolean;
 }
 
 /**
@@ -125,6 +128,7 @@ export class FileScanner {
       includeDotFiles: options.includeDotFiles ?? false,
       followSymlinks: options.followSymlinks ?? false,
       strategy: options.strategy || 'depth',
+      useGitignore: options.useGitignore ?? true,
     };
   }
 
@@ -135,23 +139,93 @@ export class FileScanner {
     const startTime = Date.now();
     const files: FileInfo[] = [];
     const directories: FileInfo[] = [];
-    this.errors = [];
 
-    // 验证根目录
-    try {
-      const rootStats = await stat(this.options.rootDir);
-      if (!rootStats.isDirectory()) {
-        throw new Error(`Path is not a directory: ${this.options.rootDir}`);
-      }
-    } catch (error) {
-      throw new Error(`Failed to access root directory ${this.options.rootDir}: ${error}`);
+    // 构建 glob 模式
+    const extPatterns = this.options.extensions.map(ext => `**/*${ext}`);
+    const patterns = this.options.includeHidden || this.options.includeDotFiles
+      ? extPatterns
+      : extPatterns.filter(p => !p.includes('/.')).filter(Boolean);
+
+    // 构建 ignore 模式
+    const ignorePatterns = [...this.options.excludeDirs];
+    if (!this.options.includeHidden && !this.options.includeDotFiles) {
+      ignorePatterns.push('.*');
+      ignorePatterns.push('**/.*');
     }
 
+    // fast-glob 选项
+    const globOptions = {
+      cwd: this.options.rootDir,
+      ignore: ignorePatterns,
+      onlyFiles: true,
+      absolute: true,
+      dot: this.options.includeHidden || this.options.includeDotFiles,
+      followSymbolicLinks: this.options.followSymlinks,
+      deep: this.options.maxDepth || Number.POSITIVE_INFINITY,
+      unique: true,
+      gitignore: this.options.useGitignore,
+      objectMode: false,
+    };
+
     try {
-      if (this.options.strategy === 'depth') {
-        await this.scanDepthFirst(this.options.rootDir, 0, files, directories);
-      } else {
-        await this.scanBreadthFirst(files, directories);
+      // 使用 fast-glob 扫描文件
+      const filePaths = await fg(patterns, globOptions);
+
+      // 获取文件信息
+      for (const filePath of filePaths) {
+        try {
+          const stats = await stat(filePath);
+          const relativePath = relative(this.options.rootDir, filePath);
+          const extension = this.getExtension(filePath);
+
+          files.push({
+            name: filePath.split('/').pop() || '',
+            path: normalize(filePath),
+            relativePath,
+            extension,
+            size: stats.size,
+            modifiedAt: stats.mtime,
+            createdAt: stats.ctime,
+            isDirectory: stats.isDirectory(),
+            isFile: stats.isFile(),
+            isSymbolicLink: stats.isSymbolicLink(),
+          });
+        } catch (error) {
+          this.errors.push(new Error(`Failed to stat ${filePath}: ${error}`));
+        }
+      }
+
+      // 扫描目录（基于文件路径提取父目录）
+      const dirSet = new Set<string>();
+      for (const file of files) {
+        const parts = file.relativePath.split('/');
+        for (let i = 0; i < parts.length - 1; i++) {
+          const dirPath = parts.slice(0, i + 1).join('/');
+          const fullPath = join(this.options.rootDir, dirPath);
+          dirSet.add(fullPath);
+        }
+      }
+
+      for (const dirPath of dirSet) {
+        try {
+          const stats = await stat(dirPath);
+          const relativePath = relative(this.options.rootDir, dirPath);
+
+          directories.push({
+            name: dirPath.split('/').pop() || '',
+            path: normalize(dirPath),
+            relativePath,
+            extension: '',
+            size: 0,
+            modifiedAt: stats.mtime,
+            createdAt: stats.ctime,
+            isDirectory: true,
+            isFile: false,
+            isSymbolicLink: stats.isSymbolicLink(),
+          });
+        } catch (error) {
+          this.errors.push(new Error(`Failed to stat dir ${dirPath}: ${error}`));
+        }
       }
     } catch (error) {
       this.errors.push(error as Error);
@@ -179,191 +253,12 @@ export class FileScanner {
   }
 
   /**
-   * 深度优先扫描
-   */
-  private async scanDepthFirst(
-    dirPath: string,
-    currentDepth: number,
-    files: FileInfo[],
-    directories: FileInfo[]
-  ): Promise<void> {
-    // 检查最大深度
-    if (this.options.maxDepth > 0 && currentDepth > this.options.maxDepth) {
-      return;
-    }
-
-    try {
-      const entries = await readdir(dirPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(dirPath, entry.name);
-
-        // 跳过隐藏文件（如果不包含）
-        if (!this.options.includeHidden && entry.name.startsWith('.')) {
-          continue;
-        }
-
-        // 跳过排除的目录
-        if (entry.isDirectory() && this.options.excludeDirs.includes(entry.name)) {
-          continue;
-        }
-
-        try {
-          const stats = await stat(fullPath);
-          const fileInfo = this.createFileInfo(fullPath, stats, entry);
-
-          if (entry.isDirectory()) {
-            directories.push(fileInfo);
-            // 递归扫描子目录
-            await this.scanDepthFirst(fullPath, currentDepth + 1, files, directories);
-          } else if (entry.isFile()) {
-            // 检查文件扩展名
-            if (this.matchesExtension(entry.name)) {
-              files.push(fileInfo);
-            }
-          } else if (entry.isSymbolicLink()) {
-            if (!this.options.followSymlinks) {
-              continue;
-            }
-            // 跟随符号链接（需要额外处理）
-            const targetStats = await stat(fullPath);
-            if (targetStats.isDirectory()) {
-              directories.push({ ...fileInfo, isDirectory: true });
-              await this.scanDepthFirst(fullPath, currentDepth + 1, files, directories);
-            } else if (targetStats.isFile()) {
-              if (this.matchesExtension(entry.name)) {
-                files.push(fileInfo);
-              }
-            }
-          }
-        } catch (error) {
-          this.errors.push(new Error(`Failed to stat ${fullPath}: ${error}`));
-          continue;
-        }
-      }
-    } catch (error) {
-      this.errors.push(new Error(`Failed to read directory ${dirPath}: ${error}`));
-    }
-  }
-
-  /**
-   * 广度优先扫描
-   */
-  private async scanBreadthFirst(
-    files: FileInfo[],
-    directories: FileInfo[]
-  ): Promise<void> {
-    const queue: Array<{ path: string; depth: number }> = [
-      { path: this.options.rootDir, depth: 0 },
-    ];
-
-    while (queue.length > 0) {
-      const { path: dirPath, depth } = queue.shift()!;
-
-      // 检查最大深度
-      if (this.options.maxDepth > 0 && depth > this.options.maxDepth) {
-        continue;
-      }
-
-      try {
-        const entries = await readdir(dirPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          const fullPath = join(dirPath, entry.name);
-
-          // 跳过隐藏文件（如果不包含）
-          if (!this.options.includeHidden && entry.name.startsWith('.')) {
-            continue;
-          }
-
-          // 跳过排除的目录
-          if (entry.isDirectory() && this.options.excludeDirs.includes(entry.name)) {
-            continue;
-          }
-
-          try {
-            const stats = await stat(fullPath);
-            const fileInfo = this.createFileInfo(fullPath, stats, entry);
-
-            if (entry.isDirectory()) {
-              directories.push(fileInfo);
-              queue.push({ path: fullPath, depth: depth + 1 });
-            } else if (entry.isFile()) {
-              if (this.matchesExtension(entry.name)) {
-                files.push(fileInfo);
-              }
-            } else if (entry.isSymbolicLink()) {
-              if (!this.options.followSymlinks) {
-                continue;
-              }
-              const targetStats = await stat(fullPath);
-              if (targetStats.isDirectory()) {
-                directories.push({ ...fileInfo, isDirectory: true });
-                queue.push({ path: fullPath, depth: depth + 1 });
-              } else if (targetStats.isFile()) {
-                if (this.matchesExtension(entry.name)) {
-                  files.push(fileInfo);
-                }
-              }
-            }
-          } catch (error) {
-            this.errors.push(new Error(`Failed to stat ${fullPath}: ${error}`));
-            continue;
-          }
-        }
-      } catch (error) {
-        this.errors.push(new Error(`Failed to read directory ${dirPath}: ${error}`));
-      }
-    }
-  }
-
-  /**
-   * 创建文件信息对象
-   */
-  private createFileInfo(
-    fullPath: string,
-    stats: {
-      size: number;
-      mtime: Date;
-      ctime: Date;
-      isDirectory: () => boolean;
-      isFile: () => boolean;
-      isSymbolicLink: () => boolean;
-    },
-    entry: { name: string; isDirectory: () => boolean; isFile: () => boolean; isSymbolicLink: () => boolean }
-  ): FileInfo {
-    const normalizedPath = normalize(fullPath);
-    const relativePath = relative(this.options.rootDir, normalizedPath);
-    const extension = this.getExtension(entry.name);
-
-    return {
-      name: entry.name,
-      path: normalizedPath,
-      relativePath,
-      extension,
-      size: stats.size,
-      modifiedAt: stats.mtime,
-      createdAt: stats.ctime,
-      isDirectory: entry.isDirectory(),
-      isFile: entry.isFile(),
-      isSymbolicLink: entry.isSymbolicLink(),
-    };
-  }
-
-  /**
-   * 检查文件扩展名是否匹配
-   */
-  private matchesExtension(filename: string): boolean {
-    const ext = this.getExtension(filename);
-    return this.options.extensions.includes(ext);
-  }
-
-  /**
    * 获取文件扩展名（包含点号）
    */
   private getExtension(filename: string): string {
-    const ext = filename.split('.').pop();
-    return ext ? `.${ext}` : '';
+    const parts = filename.split('.');
+    if (parts.length < 2) return '';
+    return `.${parts.pop()}`;
   }
 
   /**
