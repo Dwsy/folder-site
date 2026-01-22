@@ -117,6 +117,13 @@ export type {
   ADRStatus,
 } from './workhub.js';
 
+export type {
+  // Render Cache
+  CacheEntry,
+  CacheStatistics,
+  CacheConfig,
+} from './render-cache.js';
+
 // 导出工具类型
 export type {
   DeepPartial,
