@@ -16,10 +16,11 @@ import remarkGfm from 'remark-gfm';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
-import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import type { Root } from 'mdast';
+import { rehypeShiki } from './rehype-shiki.js';
+import { remarkMermaid } from './remark-mermaid.js';
 
 import type {
   MarkdownParserOptions,
@@ -35,6 +36,7 @@ const DEFAULT_OPTIONS: Required<MarkdownParserOptions> = {
   frontmatter: true,
   highlight: true,
   math: true,
+  mermaid: true,
   highlightTheme: 'github',
   preserveContent: true,
   generateHTML: true,
@@ -92,14 +94,23 @@ export class MarkdownParser {
       processor = processor.use(remarkMath);
     }
 
+    // 启用 Mermaid 图表支持
+    if (this.options.mermaid) {
+      // @ts-ignore
+      processor = processor.use(remarkMermaid);
+    }
+
     // 转换为 rehype AST
     // @ts-ignore
     processor = processor.use(remarkRehype, { allowDangerousHtml: true });
 
-    // 启用代码高亮
+    // 启用代码高亮（使用 Shiki）
     if (this.options.highlight) {
       // @ts-ignore
-      processor = processor.use(rehypeHighlight);
+      processor = processor.use(rehypeShiki, {
+        theme: this.options.highlightTheme || 'github-dark',
+        defaultLanguage: 'plaintext',
+      });
     }
 
     // 启用 KaTeX 数学公式渲染
@@ -119,18 +130,18 @@ export class MarkdownParser {
   }
 
   /**
-   * 解析 Markdown 内容（同步）
+   * 解析 Markdown 内容（异步）
    * 
    * @param markdown - Markdown 内容
    * @returns 解析结果
    * 
    * @example
    * ```typescript
-   * const result = parser.parse('# Hello\n\nThis is **bold**.');
+   * const result = await parser.parse('# Hello\n\nThis is **bold**.');
    * console.log(result.html); // <h1>Hello</h1>\n<p>This is <strong>bold</strong>.</p>
    * ```
    */
-  parse(markdown: string): ParseResult {
+  async parse(markdown: string): Promise<ParseResult> {
     if (!markdown || typeof markdown !== 'string') {
       throw new Error('Markdown content must be a non-empty string');
     }
@@ -145,7 +156,7 @@ export class MarkdownParser {
       const frontmatter = this.extractFrontmatter(ast);
 
       // 渲染为 HTML
-      const html = this.parseToHTML(markdown);
+      const html = await this.parseToHTML(markdown);
 
       const parseTime = performance.now() - startTime;
 
@@ -261,23 +272,23 @@ export class MarkdownParser {
   }
 
   /**
-   * 将 Markdown 渲染为 HTML（同步）
+   * 将 Markdown 渲染为 HTML（异步）
    * 
    * @param markdown - Markdown 内容
    * @returns HTML 字符串
    * 
    * @example
    * ```typescript
-   * const html = parser.parseToHTML('# Hello');
+   * const html = await parser.parseToHTML('# Hello');
    * console.log(html); // <h1>Hello</h1>
    * ```
    */
-  parseToHTML(markdown: string): string {
+  async parseToHTML(markdown: string): Promise<string> {
     if (!this.processor) {
       throw new Error('Processor not initialized');
     }
 
-    const result = this.processor.processSync(markdown);
+    const result = await this.processor.process(markdown);
     return String(result);
   }
 
@@ -293,12 +304,7 @@ export class MarkdownParser {
    * ```
    */
   async parseToHTMLAsync(markdown: string): Promise<string> {
-    if (!this.processor) {
-      throw new Error('Processor not initialized');
-    }
-
-    const result = await this.processor.process(markdown);
-    return String(result);
+    return this.parseToHTML(markdown);
   }
 
   /**
@@ -512,10 +518,10 @@ export async function parseMarkdownAsync(
  * const html = markdownToHTML(markdown);
  * ```
  */
-export function markdownToHTML(
+export async function markdownToHTML(
   markdown: string,
   options?: MarkdownParserOptions
-): string {
+): Promise<string> {
   const parser = new MarkdownParser(options);
   return parser.parseToHTML(markdown);
 }
@@ -537,7 +543,7 @@ export async function markdownToHTMLAsync(
   options?: MarkdownParserOptions
 ): Promise<string> {
   const parser = new MarkdownParser(options);
-  return parser.parseToHTMLAsync(markdown);
+  return markdownToHTML(markdown, options);
 }
 
 // 导出类型

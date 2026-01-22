@@ -9,6 +9,7 @@
  * - Code blocks with syntax highlighting
  * - Math formulas (LaTeX)
  * - Frontmatter extraction
+ * - Table of contents (TOC)
  */
 
 import { useState, useEffect } from 'react';
@@ -21,6 +22,8 @@ import {
   FiFile,
 } from 'react-icons/fi';
 import type { ThemeMode } from '../../../types/theme.js';
+import { MarkdownTheme, getMarkdownBodyClass, getMarkdownThemeStyles } from './MarkdownTheme.js';
+import { TOC, extractHeadings, addHeadingIdsWithItems, useActiveHeading, type TOCItem } from './TOC.js';
 
 export interface MarkdownPreviewProps {
   /** Markdown content to render */
@@ -31,6 +34,8 @@ export interface MarkdownPreviewProps {
   showFrontmatter?: boolean;
   /** Show copy button */
   showCopyButton?: boolean;
+  /** Show table of contents */
+  showTOC?: boolean;
   /** Maximum height */
   maxHeight?: string | number;
   /** Enable math rendering */
@@ -51,6 +56,7 @@ export interface MarkdownPreviewState {
   html: string;
   frontmatter?: Record<string, any>;
   metadata?: ParseResult['metadata'];
+  tocItems?: TOCItem[];
 }
 
 /**
@@ -58,8 +64,10 @@ export interface MarkdownPreviewState {
  */
 export function MarkdownPreview({
   content,
+  theme,
   showFrontmatter = false,
   showCopyButton = true,
+  showTOC = true,
   maxHeight,
   enableMath = true,
   enableGfm = true,
@@ -76,18 +84,65 @@ export function MarkdownPreview({
   });
   const [copied, setCopied] = useState(false);
 
+  // Track active heading - use tocItems directly (with IDs already added)
+  const activeHeadingId = useActiveHeading(state.tocItems || [], 'main');
+
   // Render markdown
   useEffect(() => {
     const renderMarkdown = async () => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
-        const html = markdownToHTML(content, {
+        // Determine theme for Shiki
+        const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const shikiTheme = isDark ? 'github-dark' : 'github-light';
+
+        console.log('[MarkdownPreview] Rendering markdown, length:', content.length);
+        console.log('[MarkdownPreview] Theme:', theme, 'Shiki theme:', shikiTheme);
+
+        const html = await markdownToHTML(content, {
           gfm: enableGfm,
           frontmatter: true,
           highlight: true,
           math: enableMath,
+          highlightTheme: shikiTheme,
         });
+
+        console.log('[MarkdownPreview] HTML generated, length:', html.length);
+
+        // Extract headings from HTML
+        const tocItems = extractHeadings(html);
+        console.log('[MarkdownPreview] Extracted TOC items:', tocItems);
+
+        // Filter items by max level
+        const filterByLevel = (item: TOCItem): TOCItem | null => {
+          if (item.level > 3) return null;
+
+          const filtered: TOCItem = {
+            id: item.id,
+            text: item.text,
+            level: item.level,
+          };
+
+          if (item.children) {
+            filtered.children = item.children
+              .map(filterByLevel)
+              .filter((child): child is TOCItem => child !== null);
+          }
+
+          return filtered;
+        };
+
+        const filteredItems = tocItems
+          .map(filterByLevel)
+          .filter((item): item is TOCItem => item !== null);
+
+        console.log('[MarkdownPreview] Filtered items:', filteredItems);
+
+        // Add IDs to headings and get items with IDs
+        const { html: htmlWithIds, itemsWithIds } = addHeadingIdsWithItems(html, filteredItems);
+        console.log('[MarkdownPreview] HTML with IDs generated, length:', htmlWithIds.length);
+        console.log('[MarkdownPreview] Items with IDs count:', itemsWithIds.length);
 
         // Extract frontmatter from content (simple extraction)
         const frontmatter = extractFrontmatter(content);
@@ -95,8 +150,9 @@ export function MarkdownPreview({
         setState({
           loading: false,
           error: null,
-          html,
+          html: htmlWithIds,
           frontmatter,
+          tocItems: itemsWithIds,
           metadata: {
             codeBlocks: (content.match(/```[\s\S]*?```/g) || []).length,
             mathExpressions: (content.match(/\$\$[\s\S]*?\$\$|\$[^$\n]+?\$/g) || []).length,
@@ -118,7 +174,7 @@ export function MarkdownPreview({
     };
 
     renderMarkdown();
-  }, [content, enableMath, enableGfm, onError]);
+  }, [content, enableMath, enableGfm, onError, theme]);
 
   // Handle copy
   const handleCopy = async () => {
@@ -182,6 +238,37 @@ export function MarkdownPreview({
 
   return (
     <div className={cn('markdown-preview', className)}>
+      {/* Markdown Theme Provider */}
+      <MarkdownTheme theme={theme || 'auto'} enabled={true} />
+
+      {/* Table of Contents */}
+      {showTOC && state.tocItems && state.tocItems.length > 0 && (
+        <TOC
+          items={state.tocItems}
+          theme={theme || 'auto'}
+          activeId={activeHeadingId}
+          maxLevel={3}
+          show={true}
+          onSectionClick={(id) => {
+            // Try to find element immediately
+            let element = document.getElementById(id);
+            // If not found, try again after a short delay (DOM might not be ready)
+            if (!element) {
+              setTimeout(() => {
+                element = document.getElementById(id);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                  console.warn('[TOC] Element not found for id:', id);
+                }
+              }, 50);
+            } else {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+        />
+      )}
+
       {/* Toolbar */}
       <div className="mb-4 flex items-center justify-between border-b pb-3">
         <div className="flex items-center gap-2">
@@ -250,40 +337,33 @@ export function MarkdownPreview({
       {/* Rendered markdown */}
       <div
         className={cn(
-          'prose prose-sm dark:prose-invert max-w-none',
-          'prose-headings:font-bold prose-headings:tracking-tight',
-          'prose-h1:text-2xl prose-h1:mb-4',
-          'prose-h2:text-xl prose-h2:mb-3',
-          'prose-h3:text-lg prose-h3:mb-2',
-          'prose-p:mb-3 prose-p:leading-relaxed',
-          'prose-a:text-primary prose-a:underline prose-a:no-underline hover:prose-a:underline',
-          'prose-strong:font-semibold',
-          'prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono',
-          'prose-pre:bg-muted prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto',
-          'prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic',
-          'prose-ul:list-disc prose-ul:pl-6 prose-ul:mb-3',
-          'prose-ol:list-decimal prose-ol:pl-6 prose-ol:mb-3',
-          'prose-li:mb-1',
-          'prose-table:my-3 prose-table:w-full prose-table:border-collapse',
-          'prose-thead:border-b prose-thead:bg-muted/50',
-          'prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold',
-          'prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2',
-          'prose-img:rounded-lg prose-img:shadow-md',
-          'prose-hr:my-4 prose-hr:border-border',
-          // GFM task lists
-          'prose-ul:prose-task-list',
-          'prose-li:prose-task-item',
-          '[&_.prose-task-item]:flex [&_.prose-task-item]:items-start [&_.prose-task-item]:gap-2',
-          '[&_.prose-task-item>input]:mt-1 [&_.prose-task-item>input]:h-4 [&_.prose-task-item>input]:w-4',
-          // Table styles
-          'prose-table:text-sm',
-          'hover:prose-tr:bg-muted/30',
-          // Math formulas
-          '[&_katex-display]:my-4 [&_katex-display]:overflow-x-auto',
-          '[&_katex]:px-1',
+          getMarkdownBodyClass(theme || 'auto'),
+          'p-6',
+          // Custom enhancements
+          'text-sm',
+          // Code block styling - let Shiki handle the colors
+          '[&_pre]:!m-0 [&_pre]:!rounded-lg [&_pre]:!border [&_pre]:!overflow-x-auto',
+          '[&_code]:!m-0 [&_code]:!p-0 [&_code]:!bg-transparent',
+          // Shiki wrapper styling
+          '[&_.shiki-wrapper]:!m-0 [&&_.shiki-wrapper]:!my-4 [&&_.shiki-wrapper]:!rounded-lg [&&_.shiki-wrapper]:!overflow-x-auto [&&_.shiki-wrapper]:!border',
+          '[&_.shiki-wrapper_pre]:!m-0 [&&_.shiki-wrapper_pre]:!p-4 [&&_.shiki-wrapper_pre]:!rounded-lg [&&_.shiki-wrapper_pre]:!overflow-x-auto',
+          // Ensure Shiki colors are visible in light mode
+          '[&_.shiki-wrapper]:[style*="background-color"]]',
+          // Link styling
+          '[&_a]:!text-primary [&_a]:!no-underline hover:[&_a]:!underline',
+          // Image styling
+          '[&_img]:!rounded-lg [&_img]:!shadow-md',
+          // Blockquote styling
+          '[&_blockquote]:!border-l-4 [&_blockquote]:!border-primary [&_blockquote]:!pl-4 [&_blockquote]:!italic',
+          // Table styling enhancements
+          '[&_table]:!my-4',
+          // Task list styling
+          '[&_.task-list-item]:!flex [&&_.task-list-item]:!items-start [&&_.task-list-item]:!gap-2',
+          '[&_.task-list-item>input]:!mt-1 [&&_.task-list-item>input]:!h-4 [&&_.task-list-item>input]:!w-4',
         )}
         style={{
           maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+          ...getMarkdownThemeStyles(theme || 'auto'),
         }}
         dangerouslySetInnerHTML={{ __html: state.html }}
       />
@@ -375,5 +455,9 @@ function extractFrontmatter(content: string): Record<string, any> | undefined {
     return undefined;
   }
 }
+
+// Export TOC components for external use
+export { TOC, extractHeadings, useActiveHeading };
+export type { TOCItem };
 
 export default MarkdownPreview;

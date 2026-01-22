@@ -159,7 +159,18 @@ export class Highlighter implements IHighlighter {
       // Default to github-dark
       return 'github-dark';
     }
-    return theme as BundledTheme;
+    
+    // Handle theme aliases
+    const themeAliases: Record<string, BundledTheme> = {
+      github: 'github-dark',
+      'github-dark': 'github-dark',
+      'github-light': 'github-light',
+      light: 'github-light',
+      dark: 'github-dark',
+    };
+    
+    const normalized = theme.toLowerCase();
+    return (themeAliases[normalized] as BundledTheme) || (normalized as BundledTheme);
   }
 
   /**

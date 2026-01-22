@@ -123,7 +123,7 @@ export function MarkdownRenderer({
         if (asyncRender) {
           html = await markdownToHTMLAsync(content, parserOptions);
         } else {
-          html = markdownToHTML(content, parserOptions);
+          html = await markdownToHTML(content, parserOptions);
         }
 
         const parseTime = performance.now() - startTime;
