@@ -10,6 +10,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 import { MainLayout } from './layouts/MainLayout.js';
 import { Home } from './pages/Home.js';
 import { Docs } from './pages/Docs.js';
+import { Workhub } from './pages/Workhub.js';
 import { Search as SearchPage } from './pages/Search.js';
 import { Help } from './pages/Help.js';
 import { NotFound } from './pages/NotFound.js';
@@ -84,6 +85,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
           { path: 'docs', element: <Docs /> },
+          { path: 'workhub', element: <Workhub /> },
           { path: 'features', element: <Home /> },
           { path: 'about', element: <Home /> },
           { path: 'search', element: <SearchPage /> },
