@@ -1,0 +1,136 @@
+# Process: File Rendering Pipeline
+
+```mermaid
+flowchart TD
+    %% Style definitions
+    classDef event fill:#FF9800,stroke:#E65100,color:#000,stroke-width:2px
+    classDef command fill:#2196F3,stroke:#0D47A1,color:#fff,stroke-width:2px
+    classDef actor fill:#FFEB3B,stroke:#F57F17,color:#000,stroke-width:2px
+    classDef system fill:#9C27B0,stroke:#4A148C,color:#fff,stroke-width:2px
+    classDef aggregate fill:#4CAF50,stroke:#1B5E20,color:#fff,stroke-width:2px
+    classDef decision fill:#FF9800,stroke:#E65100,color:#000,stroke-dasharray:5 5
+
+    %% Actors
+    User[User]:::actor
+
+    %% Commands
+    CmdOpen[Open File]:::command
+    CmdRender[Request Render]:::command
+
+    %% Events
+    EvtSelected[File Selected]:::event
+    EvtDetected[File Type Detected]:::event
+    EvtCached[Cache Hit]:::event
+    EvtParsed[Content Parsed]:::event
+    EvtProcessed[Blocks Processed]:::event
+    EvtTransformed[AST Transformed]:::event
+    EvtRendered[HTML Generated]:::event
+    EvtDisplayed[Content Displayed]:::event
+
+    %% Aggregates
+    AggFile[File Metadata]:::aggregate
+    AggCache[Render Cache]:::aggregate
+    AggAST[AST Tree]:::aggregate
+    AggBlocks[Block Array]:::aggregate
+    AggHTML[Rendered HTML]:::aggregate
+
+    %% Systems
+    SysFS[File System]:::system
+    SysParser[Markdown Parser]:::system
+    SysPlugin[Plugin System]:::system
+    SysTheme[Theme Engine]:::system
+
+    %% Decisions
+    DecCache{Cache Hit?}:::decision
+    DecType{File Type?}:::decision
+
+    %% Flow
+    User --> CmdOpen
+    CmdOpen --> EvtSelected
+    EvtSelected --> AggFile
+    AggFile --> SysFS
+
+    EvtSelected --> EvtDetected
+    EvtDetected --> DecType
+
+    DecCache{Cache Hit?}
+    EvtDetected --> DecCache
+    DecCache -->|Yes| EvtCached
+    EvtCached --> AggCache
+    EvtCached --> EvtDisplayed
+
+    DecCache -->|No| CmdRender
+    CmdRender --> SysFS
+
+    SysFS --> EvtParsed
+    EvtParsed --> SysParser
+
+    SysParser --> EvtProcessed
+    EvtProcessed --> AggBlocks
+
+    AggBlocks --> SysPlugin
+    SysPlugin --> EvtTransformed
+    EvtTransformed --> AggAST
+
+    AggAST --> SysTheme
+    SysTheme --> EvtRendered
+    EvtRendered --> AggHTML
+
+    AggHTML --> AggCache
+    AggHTML --> EvtDisplayed
+
+    EvtDisplayed --> User
+
+    %% File Type Decision
+    DecType -->|.md| SysParser
+    DecType -->|.mmd| SysPlugin
+    DecType -->|.json| SysFS
+    DecType -->|.yml| SysFS
+
+    %% Styling
+    linkStyle default stroke:#94A3B8,stroke-width:2px
+```
+
+## Process Description
+
+The file rendering pipeline converts raw files into displayable HTML content with caching and plugin support.
+
+### Flow Steps
+
+1. **File Selection** - User clicks file in sidebar or Cmd+P
+2. **File Type Detection** - Extension determines rendering strategy
+3. **Cache Check** - Return cached HTML if available
+4. **Content Parsing** - Markdown parser converts to AST
+5. **Block Processing** - Extract paragraphs, code blocks, tables
+6. **Plugin Transformation** - Custom renderers process special blocks
+7. **Theme Application** - Apply current theme colors/styles
+8. **HTML Generation** - Final HTML string produced
+9. **Cache Storage** - Store result for future requests
+10. **Display** - Render in main content area
+
+### Aggregates (Data Entities)
+
+| Aggregate | State Changes | Key Attributes |
+|-----------|---------------|----------------|
+| **File Metadata** | Selected → Opened | path, type, size, modified |
+| **Render Cache** | Empty → Cached | key (path+hash), html, timestamp |
+| **AST Tree** | Parsed → Transformed | nodes, children, metadata |
+| **Block Array** | Extracted → Processed | type, content, position |
+| **Rendered HTML** | Generated → Displayed | html, theme, plugins |
+
+### Performance Optimizations
+
+- ✅ **Content Hashing** - Cache keys based on file content hash
+- ✅ **Incremental Parsing** - Only re-parse changed blocks
+- ✅ **Plugin Memoization** - Cache plugin render results
+- ✅ **Lazy Loading** - Defer heavy chart rendering
+
+### Error Handling
+
+| Failure Point | Recovery Strategy |
+|---------------|-------------------|
+| File not found | Show 404 in content area |
+| Parse error | Display raw content with error banner |
+| Plugin crash | Fallback to default renderer |
+| Cache corruption | Clear cache and re-render |
+| Theme error | Default to light theme |

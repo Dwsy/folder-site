@@ -1,0 +1,131 @@
+# State Chart: File Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unindexed
+
+    Unindexed --> Indexing: Scan Directory
+    Indexing --> Indexed: Index Complete
+    Indexing --> Error: Index Failed
+
+    Indexed --> Unopened: File Added
+    Unopened --> Opening: User Clicks
+    Opening --> Opened: Load Success
+    Opening --> Error: Load Failed
+
+    Opened --> Rendering: Content Changed
+    Rendering --> Rendered: Render Success
+    Rendering --> Error: Render Failed
+
+    Rendered --> Cached: Cache Written
+    Cached --> Opened: Cache Hit
+
+    Opened --> Modified: User Edits
+    Modified --> Rendering: Re-render
+
+    Rendered --> Exporting: Export Requested
+    Exporting --> Exported: Export Success
+    Exporting --> Error: Export Failed
+
+    Error --> [*]: Retry Failed
+    Error --> Unindexed: Reset
+
+    Exported --> [*]: Complete
+    Opened --> [*]: File Closed
+```
+
+## State Descriptions
+
+| State | Description | Exit Conditions |
+|-------|-------------|-----------------|
+| **Unindexed** | File discovered but not yet indexed | Indexing triggered |
+| **Indexing** | Building search index tokens | Success or error |
+| **Indexed** | File is searchable | User opens file |
+| **Unopened** | File indexed, never opened | User interaction |
+| **Opening** | Loading file content | Success or error |
+| **Opened** | Content loaded, ready to render | Content changes or export |
+| **Rendering** | Converting to HTML | Success or error |
+| **Rendered** | HTML generated, ready to display | Cache or export |
+| **Cached** | HTML stored in cache | Cache hit or invalidation |
+| **Modified** | File content changed by user | Re-render triggered |
+| **Exporting** | Generating PDF/HTML | Success or error |
+| **Exported** | Export complete | Process ends |
+| **Error** | Any operation failed | Retry or reset |
+
+## Transitions
+
+| From | To | Trigger | Action |
+|------|----|---------|--------|
+| Unindexed | Indexing | Scan Directory | Tokenize file path/name |
+| Indexing | Indexed | Index Complete | Store in FileIndex |
+| Indexed | Unopened | File Added | Mark as indexed |
+| Unopened | Opening | User Clicks | Read file from disk |
+| Opening | Opened | Load Success | Store content in memory |
+| Opening | Error | Load Failed | Log error, show 404 |
+| Opened | Rendering | Content Changed | Trigger render pipeline |
+| Rendering | Rendered | Render Success | Store HTML output |
+| Rendering | Error | Render Failed | Fallback to raw content |
+| Rendered | Cached | Cache Written | Write to RenderCache |
+| Cached | Opened | Cache Hit | Return cached HTML |
+| Opened | Modified | User Edits | Update content_hash |
+| Modified | Rendering | Re-render | Invalidate cache |
+| Rendered | Exporting | Export Requested | Start export process |
+| Exporting | Exported | Export Success | Save to disk |
+| Exporting | Error | Export Failed | Show error message |
+| Error | Unindexed | Reset | Clear index entry |
+
+## Events
+
+| Event | Source | Data |
+|-------|--------|------|
+| **FileDiscovered** | File System | path, size, modified |
+| **IndexComplete** | Indexer | tokens, relevance_score |
+| **FileOpened** | User Interaction | file_path |
+| **ContentLoaded** | File System | content, content_hash |
+| **RenderComplete** | Renderer | html, theme |
+| **CacheWritten** | Cache System | cache_key, size |
+| **FileModified** | File Watcher | old_hash, new_hash |
+| **ExportRequested** | User | format, destination |
+| **ExportComplete** | Exporter | output_path |
+| **ErrorOccurred** | Any Component | error_type, message |
+
+## Guards (Conditions)
+
+| Transition | Guard | Description |
+|------------|-------|-------------|
+| Opening → Opened | file_exists | File must exist on disk |
+| Opening → Error | file_not_found | File deleted or inaccessible |
+| Cached → Opened | cache_valid | Cache not expired |
+| Cached → Rendering | cache_invalid | Content hash changed |
+| Exporting → Exported | export_permitted | User has export permissions |
+
+## Actions
+
+| Transition | Action | Side Effect |
+|------------|--------|-------------|
+| Indexing → Indexed | create_index_entry | Insert into FileIndex |
+| Opening → Opened | load_content | Read file from disk |
+| Rendering → Rendered | apply_theme | Apply current theme colors |
+| Rendered → Cached | write_cache | Insert into RenderCache |
+| Modified → Rendering | invalidate_cache | Delete from RenderCache |
+| Exporting → Exported | save_file | Write to user-selected path |
+
+## Error Recovery
+
+| Error State | Recovery Strategy | Max Retries |
+|-------------|-------------------|-------------|
+| **Indexing Failed** | Skip file, log warning | 0 |
+| **Load Failed** | Show 404 page | 0 |
+| **Render Failed** | Fallback to raw content | 1 |
+| **Cache Write Failed** | Continue without cache | 0 |
+| **Export Failed** | Show error dialog | 3 |
+
+## Performance Metrics
+
+| Metric | Target | Measurement Point |
+|--------|--------|-------------------|
+| **Indexing Time** | < 50ms/file | Indexing → Indexed |
+| **Load Time** | < 100MB/s | Opening → Opened |
+| **Render Time** | < 200ms/file | Rendering → Rendered |
+| **Cache Hit Rate** | > 80% | Cached → Opened |
+| **Export Time** | < 2s/doc | Exporting → Exported |

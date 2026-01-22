@@ -1,0 +1,186 @@
+# State Chart: Plugin Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Discovered
+
+    Discovered --> Validating: Load Manifest
+    Validating --> Validated: Schema OK
+    Validating --> Invalid: Schema Error
+
+    Validated --> Checking: Safety Check
+    Checking --> Available: Safe to Load
+    Checking --> Blocked: Unsafe
+
+    Available --> Loading: Load Code
+    Loading --> Loaded: Code Loaded
+    Loading --> Failed: Load Error
+
+    Loaded --> Registering: Register Renderers
+    Registering --> Registered: Registration OK
+    Registering --> Failed: Registration Error
+
+    Registered --> Activating: Activate Plugin
+    Activating --> Active: Activation Complete
+    Activating --> Failed: Activation Error
+
+    Active --> Idle: Waiting for Requests
+    Idle --> Executing: Render Request
+    Executing --> Idle: Render Complete
+    Executing --> Error: Render Failed
+
+    Active --> Deactivating: Unload Request
+    Deactivating --> Inactive: Cleanup Complete
+    Deactivating --> Failed: Cleanup Error
+
+    Error --> Idle: Recovery
+    Failed --> [*]: Unloaded
+    Invalid --> [*]: Skipped
+    Blocked --> [*]: Blocked
+
+    Inactive --> [*]: Unloaded
+```
+
+## State Descriptions
+
+| State | Description | Exit Conditions |
+|-------|-------------|-----------------|
+| **Discovered** | Plugin found in scan | Manifest validation started |
+| **Validating** | Checking manifest schema | Valid or invalid |
+| **Validated** | Schema passed | Safety check |
+| **Invalid** | Schema validation failed | Plugin skipped |
+| **Checking** | Verifying permissions/deps | Safe or blocked |
+| **Available** | Passed safety checks | Ready to load |
+| **Blocked** | Failed safety checks | Plugin blocked |
+| **Loading** | Loading plugin code | Loaded or failed |
+| **Loaded** | Code in memory | Register renderers |
+| **Registering** | Registering with registry | Registered or failed |
+| **Registered** | Renderers registered | Activate plugin |
+| **Activating** | Running plugin.activate() | Active or failed |
+| **Active** | Plugin ready to use | Execute requests |
+| **Idle** | Waiting for work | Render request received |
+| **Executing** | Processing render request | Complete or error |
+| **Error** | Render failed, recoverable | Return to idle |
+| **Deactivating** | Running plugin.deactivate() | Inactive or failed |
+| **Inactive** | Plugin deactivated | Unloaded |
+
+## Transitions
+
+| From | To | Trigger | Action |
+|------|----|---------|--------|
+| Discovered | Validating | Load Manifest | Parse plugin.json |
+| Validating | Validated | Schema OK | Store manifest |
+| Validating | Invalid | Schema Error | Log error, skip |
+| Validated | Checking | Safety Check | Verify permissions |
+| Checking | Available | Safe to Load | Mark as available |
+| Checking | Blocked | Unsafe | Block plugin |
+| Available | Loading | Load Code | Import plugin module |
+| Loading | Loaded | Code Loaded | Store plugin instance |
+| Loading | Failed | Load Error | Log import error |
+| Loaded | Registering | Register Renderers | Call registry.register() |
+| Registering | Registered | Registration OK | Store renderer mappings |
+| Registering | Failed | Registration Error | Rollback registration |
+| Registered | Activating | Activate Plugin | Call plugin.activate() |
+| Activating | Active | Activation Complete | Set is_active=true |
+| Activating | Failed | Activation Error | Call plugin.deactivate() |
+| Active | Idle | Waiting for Requests | No action |
+| Idle | Executing | Render Request | Call plugin.render() |
+| Executing | Idle | Render Complete | Return HTML |
+| Executing | Error | Render Failed | Log error, fallback |
+| Active | Deactivating | Unload Request | Call plugin.deactivate() |
+| Deactivating | Inactive | Cleanup Complete | Set is_active=false |
+
+## Events
+
+| Event | Source | Data |
+|-------|--------|------|
+| **PluginDiscovered** | Scanner | plugin_path |
+| **ManifestValidated** | Validator | manifest, is_valid |
+| **SafetyCheckComplete** | Security | is_safe, violations |
+| **CodeLoaded** | Loader | plugin_instance |
+| **RendererRegistered** | Registry | file_types, renderer |
+| **PluginActivated** | Activator | plugin_id, config |
+| **RenderRequested** | Renderer | content, options |
+| **RenderComplete** | Plugin | html, metadata |
+| **RenderFailed** | Plugin | error, stack |
+| **PluginDeactivated** | Deactivator | plugin_id |
+
+## Guards (Conditions)
+
+| Transition | Guard | Description |
+|------------|-------|-------------|
+| Validating → Validated | manifest_valid | JSON schema validation passed |
+| Validating → Invalid | manifest_invalid | Required fields missing |
+| Checking → Available | permissions_allowed | All permissions granted |
+| Checking → Blocked | permissions_denied | Unsafe permissions requested |
+| Loading → Loaded | import_success | Module imported without errors |
+| Loading → Failed | import_error | Import exception thrown |
+| Registering → Registered | no_conflicts | No file type conflicts |
+| Registering → Failed | conflict_exists | Another plugin handles type |
+| Activating → Active | activate_success | plugin.activate() succeeded |
+| Activating → Failed | activate_error | plugin.activate() threw |
+
+## Actions
+
+| Transition | Action | Side Effect |
+|------------|--------|-------------|
+| Validating → Validated | store_manifest | Save to PluginManifest |
+| Checking → Available | mark_available | Set status='available' |
+| Loading → Loaded | create_instance | Instantiate plugin class |
+| Registering → Registered | update_registry | Add to PluginRegistry |
+| Activating → Active | set_active | Set plugin.is_active=true |
+| Deactivating → Inactive | cleanup_resources | Clear caches, listeners |
+| Executing → Idle | update_stats | Track render count/time |
+
+## Error Handling
+
+| Error Type | Recovery Strategy | Fallback |
+|------------|-------------------|----------|
+| **Manifest Invalid** | Skip plugin, log warning | N/A |
+| **Permission Denied** | Show permission request dialog | Block plugin |
+| **Import Failed** | Show error to user | Skip plugin |
+| **Registration Conflict** | Deactivate conflicting plugin | Use new plugin |
+| **Activation Failed** | Rollback registration | Unload plugin |
+| **Render Failed** | Return raw content | Default renderer |
+| **Deactivation Failed** | Force unload | May leak resources |
+
+## Plugin Permissions
+
+| Permission | Description | Risk Level |
+|------------|-------------|------------|
+| **network** | Make HTTP requests | Medium |
+| **file-read** | Read local files | High |
+| **file-write** | Write local files | Critical |
+| **clipboard** | Access clipboard | Low |
+| **notification** | Show notifications | Low |
+
+## Performance Metrics
+
+| Metric | Target | Measurement Point |
+|--------|--------|-------------------|
+| **Load Time** | < 500ms | Loading → Loaded |
+| **Registration Time** | < 100ms | Registering → Registered |
+| **Activation Time** | < 200ms | Activating → Active |
+| **Render Time** | < 1s | Executing → Idle |
+| **Deactivation Time** | < 300ms | Deactivating → Inactive |
+
+## Hotspot: Plugin Distribution
+
+```mermaid
+flowchart LR
+    A[Plugin Source] --> B{Type?}
+    B -->|npm| C[Download from Registry]
+    B -->|Local| D[Load from node_modules]
+    B -->|Remote| E[Dynamic Import]
+
+    C --> F[Version Resolution]
+    D --> F
+    E --> G[Security Scan]
+
+    F --> H[Install to node_modules]
+    G --> H
+
+    H --> I[Load Plugin]
+```
+
+**Decision:** Support all three modes for maximum flexibility.

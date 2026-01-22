@@ -1,0 +1,192 @@
+# Sequence Diagram: Open File Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Frontend UI
+    participant Router as File Router
+    participant Cache as Render Cache
+    participant FS as File System
+    participant Parser as Markdown Parser
+    participant Plugin as Plugin System
+    participant Theme as Theme Engine
+    participant Index as File Index
+
+    User->>UI: Click file in sidebar
+    UI->>Router: GET /file/:path
+
+    Router->>Cache: Check cache (path + hash)
+    alt Cache Hit
+        Cache-->>Router: Return cached HTML
+        Router-->>UI: 200 OK + HTML
+        UI->>User: Display content
+    else Cache Miss
+        Router->>FS: Read file content
+        FS-->>Router: File content + metadata
+
+        Router->>Parser: Parse markdown
+        Parser->>Parser: Build AST
+        Parser-->>Router: AST tree
+
+        loop For each block
+            Router->>Plugin: Check renderer for block type
+            alt Plugin has renderer
+                Plugin->>Plugin: Render block
+                Plugin-->>Router: Rendered HTML
+            else No renderer
+                Router->>Router: Default render
+            end
+        end
+
+        Router->>Theme: Apply theme
+        Theme-->>Router: Styled HTML
+
+        Router->>Cache: Store (path + hash + theme)
+        Cache-->>Router: Cache stored
+
+        Router->>Index: Update access time
+        Index-->>Router: Updated
+
+        Router-->>UI: 200 OK + HTML
+        UI->>User: Display content
+    end
+
+    rect rgba(255, 0, 0, 0.1)
+        Note over FS,Router: Error Path
+        FS-->>Router: File not found
+        Router-->>UI: 404 Not Found
+        UI->>User: Show error message
+    end
+```
+
+## Flow Description
+
+### Success Path (Cache Hit)
+
+1. **User Action** - Clicks file in sidebar
+2. **Route Request** - GET request to `/file/:path`
+3. **Cache Check** - Look up by `path + content_hash + theme`
+4. **Cache Hit** - Return cached HTML immediately
+5. **Display** - UI renders content
+
+### Success Path (Cache Miss)
+
+1. **User Action** - Clicks file in sidebar
+2. **Route Request** - GET request to `/file/:path`
+3. **Cache Miss** - No valid cache entry
+4. **File Read** - Read content from disk
+5. **Parse** - Convert markdown to AST
+6. **Block Processing** - For each AST node:
+   - Check if plugin has renderer
+   - Render with plugin or default
+7. **Theme Apply** - Apply current theme colors/styles
+8. **Cache Store** - Save result for future requests
+9. **Index Update** - Update access time for search ranking
+10. **Display** - UI renders content
+
+### Error Path
+
+1. **File Not Found** - File deleted or inaccessible
+2. **404 Response** - Return error to UI
+3. **Error Display** - Show user-friendly message
+
+## Timing Estimates
+
+| Step | Duration | Notes |
+|------|----------|-------|
+| Cache Check | 1-5ms | In-memory lookup |
+| Cache Hit Response | 5-10ms | Direct return |
+| File Read | 10-50ms | Depends on file size |
+| Parse | 20-100ms | Markdown complexity |
+| Plugin Render | 50-500ms | Depends on plugin |
+| Theme Apply | 5-20ms | String operations |
+| Cache Store | 5-10ms | Async write |
+| Total (Cache Hit) | ~10ms | Optimal path |
+| Total (Cache Miss) | ~100-700ms | Typical path |
+
+## Data Structures
+
+### Request
+```typescript
+{
+  path: string;          // File path
+  theme: string;         // Current theme
+  cacheKey: string;      // path:hash:theme
+}
+```
+
+### Response (Success)
+```typescript
+{
+  status: 200;
+  html: string;          // Rendered HTML
+  metadata: {
+    title: string;
+    path: string;
+    modified: Date;
+    size: number;
+  };
+}
+```
+
+### Response (Error)
+```typescript
+{
+  status: 404;
+  error: {
+    code: "FILE_NOT_FOUND";
+    message: "File not found or inaccessible";
+    path: string;
+  };
+}
+```
+
+## Performance Optimizations
+
+| Optimization | Impact | Implementation |
+|--------------|--------|----------------|
+| **Content Hashing** | Cache accuracy | SHA-256 of file content |
+| **Async Parsing** | Non-blocking UI | Web Worker for parsing |
+| **Plugin Caching** | Faster renders | Memoize plugin output |
+| **Lazy Loading** | Faster initial load | Defer heavy plugins |
+| **Incremental Render** | Progressive display | Render visible blocks first |
+
+## Error Scenarios
+
+| Scenario | Detection | Recovery |
+|----------|-----------|----------|
+| **File Deleted** | FS read error | Show 404, remove from index |
+| **Parse Error** | Parser exception | Show raw content + error banner |
+| **Plugin Crash** | Uncaught exception | Fallback to default renderer |
+| **Theme Error** | Theme engine exception | Use default theme |
+| **Cache Corruption** | Invalid data | Clear cache, re-render |
+| **Memory Pressure** | OOM warning | Clear oldest cache entries |
+
+## Caching Strategy
+
+### Cache Key Format
+```
+{path}:{content_hash}:{theme_id}
+```
+
+### Cache Entry Structure
+```typescript
+{
+  key: string;
+  html: string;
+  theme: string;
+  createdAt: Date;
+  expiresAt: Date;      // TTL: 1 hour
+  size: number;         // Bytes
+  accessCount: number;
+  lastAccessed: Date;
+}
+```
+
+### Cache Eviction Policy
+| Policy | Trigger | Action |
+|--------|---------|--------|
+| **TTL Expiry** | expiresAt < now | Delete entry |
+| **LRU** | Cache size > 100MB | Delete least recently used |
+| **Invalidation** | File changed | Delete by content_hash |
+| **Manual Clear** | User action | Clear all entries |

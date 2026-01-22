@@ -1,0 +1,227 @@
+# Process: Plugin System Lifecycle
+
+```mermaid
+flowchart TD
+    %% Style definitions
+    classDef event fill:#FF9800,stroke:#E65100,color:#000,stroke-width:2px
+    classDef command fill:#2196F3,stroke:#0D47A1,color:#fff,stroke-width:2px
+    classDef actor fill:#FFEB3B,stroke:#F57F17,color:#000,stroke-width:2px
+    classDef system fill:#9C27B0,stroke:#4A148C,color:#fff,stroke-width:2px
+    classDef aggregate fill:#4CAF50,stroke:#1B5E20,color:#fff,stroke-width:2px
+    classDef decision fill:#FF9800,stroke:#E65100,color:#000,stroke-dasharray:5 5
+
+    %% Actors
+    User[User]:::actor
+    PluginDev[Plugin Developer]:::actor
+
+    %% Commands
+    CmdLoad[Load Plugin]:::command
+    CmdRegister[Register Renderer]:::command
+    CmdUse[Use Plugin]:::command
+    CmdUnload[Unload Plugin]:::command
+
+    %% Events
+    EvtDiscovered[Plugin Discovered]:::event
+    EvtValidated[Manifest Validated]:::event
+    EvtLoaded[Plugin Code Loaded]:::event
+    EvtRegistered[Renderer Registered]:::event
+    EvtActivated[Plugin Activated]:::event
+    EvtExecuted[Plugin Executed]:::event
+    EvtDeactivated[Plugin Deactivated]:::event
+
+    %% Aggregates
+    AggRegistry[Plugin Registry]:::aggregate
+    AggManifest[Plugin Manifest]:::aggregate
+    AggRenderer[Renderer Instance]:::aggregate
+    AggConfig[Plugin Config]:::aggregate
+
+    %% Systems
+    SysLoader[Plugin Loader]:::system
+    SysValidator[Schema Validator]:::system
+    SysSandbox[Plugin Sandbox]:::system
+    SysHook[Hook System]:::system
+
+    %% Decisions
+    DecValid{Valid Manifest?}:::decision
+    DecType{Plugin Type?}:::decision
+    DecSafe{Safe to Load?}:::decision
+
+    %% Flow
+    PluginDev --> CmdLoad
+    CmdLoad --> EvtDiscovered
+    EvtDiscovered --> SysLoader
+
+    SysLoader --> EvtValidated
+    EvtValidated --> SysValidator
+    SysValidator --> DecValid
+
+    DecValid -->|No| EvtDeactivated
+    DecValid -->|Yes| DecSafe
+
+    DecSafe -->|No| EvtDeactivated
+    DecSafe -->|Yes| EvtLoaded
+    EvtLoaded --> AggManifest
+
+    EvtLoaded --> DecType
+
+    DecType -->|Renderer| CmdRegister
+    DecType -->|Transformer| CmdRegister
+    DecType -->|Hook| SysHook
+
+    CmdRegister --> EvtRegistered
+    EvtRegistered --> AggRenderer
+    EvtRegistered --> AggRegistry
+
+    EvtRegistered --> EvtActivated
+    EvtActivated --> AggConfig
+
+    User --> CmdUse
+    CmdUse --> SysSandbox
+    SysSandbox --> EvtExecuted
+    EvtExecuted --> AggRenderer
+
+    User --> CmdUnload
+    CmdUnload --> EvtDeactivated
+    EvtDeactivated --> AggRegistry
+
+    %% Styling
+    linkStyle default stroke:#94A3B8,stroke-width:2px
+```
+
+## Process Description
+
+Plugin system enables extensible rendering, custom file types, and third-party integrations with isolation and validation.
+
+### Flow Steps
+
+1. **Plugin Discovery** - Scan plugins directory or npm packages
+2. **Manifest Validation** - Verify package.json/plugin.json schema
+3. **Safety Check** - Validate dependencies, permissions
+4. **Code Loading** - Load plugin bundle (ESM or CommonJS)
+5. **Renderer Registration** - Register renderers for file types
+6. **Activation** - Initialize plugin with config
+7. **Execution** - Plugin renders content in sandbox
+8. **Deactivation** - Cleanup on unload
+
+### Plugin Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Renderer** | Convert content to HTML | Mermaid, Graphviz |
+| **Transformer** | Modify AST before render | Table of Contents, Footnotes |
+| **Hook** | Lifecycle events | onRender, afterRender |
+| **UI Extension** | Add UI components | Toolbar button, panel |
+
+### Plugin Manifest Schema
+
+```json
+{
+  "name": "mermaid-renderer",
+  "version": "1.0.0",
+  "type": "renderer",
+  "description": "Render Mermaid diagrams",
+  "author": "author",
+  "entry": "index.js",
+  "fileTypes": [".mmd", ".mermaid"],
+  "dependencies": {
+    "mermaid": "^11.0.0"
+  },
+  "permissions": ["network"],
+  "config": {
+    "theme": "default"
+  }
+}
+```
+
+### Aggregates
+
+| Aggregate | State Changes | Key Attributes |
+|-----------|---------------|----------------|
+| **Plugin Registry** | Empty → Registered | plugins[], activePlugins |
+| **Plugin Manifest** | Validated → Loaded | name, version, permissions |
+| **Renderer Instance** | Registered → Active | render(), cleanup() |
+| **Plugin Config** | Default → Customized | settings, userConfig |
+
+### Plugin API
+
+```typescript
+interface Plugin {
+  name: string;
+  version: string;
+  type: 'renderer' | 'transformer' | 'hook';
+
+  // Renderer API
+  render?(content: string, options: PluginOptions): Promise<string>;
+
+  // Transformer API
+  transform?(ast: ASTNode): ASTNode;
+
+  // Hook API
+  onRender?(content: string): void;
+  afterRender?(html: string): string;
+
+  // Lifecycle
+  activate?(config: PluginConfig): void;
+  deactivate?(): void;
+}
+
+interface PluginOptions {
+  theme: 'light' | 'dark';
+  cache: boolean;
+  [key: string]: any;
+}
+```
+
+### Security & Isolation
+
+| Mechanism | Description |
+|-----------|-------------|
+| **Sandboxing** | Plugins run in isolated Web Worker |
+| **Permission System** | Explicit opt-in for network, file access |
+| **Dependency Validation** | Block known vulnerable packages |
+| **Resource Limits** | CPU/memory quotas per plugin |
+| **Content Security** | Sanitize plugin output |
+
+### Hotspot: Plugin Distribution Model
+
+```mermaid
+flowchart LR
+    A[Plugin Distribution] --> B{Model?}
+    B -->|npm Packages| C[Global Registry]
+    B -->|Local Modules| D[Project-Specific]
+    B -->|Hybrid| E[Both]
+
+    C --> F[Easy discovery]
+    C --> G[Version management]
+    C --> H[Network required]
+
+    D --> I[Offline capable]
+    D --> J[No dependency issues]
+    D --> K[Manual installation]
+
+    E --> L[Best of both worlds]
+```
+
+**Recommendation:** Hybrid model - npm for public plugins, local for custom/private plugins.
+
+### Error Handling
+
+| Failure Point | Recovery Strategy |
+|---------------|-------------------|
+| Invalid manifest | Show error, skip plugin |
+| Dependency missing | Prompt user to install |
+| Runtime error | Fallback to default, log error |
+| Permission denied | Show permission request dialog |
+| Plugin crash | Unload plugin, notify user |
+
+### Built-in Plugins
+
+| Plugin | File Types | Description |
+|--------|-----------|-------------|
+| **Markdown** | `.md` | Core Markdown rendering |
+| **Mermaid** | `.mmd` | Diagram rendering |
+| **Graphviz** | `.gv`, `.dot` | DOT graph rendering |
+| **Vega** | `.vega`, `.vl` | Data visualization |
+| **JSON** | `.json` | Formatted JSON display |
+| **YAML** | `.yml`, `.yaml` | Formatted YAML display |
+| **Code Highlight** | All | Syntax highlighting |

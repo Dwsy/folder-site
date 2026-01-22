@@ -1,0 +1,264 @@
+# Sequence Diagram: Quick Search (Cmd+P)
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as Frontend UI
+    participant Debounce as Debounce Timer
+    participant Search as Search Engine
+    participant Index as File Index
+    participant Router as File Router
+    participant Cache as Render Cache
+
+    User->>UI: Press Cmd+P
+    UI->>UI: Open search modal
+    UI->>Index: Get recent files
+    Index-->>UI: Recent files list
+    UI->>User: Display recent files
+
+    User->>UI: Type search query
+    UI->>Debounce: Start 50ms timer
+
+    alt User types more
+        User->>UI: Type next character
+        UI->>Debounce: Reset timer
+    end
+
+    Debounce->>Search: Execute search
+    Search->>Index: Query file index
+    Index-->>Search: Matching files
+
+    Search->>Search: Calculate relevance scores
+    Search->>Search: Sort by score + recency
+    Search-->>UI: Search results
+
+    UI->>User: Display results (top 10)
+
+    User->>UI: Arrow key navigation
+    UI->>UI: Update highlighted result
+    UI->>User: Show preview
+
+    alt User presses Enter
+        User->>UI: Press Enter
+        UI->>Router: Open selected file
+        Router->>Cache: Check cache
+        Cache-->>Router: Return HTML
+        Router-->>UI: File content
+        UI->>User: Display file
+    else User presses Esc
+        User->>UI: Press Esc
+        UI->>UI: Close modal
+    end
+```
+
+## Flow Description
+
+### Initial State
+
+1. **Cmd+P Pressed** - User triggers quick search
+2. **Modal Open** - Display search overlay
+3. **Recent Files** - Show recently accessed files
+4. **Input Focus** - Cursor ready for typing
+
+### Search Execution
+
+1. **User Typing** - Characters entered
+2. **Debounce** - Wait 50ms after last keystroke
+3. **Search Query** - Execute against file index
+4. **Fuzzy Match** - Find files matching query
+5. **Relevance Scoring** - Calculate match scores
+6. **Sorting** - Sort by score + recency
+7. **Results Display** - Show top 10 matches
+
+### Result Navigation
+
+1. **Arrow Keys** - Move selection up/down
+2. **Preview Update** - Show selected file preview
+3. **Enter** - Open selected file
+4. **Esc** - Close modal
+
+## Search Algorithm
+
+### Fuzzy Matching
+```typescript
+function fuzzyMatch(query: string, target: string): number {
+  // Score based on:
+  // - Exact match: 100
+  // - Prefix match: 80
+  // - Subsequence match: 60
+  // - Character distance penalty
+  // - Case insensitive
+}
+```
+
+### Relevance Scoring
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| **Fuzzy Score** | 0.5 | Match quality (0-100) |
+| **Path Depth** | 0.2 | Prefer shallower paths |
+| **File Type** | 0.1 | Boost .md files |
+| **Recency** | 0.15 | Recently opened files |
+| **Exact Match** | 0.05 | Bonus for exact name |
+
+### Sorting Strategy
+```typescript
+results.sort((a, b) => {
+  // Primary: Relevance score (desc)
+  // Secondary: Last accessed (desc)
+  // Tertiary: Path depth (asc)
+});
+```
+
+## Timing Estimates
+
+| Step | Duration | Notes |
+|------|----------|-------|
+| Modal Open | 10-20ms | UI render |
+| Recent Files | 5-10ms | Index lookup |
+| Debounce Wait | 50ms | Configurable |
+| Search Execution | 20-80ms | Depends on index size |
+| Fuzzy Matching | 10-30ms | Per file |
+| Scoring & Sort | 5-15ms | 1000 files |
+| Results Render | 5-10ms | UI update |
+| **Total** | **< 100ms** | Target |
+
+## Data Structures
+
+### Search Request
+```typescript
+{
+  query: string;           // User input
+  limit: number;           // Max results (default: 10)
+  fileTypes?: string[];    // Filter by extension
+  path?: string;           // Current directory context
+}
+```
+
+### Search Result
+```typescript
+{
+  path: string;
+  name: string;
+  extension: string;
+  score: number;           // 0-100
+  matched: string[];       // Matched characters
+  preview?: string;        // First 100 chars
+  lastAccessed: Date;
+}
+```
+
+### Search Response
+```typescript
+{
+  total: number;           // Total matches
+  results: SearchResult[];
+  query: string;
+  duration: number;        // ms
+}
+```
+
+## Performance Optimizations
+
+| Optimization | Impact | Implementation |
+|--------------|--------|----------------|
+| **Debounce** | Reduce queries | 50ms delay |
+| **Web Worker** | Non-blocking UI | Search in background |
+| **Index Caching** | Fast lookups | In-memory trie |
+| **Result Limiting** | Faster response | Top 10 only |
+| **Incremental Search** | Progressive display | Show partial results |
+| **Path Boosting** | Context awareness | Current directory priority |
+
+## Keyboard Shortcuts
+
+| Shortcut | Action | Handler |
+|----------|--------|---------|
+| `Cmd+P` | Open modal | `openSearchModal()` |
+| `Esc` | Close modal | `closeSearchModal()` |
+| `↑` / `↓` | Navigate results | `navigateResults(direction)` |
+| `Enter` | Open selected | `openSelectedFile()` |
+| `Ctrl+N` | Next result | `navigateResults('down')` |
+| `Ctrl+P` | Previous result | `navigateResults('up')` |
+| `Tab` | Accept fuzzy match | `acceptFuzzyMatch()` |
+| `Backspace` | Delete char | Native input |
+| `Ctrl+C` | Copy path | `copySelectedPath()` |
+
+## Index Structure
+
+### File Index Entry
+```typescript
+{
+  path: string;
+  name: string;
+  extension: string;
+  tokens: string[];        // Split by /, ., camelCase
+  depth: number;
+  size: number;
+  lastAccessed: Date;
+  lastModified: Date;
+}
+```
+
+### Search Index (Trie)
+```typescript
+{
+  char: string;
+  children: Map<string, TrieNode>;
+  files: string[];         // File paths with this prefix
+}
+```
+
+## Error Scenarios
+
+| Scenario | Detection | Recovery |
+|----------|-----------|----------|
+| **Index Not Ready** | Index empty | Show "Indexing..." message |
+| **Search Timeout** | > 100ms | Show partial results |
+| **Invalid Path** | File deleted | Remove from index |
+| **Memory Pressure** | OOM warning | Clear oldest cache |
+| **Keyboard Event Lost** | Focus issue | Re-focus input |
+
+## Hotspot: Search Indexing Strategy
+
+### In-Memory (Recommended)
+```typescript
+// Fast, simple, lost on restart
+const index = new Map<string, FileIndexEntry>();
+
+// Build on startup
+function buildIndex(files: File[]): Map {
+  files.forEach(f => index.set(f.path, f));
+  return index;
+}
+```
+
+### Disk-Based (Alternative)
+```typescript
+// Persistent, slightly slower
+import Database from 'better-sqlite3';
+const db = new Database('file-index.db');
+
+// Query with SQL
+function search(query: string): FileIndexEntry[] {
+  return db.prepare(`
+    SELECT * FROM files
+    WHERE name LIKE ?
+    ORDER BY lastAccessed DESC
+    LIMIT 10
+  `).all(`%${query}%`);
+}
+```
+
+### Hybrid (Best of Both)
+```typescript
+// In-memory + periodic sync
+const memoryIndex = new Map();
+const diskIndex = new Database();
+
+// Load on startup
+memoryIndex = loadFromDisk(diskIndex);
+
+// Periodic sync (every 5 min)
+setInterval(() => {
+  syncToDisk(memoryIndex, diskIndex);
+}, 5 * 60 * 1000);
+```

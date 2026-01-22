@@ -1,0 +1,127 @@
+# EventStorming: Folder-Site CLI - Big Picture
+
+```mermaid
+flowchart LR
+    %% Style definitions
+    classDef event fill:#FF9800,stroke:#E65100,color:#000,stroke-width:2px
+    classDef command fill:#2196F3,stroke:#0D47A1,color:#fff,stroke-width:2px
+    classDef actor fill:#FFEB3B,stroke:#F57F17,color:#000,stroke-width:2px
+    classDef system fill:#9C27B0,stroke:#4A148C,color:#fff,stroke-width:2px
+    classDef aggregate fill:#4CAF50,stroke:#1B5E20,color:#fff,stroke-width:2px
+    classDef hotspot fill:#F44336,stroke:#B71C1C,color:#fff,stroke-width:2px,strokewidth:3px
+
+    %% Actors
+    User[Developer]:::actor
+    PluginDev[Plugin Developer]:::actor
+
+    %% Commands
+    CmdStart[folder-site]:::command
+    CmdNavigate[Navigate File Tree]:::command
+    CmdSearch[Cmd+P Search]:::command
+    CmdToggleTheme[Toggle Theme]:::command
+    CmdExport[Export PDF/HTML]:::command
+    CmdLoadPlugin[Load Plugin]:::command
+
+    %% Events
+    EvtServer[Server Started]:::event
+    EvtIndexed[Directory Indexed]:::event
+    EvtFileOpened[File Opened]:::event
+    EvtSearched[Search Executed]:::event
+    EvtTheme[Theme Changed]:::event
+    EvtExported[Export Complete]:::event
+    EvtPlugin[Plugin Loaded]:::event
+    EvtChanged[File Changed]:::event
+    EvtRendered[Content Rendered]:::event
+
+    %% Aggregates
+    AggConfig[Server Config]:::aggregate
+    AggIndex[File Index]:::aggregate
+    AggCache[Render Cache]:::aggregate
+    AggTheme[Theme State]:::aggregate
+    AggPlugins[Plugin Registry]:::aggregate
+
+    %% Systems
+    SysFS[File System]:::system
+    SysWorkhub[Workhub]:::system
+    SysRenderer[Markdown Renderer]:::system
+    SysWatcher[File Watcher]:::system
+
+    %% Hotspots
+    HotPlugin[? Plugin distribution model? npm vs local?]:::hotspot
+    HotSearch[? Search indexing: in-memory vs disk?]:::hotspot
+    HotExport[? Export: client-side vs server-side?]:::hotspot
+    HotWorkhub[? Workhub: read-only or bidirectional?]:::hotspot
+
+    %% Main Flow
+    User --> CmdStart
+    CmdStart --> EvtServer
+    EvtServer --> AggConfig
+
+    EvtServer --> EvtIndexed
+    EvtIndexed --> AggIndex
+    AggIndex --> SysFS
+
+    User --> CmdNavigate
+    CmdNavigate --> EvtFileOpened
+    EvtFileOpened --> SysRenderer
+    SysRenderer --> EvtRendered
+    EvtRendered --> AggCache
+
+    SysWatcher --> EvtChanged
+    EvtChanged --> EvtRendered
+
+    User --> CmdSearch
+    CmdSearch --> EvtSearched
+    EvtSearched --> AggIndex
+    EvtSearched -.question.- HotSearch
+
+    User --> CmdToggleTheme
+    CmdToggleTheme --> EvtTheme
+    EvtTheme --> AggTheme
+
+    User --> CmdExport
+    CmdExport --> EvtExported
+    EvtExported -.question.- HotExport
+
+    PluginDev --> CmdLoadPlugin
+    CmdLoadPlugin --> EvtPlugin
+    EvtPlugin --> AggPlugins
+    EvtPlugin -.question.- HotPlugin
+
+    %% Workhub Integration
+    AggIndex -.-> SysWorkhub
+    SysWorkhub -.question.- HotWorkhub
+
+    %% Styling
+    linkStyle default stroke:#94A3B8,stroke-width:2px
+```
+
+## Legend
+
+| Color | Element Type |
+|-------|--------------|
+| 🟠 Orange | **Events** - Something that happened |
+| 🔵 Blue | **Commands** - User actions |
+| 🟡 Yellow | **Actors** - Who initiates actions |
+| 🟣 Purple | **Systems** - External integrations |
+| 🟢 Green | **Aggregates** - Data entities |
+| 🔴 Red | **Hotspots** - Questions/Decisions needed |
+
+## Key Events
+
+1. **Server Started** - CLI initializes local server
+2. **Directory Indexed** - Build searchable file index
+3. **File Opened** - User selects a file to view
+4. **Content Rendered** - Markdown converted to HTML
+5. **File Changed** - Auto-watcher detects modifications
+6. **Search Executed** - Quick file search triggered
+7. **Theme Changed** - Dark/Light mode toggle
+8. **Export Complete** - PDF/HTML generation done
+9. **Plugin Loaded** - Custom renderer registered
+
+## Hotspots (Decisions Needed)
+
+1. **Plugin Distribution** - npm packages or local modules?
+2. **Search Indexing** - In-memory cache or disk-based?
+3. **Export Implementation** - Client-side (jsPDF) or server-side (Puppeteer)?
+4. **Workhub Integration** - Read-only docs display or bidirectional edits?

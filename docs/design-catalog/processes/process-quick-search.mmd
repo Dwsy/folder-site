@@ -1,0 +1,160 @@
+# Process: Quick Search (Cmd+P)
+
+```mermaid
+flowchart TD
+    %% Style definitions
+    classDef event fill:#FF9800,stroke:#E65100,color:#000,stroke-width:2px
+    classDef command fill:#2196F3,stroke:#0D47A1,color:#fff,stroke-width:2px
+    classDef actor fill:#FFEB3B,stroke:#F57F17,color:#000,stroke-width:2px
+    classDef system fill:#9C27B0,stroke:#4A148C,color:#fff,stroke-width:2px
+    classDef aggregate fill:#4CAF50,stroke:#1B5E20,color:#fff,stroke-width:2px
+    classDef decision fill:#FF9800,stroke:#E65100,color:#000,stroke-dasharray:5 5
+
+    %% Actors
+    User[User]:::actor
+
+    %% Commands
+    CmdTrigger[Cmd+P Pressed]:::command
+    CmdType[Type Query]:::command
+    CmdSelect[Select Result]:::command
+    CmdNavigate[Arrow Keys]:::command
+    CmdClose[Esc Pressed]:::command
+
+    %% Events
+    EvtOpened[Search Modal Opened]:::event
+    EvtInput[Query Input Received]:::event
+    EvtFiltered[Results Filtered]:::event
+    EvtHighlighted[Result Highlighted]:::event
+    EvtSelected[File Selected]:::event
+    EvtClosed[Modal Closed]:::event
+
+    %% Aggregates
+    AggIndex[File Index]:::aggregate
+    AggQuery[Search Query]:::aggregate
+    AggResults[Search Results]:::aggregate
+    AggSelection[Selection Index]:::aggregate
+
+    %% Systems
+    SysSearch[Search Engine]:::system
+    SysDebounce[Debounce Timer]:::system
+    SysKeyboard[Keyboard Handler]:::system
+
+    %% Decisions
+    DecEmpty{Query Empty?}:::decision
+    DecHasResults{Results Found?}:::decision
+
+    %% Flow
+    User --> CmdTrigger
+    CmdTrigger --> EvtOpened
+    EvtOpened --> AggQuery
+    AggQuery --> User
+
+    User --> CmdType
+    CmdType --> EvtInput
+    EvtInput --> SysDebounce
+
+    SysDebounce --> SysSearch
+    SysSearch --> AggIndex
+    SysSearch --> EvtFiltered
+    EvtFiltered --> AggResults
+
+    EvtFiltered --> DecHasResults
+    DecHasResults -->|Yes| AggResults
+    DecHasResults -->|No| AggResults
+
+    AggResults --> User
+
+    User --> CmdNavigate
+    CmdNavigate --> SysKeyboard
+    SysKeyboard --> EvtHighlighted
+    EvtHighlighted --> AggSelection
+
+    AggSelection --> User
+
+    User --> CmdSelect
+    CmdSelect --> EvtSelected
+    EvtSelected --> User
+
+    User --> CmdClose
+    CmdClose --> EvtClosed
+    EvtClosed --> AggQuery
+
+    %% Empty Query Check
+    EvtInput --> DecEmpty
+    DecEmpty -->|Yes| AggIndex
+    DecEmpty -->|No| SysSearch
+
+    %% Styling
+    linkStyle default stroke:#94A3B8,stroke-width:2px
+```
+
+## Process Description
+
+Quick search provides instant file navigation with fuzzy matching, keyboard shortcuts, and sub-100ms response time.
+
+### Flow Steps
+
+1. **Modal Opened** - Cmd+P triggers search overlay
+2. **Query Input** - User types search terms
+3. **Debounce** - Wait 50ms to avoid excessive filtering
+4. **Search Execution** - Fuzzy match against file index
+5. **Result Filtering** - Sort by relevance and path
+6. **Highlight Navigation** - Arrow keys move selection
+7. **File Selection** - Enter opens selected file
+8. **Modal Close** - Esc hides search overlay
+
+### Search Algorithm
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| **Fuzzy Match** | `src/utils/file.ts` matches `suf` | Partial matches |
+| **Path Boost** | Boost files in current directory | Context awareness |
+| **Type Filter** | `*.md` extension priority | File type preference |
+| **Recent Boost** | Boost recently opened files | Workflow optimization |
+| **Exact Match** | Highest score for exact name | Precision |
+
+### Aggregates
+
+| Aggregate | State Changes | Key Attributes |
+|-----------|---------------|----------------|
+| **File Index** | Init → Updated | files[], paths, types |
+| **Search Query** | Empty → Typing | value, cursor, history |
+| **Search Results** | Empty → Filtered | matches[], scores, total |
+| **Selection Index** | 0 → N | selectedIndex, highlighted |
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Cmd+P` | Open search modal |
+| `Esc` | Close modal |
+| `↑/↓` | Navigate results |
+| `Enter` | Open selected file |
+| `Ctrl+N` | Next result |
+| `Ctrl+P` | Previous result |
+| `Tab` | Accept fuzzy match |
+
+### Performance Requirements
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| **Response Time** | < 100ms | In-memory index, Web Worker |
+| **Index Size** | < 10MB | Compressed file paths |
+| **Initial Index** | < 500ms | Async background loading |
+| **Search Throughput** | 1000+ queries/sec | Optimized fuzzy algorithm |
+
+### Hotspot: Search Indexing Strategy
+
+```mermaid
+flowchart LR
+    A[File Changed] --> B{Update Strategy?}
+    B -->|In-Memory| C[Update RAM Index]
+    B -->|Disk-Based| D[Write to SQLite]
+    C --> E[Fast, < 10ms]
+    D --> F[Persistent, < 50ms]
+```
+
+**Trade-offs:**
+- **In-Memory:** Faster, but lost on restart
+- **Disk-Based:** Persistent, slightly slower
+- **Hybrid:** In-memory + periodic disk sync (recommended) |

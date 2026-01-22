@@ -1,0 +1,183 @@
+# Entity-Relationship Diagram
+
+```mermaid
+erDiagram
+    %% Core Entities
+    File {
+        string path PK
+        string name
+        string extension
+        number size
+        timestamp modified
+        string type
+        string content_hash
+    }
+
+    Directory {
+        string path PK
+        string name
+        string parent_path FK
+        number depth
+        boolean is_root
+    }
+
+    FileIndex {
+        string file_path PK
+        string tokens
+        number relevance_score
+        timestamp indexed_at
+        boolean is_cached
+    }
+
+    RenderCache {
+        string cache_key PK
+        string file_path FK
+        string html_content
+        string theme
+        timestamp created_at
+        timestamp expires_at
+        number size_bytes
+    }
+
+    Plugin {
+        string id PK
+        string name
+        string version
+        string type
+        string entry_point
+        boolean is_active
+        json config
+        timestamp installed_at
+    }
+
+    PluginManifest {
+        string plugin_id PK
+        string file_types
+        json dependencies
+        json permissions
+        string author
+    }
+
+    Theme {
+        string id PK
+        string name
+        string mode
+        json colors
+        json fonts
+        boolean is_default
+    }
+
+    UserConfig {
+        string key PK
+        json value
+        timestamp updated_at
+    }
+
+    SearchHistory {
+        string id PK
+        string query
+        timestamp created_at
+        number result_count
+        string selected_path
+    }
+
+    WorkhubDocument {
+        string path PK
+        string type
+        string status
+        string category
+        timestamp created_at
+        timestamp updated_at
+        json metadata
+    }
+
+    %% Relationships
+    File ||--|| Directory : "belongs_to"
+    File ||--o{ FileIndex : "indexed_by"
+    File ||--o{ RenderCache : "cached_as"
+    File ||--o{ SearchHistory : "selected_in"
+
+    Directory ||--|| Directory : "parent_of"
+    Directory ||--o{ File : "contains"
+
+    Plugin ||--|| PluginManifest : "has_manifest"
+    Plugin ||--o{ RenderCache : "generates"
+
+    Theme ||--o{ RenderCache : "applied_to"
+    UserConfig ||--|| Theme : "uses"
+
+    WorkhubDocument ||--|| File : "represented_by"
+```
+
+## Entity Descriptions
+
+### Core File System
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **File** | File metadata and content hash | path, extension, content_hash |
+| **Directory** | Directory tree structure | path, parent_path, depth |
+
+### Performance & Caching
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **FileIndex** | Searchable token index | tokens, relevance_score |
+| **RenderCache** | Cached HTML output | cache_key, html_content, expires_at |
+
+### Plugin System
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **Plugin** | Installed plugins | id, type, is_active |
+| **PluginManifest** | Plugin metadata | file_types, permissions |
+
+### Configuration
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **Theme** | UI themes | mode, colors, fonts |
+| **UserConfig** | User preferences | key, value |
+
+### Search & History
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **SearchHistory** | Query history | query, result_count, selected_path |
+
+### Workhub Integration
+
+| Entity | Description | Key Attributes |
+|--------|-------------|----------------|
+| **WorkhubDocument** | Workhub docs mapping | type, status, category |
+
+## Relationship Types
+
+| Relationship | Cardinality | Description |
+|--------------|-------------|-------------|
+| **File → Directory** | N:1 | Each file belongs to one directory |
+| **Directory → Directory** | N:1 | Recursive parent-child structure |
+| **File → FileIndex** | 1:1 | Each file has one search index entry |
+| **File → RenderCache** | 1:N | Multiple cache entries per file (themes) |
+| **Plugin → PluginManifest** | 1:1 | Each plugin has one manifest |
+| **Theme → RenderCache** | 1:N | Cache entries per theme variant |
+| **WorkhubDocument → File** | 1:1 | Workhub docs map to files |
+
+## Indexing Strategy
+
+| Entity | Indexes | Purpose |
+|--------|---------|---------|
+| **File** | path (PK), extension, modified | Quick lookup, filtering |
+| **Directory** | path (PK), parent_path | Tree traversal |
+| **FileIndex** | file_path (PK), tokens | Full-text search |
+| **RenderCache** | cache_key (PK), file_path, theme | Cache lookup |
+| **Plugin** | id (PK), type, is_active | Plugin discovery |
+| **SearchHistory** | created_at, query | History queries |
+
+## Data Integrity Rules
+
+1. **File.content_hash** - Must be SHA-256 of file content
+2. **RenderCache.cache_key** - Must be `file_path:content_hash:theme`
+3. **Directory.parent_path** - Must reference existing Directory or NULL
+4. **Plugin.is_active** - Only one renderer per file type can be active
+5. **RenderCache.expires_at** - Must be > created_at (TTL based)
