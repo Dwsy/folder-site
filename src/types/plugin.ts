@@ -620,6 +620,224 @@ export interface PluginConfig {
 // =============================================================================
 
 /**
+ * 插件优先级类型
+ */
+export type PluginPriority = number | 'high' | 'normal' | 'low';
+
+/**
+ * 插件优先级数值映射
+ */
+export const PLUGIN_PRIORITY_VALUES: Record<string, number> = {
+  high: 100,
+  normal: 50,
+  low: 10,
+};
+
+/**
+ * 插件优先级常量
+ */
+export const PluginPriority = {
+  High: 'high' as const,
+  Normal: 'normal' as const,
+  Low: 'low' as const,
+};
+
+/**
+ * 插件冲突类型
+ */
+export const PluginConflictType = {
+  /** 重复的插件 ID */
+  DuplicateId: 'duplicate_id' as const,
+  /** 同名渲染器 */
+  DuplicateRenderer: 'duplicate_renderer' as const,
+  /** 同名转换器 */
+  DuplicateTransformer: 'duplicate_transformer' as const,
+  /** 依赖冲突 */
+  DependencyConflict: 'dependency_conflict' as const,
+  /** 版本不兼容 */
+  VersionIncompatible: 'version_incompatible' as const,
+};
+
+/**
+ * 插件冲突类型
+ */
+export type PluginConflictType = typeof PluginConflictType[keyof typeof PluginConflictType];
+
+/**
+ * 插件冲突信息
+ */
+export interface PluginConflict {
+  /** 冲突类型 */
+  type: PluginConflictType;
+  
+  /** 冲突描述 */
+  message: string;
+  
+  /** 冲突的插件 ID */
+  pluginId: string;
+  
+  /** 冲突的目标插件 ID（如果有） */
+  targetPluginId?: string;
+  
+  /** 冲突的能力名称（如果有） */
+  capabilityName?: string;
+  
+  /** 冲突的详细信息 */
+  details?: Record<string, unknown>;
+}
+
+/**
+ * 插件冲突解决策略
+ */
+export const PluginConflictResolution = {
+  /** 报错并停止注册 */
+  Error: 'error' as const,
+  /** 覆盖已存在的插件 */
+  Override: 'override' as const,
+  /** 跳过新插件 */
+  Skip: 'skip' as const,
+  /** 合并插件（如果可能） */
+  Merge: 'merge' as const,
+};
+
+/**
+ * 插件冲突解决策略
+ */
+export type PluginConflictResolution = typeof PluginConflictResolution[keyof typeof PluginConflictResolution];
+
+/**
+ * 插件注册选项
+ */
+export interface PluginRegistrationOptions {
+  /** 插件优先级（默认: normal） */
+  priority?: PluginPriority;
+  
+  /** 是否自动激活（默认: false） */
+  autoActivate?: boolean;
+  
+  /** 冲突解决策略（默认: error） */
+  conflictResolution?: PluginConflictResolution;
+  
+  /** 是否启用插件（默认: true） */
+  enabled?: boolean;
+  
+  /** 插件配置（可选） */
+  config?: Record<string, unknown>;
+  
+  /** 注册元数据（可选） */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * 插件注册信息
+ */
+export interface PluginRegistration {
+  /** 插件实例 */
+  plugin: Plugin;
+  
+  /** 注册时间戳 */
+  registeredAt: number;
+  
+  /** 插件优先级 */
+  priority: number;
+  
+  /** 是否启用 */
+  enabled: boolean;
+  
+  /** 注册选项 */
+  options: PluginRegistrationOptions;
+  
+  /** 注册元数据 */
+  metadata: Map<string, unknown>;
+}
+
+/**
+ * 渲染器注册信息
+ */
+export interface RendererRegistration {
+  /** 渲染器名称 */
+  name: string;
+  
+  /** 插件 ID */
+  pluginId: string;
+  
+  /** 渲染器实例 */
+  renderer: unknown;
+  
+  /** 渲染器优先级 */
+  priority: number;
+  
+  /** 渲染器能力 */
+  capabilities: string[];
+  
+  /** 注册时间戳 */
+  registeredAt: number;
+}
+
+/**
+ * 转换器注册信息
+ */
+export interface TransformerRegistration {
+  /** 转换器名称 */
+  name: string;
+  
+  /** 插件 ID */
+  pluginId: string;
+  
+  /** 转换器实例 */
+  transformer: unknown;
+  
+  /** 转换器优先级 */
+  priority: number;
+  
+  /** 输入类型 */
+  inputType: string;
+  
+  /** 输出类型 */
+  outputType: string;
+  
+  /** 注册时间戳 */
+  registeredAt: number;
+}
+
+/**
+ * 插件注册结果
+ */
+export interface PluginRegistrationResult {
+  /** 是否注册成功 */
+  success: boolean;
+  
+  /** 注册的插件实例 */
+  plugin?: Plugin;
+  
+  /** 冲突列表（如果有） */
+  conflicts: PluginConflict[];
+  
+  /** 错误信息（如果失败） */
+  error?: Error;
+  
+  /** 注册耗时（毫秒） */
+  duration: number;
+}
+
+/**
+ * 插件注销结果
+ */
+export interface PluginUnregistrationResult {
+  /** 是否注销成功 */
+  success: boolean;
+  
+  /** 已注销的插件实例 */
+  plugin?: Plugin;
+  
+  /** 错误信息（如果失败） */
+  error?: Error;
+  
+  /** 注销耗时（毫秒） */
+  duration: number;
+}
+
+/**
  * 插件注册表接口
  */
 export interface PluginRegistry {
@@ -638,15 +856,94 @@ export interface PluginRegistry {
   /** 注册插件 */
   register(plugin: Plugin): void;
   
+  /** 带选项的插件注册 */
+  registerWithOptions(plugin: Plugin, options: PluginRegistrationOptions): PluginRegistrationResult;
+  
   /** 注销插件 */
   unregister(id: string): boolean;
+  
+  /** 带结果的插件注销 */
+  unregisterWithResult(id: string): PluginUnregistrationResult;
   
   /** 检查插件是否已注册 */
   has(id: string): boolean;
   
   /** 获取插件数量 */
   readonly size: number;
+  
+  /** 获取所有渲染器 */
+  getRenderers(): RendererRegistration[];
+  
+  /** 根据名称获取渲染器 */
+  getRenderer(name: string): RendererRegistration | undefined;
+  
+  /** 根据插件 ID 获取渲染器 */
+  getRenderersByPlugin(pluginId: string): RendererRegistration[];
+  
+  /** 根据能力获取渲染器 */
+  getRenderersByCapability(capability: string): RendererRegistration[];
+  
+  /** 注册渲染器 */
+  registerRenderer(registration: RendererRegistration): void;
+  
+  /** 注销渲染器 */
+  unregisterRenderer(name: string, pluginId: string): boolean;
+  
+  /** 获取所有转换器 */
+  getTransformers(): TransformerRegistration[];
+  
+  /** 根据名称获取转换器 */
+  getTransformer(name: string): TransformerRegistration | undefined;
+  
+  /** 根据插件 ID 获取转换器 */
+  getTransformersByPlugin(pluginId: string): TransformerRegistration[];
+  
+  /** 根据输入输出类型获取转换器 */
+  getTransformersByType(inputType: string, outputType: string): TransformerRegistration[];
+  
+  /** 注册转换器 */
+  registerTransformer(registration: TransformerRegistration): void;
+  
+  /** 注销转换器 */
+  unregisterTransformer(name: string, pluginId: string): boolean;
+  
+  /** 检测插件冲突 */
+  detectConflicts(plugin: Plugin, options?: PluginRegistrationOptions): PluginConflict[];
+  
+  /** 解决插件冲突 */
+  resolveConflicts(conflicts: PluginConflict[], strategy: PluginConflictResolution): boolean;
+  
+  /** 获取插件优先级 */
+  getPriority(pluginId: string): number | undefined;
+  
+  /** 设置插件优先级 */
+  setPriority(pluginId: string, priority: PluginPriority): boolean;
+  
+  /** 按优先级排序插件 */
+  getSortedByPriority(): Plugin[];
+  
+  /** 启用插件 */
+  enable(pluginId: string): boolean;
+  
+  /** 禁用插件 */
+  disable(pluginId: string): boolean;
+  
+  /** 检查插件是否启用 */
+  isEnabled(pluginId: string): boolean;
+  
+  /** 清空注册表 */
+  clear(): void;
 }
+
+/**
+ * 插件生命周期钩子类型
+ */
+export type PluginLifecycleHook = 'onRegister' | 'onUnregister' | 'onEnable' | 'onDisable';
+
+/**
+ * 插件生命周期钩子处理器
+ */
+export type PluginLifecycleHookHandler = (plugin: Plugin, context: PluginContext) => Promise<void> | void;
 
 // =============================================================================
 // 插件发现配置 (Plugin Discovery)
