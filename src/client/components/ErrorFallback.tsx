@@ -7,6 +7,9 @@ export interface ErrorFallbackProps {
   errorInfo: React.ErrorInfo | null;
   errorId: string;
   onReset?: () => void;
+  onReload?: () => void;
+  onGoHome?: () => void;
+  onCopyError?: () => void;
   showDetails?: boolean;
 }
 
@@ -53,11 +56,6 @@ ${error?.stack || 'N/A'}`;
   // 刷新页面
   const handleReload = () => {
     window.location.reload();
-  };
-
-  // 返回首页
-  const handleGoHome = () => {
-    window.location.href = '/';
   };
 
   return (

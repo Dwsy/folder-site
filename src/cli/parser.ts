@@ -55,7 +55,7 @@ function createCommand(): Command {
     .description('One-command local website generator for documentation and knowledge bases')
     .version(packageJson.version, '-v, --version', '显示版本信息')
     .helpOption('-h, --help', '显示帮助信息')
-    .option('-p, --port <number>', '指定端口号 (默认: 3000)', '3000')
+    .option('-p, --port <number>', '指定端口号 (默认: 3000)', process.env.PORT || '3000')
     .allowUnknownOption(false); // 不允许未知选项
 
   return program;
