@@ -1,6 +1,6 @@
 /**
  * 插件管理器
- * 
+ *
  * 提供插件发现、加载、激活、停用、卸载的完整生命周期管理功能
  */
 
@@ -24,14 +24,14 @@ import type {
   PluginManagerConfig,
   PluginErrorType,
   Disposable,
-} from '@types/plugin.js';
+} from '../../types/plugin.js';
 import {
   validatePluginManifest,
   DEFAULT_PLUGIN_MANAGER_CONFIG,
   PluginStatus as Status,
-  PluginErrorType as ErrorType,
   PluginError,
-} from '@types/plugin.js';
+} from '../../types/plugin.js';
+import { SandboxManager } from './plugin-sandbox.js';
 
 // =============================================================================
 // 简单事件发射器实现
@@ -463,6 +463,7 @@ export class PluginManager {
   private app: PluginContext['app'];
   private services: PluginServices;
   private sandboxConfig: PluginSandboxConfig;
+  private sandboxManager: SandboxManager;
   private pluginContexts: Map<string, PluginContext> = new Map();
 
   constructor(
@@ -484,6 +485,7 @@ export class PluginManager {
       allowedModules: [],
       ...this.config.sandbox,
     };
+    this.sandboxManager = new SandboxManager(this.sandboxConfig);
   }
 
   /**
@@ -722,6 +724,17 @@ export class PluginManager {
       this.eventEmitter
     );
 
+    // 创建插件沙箱（如果启用）
+    if (this.sandboxConfig.enabled) {
+      const sandbox = await this.sandboxManager.createSandbox(
+        manifest,
+        context,
+        this.sandboxConfig
+      );
+      this.pluginContexts.set(pluginId, context);
+      this.emit('plugin:sandbox:created', { pluginId, sandbox });
+    }
+
     // 如果提供了入口路径，尝试动态加载
     if (entryPath) {
       try {
@@ -836,6 +849,12 @@ export class PluginManager {
 
     // 销毁插件
     await plugin.dispose();
+
+    // 销毁插件沙箱
+    if (this.sandboxManager.hasSandbox(pluginId)) {
+      await this.sandboxManager.destroySandbox(pluginId);
+      this.emit('plugin:sandbox:destroyed', { pluginId });
+    }
 
     // 从注册表移除
     this.registry.unregister(pluginId);
@@ -968,10 +987,39 @@ export class PluginManager {
   }
 
   /**
+   * 获取插件沙箱
+   */
+  getPluginSandbox(pluginId: string) {
+    return this.sandboxManager.getSandbox(pluginId);
+  }
+
+  /**
+   * 检查插件是否有沙箱
+   */
+  hasPluginSandbox(pluginId: string): boolean {
+    return this.sandboxManager.hasSandbox(pluginId);
+  }
+
+  /**
+   * 获取全局安全事件
+   */
+  getGlobalSecurityEvents() {
+    return this.sandboxManager.getGlobalSecurityEvents();
+  }
+
+  /**
+   * 获取全局安全统计
+   */
+  getGlobalSecurityStats() {
+    return this.sandboxManager.getGlobalSecurityStats();
+  }
+
+  /**
    * 销毁插件管理器
    */
   async dispose(): Promise<void> {
     await this.unloadAll();
+    await this.sandboxManager.destroyAll();
     this.eventEmitter.emit('plugin:manager:disposed', {});
   }
 
