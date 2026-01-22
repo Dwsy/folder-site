@@ -24,6 +24,7 @@ import {
 import type { ThemeMode } from '../../../types/theme.js';
 import { MarkdownTheme, getMarkdownBodyClass, getMarkdownThemeStyles } from './MarkdownTheme.js';
 import { TOC, extractHeadings, addHeadingIdsWithItems, useActiveHeading, type TOCItem } from './TOC.js';
+import { MarkdownRenderer } from './MarkdownRenderer.js';
 
 export interface MarkdownPreviewProps {
   /** Markdown content to render */
@@ -105,6 +106,7 @@ export function MarkdownPreview({
           frontmatter: true,
           highlight: true,
           math: enableMath,
+          mermaid: true,
           highlightTheme: shikiTheme,
         });
 
@@ -335,7 +337,12 @@ export function MarkdownPreview({
       )}
 
       {/* Rendered markdown */}
-      <div
+      <MarkdownRenderer
+        content={content}
+        enableGFM={enableGfm}
+        enableHighlighting={true}
+        enableMath={enableMath}
+        highlightTheme={theme === 'dark' ? 'github-dark' : 'github'}
         className={cn(
           getMarkdownBodyClass(theme || 'auto'),
           'p-6',
@@ -365,7 +372,6 @@ export function MarkdownPreview({
           maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
           ...getMarkdownThemeStyles(theme || 'auto'),
         }}
-        dangerouslySetInnerHTML={{ __html: state.html }}
       />
 
       {/* Metadata footer */}
