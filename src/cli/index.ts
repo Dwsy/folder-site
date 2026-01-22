@@ -17,6 +17,10 @@ async function startServer(config: CliConfig): Promise<void> {
   const app = createServer();
 
   const port = config.port;
+  const dir = config.dir;
+
+  // 切换到指定目录
+  process.chdir(dir);
 
   console.log(`🚀 Folder-Site CLI v${getVersion()}`);
   console.log(`🌐 Running at http://localhost:${port}`);
@@ -32,6 +36,7 @@ async function startServer(config: CliConfig): Promise<void> {
 
   // 设置环境变量
   process.env.PORT = port.toString();
+  process.env.SERVE_DIR = dir;
 
   // 导出 server 供 Bun 使用
   globalThis.server = {

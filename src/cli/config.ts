@@ -8,6 +8,8 @@
  * 定义所有支持的命令行参数
  */
 export interface CliConfig {
+  /** 要服务的目录路径 (默认: 当前目录) */
+  dir: string;
   /** 端口号 (默认: 3000) */
   port: number;
   /** 是否显示帮助信息 */
@@ -56,6 +58,7 @@ export const RESERVED_PORTS: readonly number[] = [
  * 默认配置
  */
 export const DEFAULT_CONFIG: CliConfig = {
+  dir: process.cwd(),
   port: 3000,
   help: false,
   version: false,

@@ -55,6 +55,7 @@ function createCommand(): Command {
     .description('One-command local website generator for documentation and knowledge bases')
     .version(packageJson.version, '-v, --version', '显示版本信息')
     .helpOption('-h, --help', '显示帮助信息')
+    .option('-d, --dir <path>', '指定要服务的目录路径 (默认: 当前目录)', process.cwd())
     .option('-p, --port <number>', '指定端口号 (默认: 3000)', process.env.PORT || '3000')
     .allowUnknownOption(false); // 不允许未知选项
 
@@ -77,6 +78,7 @@ export function parseArgs(args: string[] = process.argv): CliConfig {
   const port = validatePort(parseInt(options.port, 10));
 
   return {
+    dir: options.dir || process.cwd(),
     port,
     help: false, // commander 会自动处理 --help，这里设为 false
     version: false, // commander 会自动处理 --version，这里设为 false
