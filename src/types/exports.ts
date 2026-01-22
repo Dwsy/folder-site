@@ -63,6 +63,19 @@ export type {
   DevServerStatus,
 } from './build.js';
 
+export type {
+  // Indexing
+  FileIndexEntry,
+  FileIndexEntryType,
+  FileIndexStats,
+  FileIndexServiceOptions,
+  FileIndexSearchOptions,
+  FileIndexSearchResult,
+  FileIndexChange,
+  FileIndexChangeType,
+  FileIndexUpdateSummary,
+} from './indexing.js';
+
 // 导出工具类型
 export type {
   DeepPartial,
