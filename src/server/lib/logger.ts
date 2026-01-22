@@ -252,7 +252,7 @@ export class Logger {
    * DEBUG 级别日志
    */
   debug(message: string, context?: LogContext, error?: Error): void {
-    if (level < this.config.minLevel) return;
+    if (LogLevel.DEBUG < this.config.minLevel) return;
     const entry = this.createEntry(LogLevel.DEBUG, message, context, error);
     this.log(entry);
   }
@@ -321,8 +321,3 @@ export class Logger {
  * 默认日志器实例
  */
 export const logger = new Logger();
-
-/**
- * 导出日志级别
- */
-export { LogLevel };

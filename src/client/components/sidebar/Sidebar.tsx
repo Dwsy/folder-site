@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   FaHome,
@@ -11,7 +11,11 @@ import {
   FaFileCode,
   FaMarkdown,
   FaFilePdf,
+  FaBars,
+  FaTimes,
+  FaSearch,
 } from 'react-icons/fa';
+import { cn } from '../../utils/cn.js';
 
 interface FileNode {
   name: string;
@@ -84,17 +88,31 @@ function getFileIcon(filename: string) {
   return <FaFile className="h-4 w-4 text-gray-500" />;
 }
 
-function FileTreeNode({ node, level = 0 }: { node: FileNode; level?: number }) {
+interface FileTreeNodeProps {
+  node: FileNode;
+  level?: number;
+  onFileClick?: (path: string) => void;
+}
+
+function FileTreeNode({ node, level = 0, onFileClick }: FileTreeNodeProps) {
   const [collapsed, setCollapsed] = useState(node.collapsed ?? false);
   const location = useLocation();
 
   const isActive = location.pathname === node.path;
 
+  const handleFolderClick = useCallback(() => {
+    setCollapsed(!collapsed);
+  }, [collapsed]);
+
+  const handleFileClick = useCallback(() => {
+    onFileClick?.(node.path);
+  }, [node.path, onFileClick]);
+
   if (node.type === 'folder') {
     return (
       <div>
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={handleFolderClick}
           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted"
           style={{ paddingLeft: `${level * 12 + 8}px` }}
         >
@@ -113,7 +131,7 @@ function FileTreeNode({ node, level = 0 }: { node: FileNode; level?: number }) {
         {!collapsed && node.children && (
           <div>
             {node.children.map((child, index) => (
-              <FileTreeNode key={index} node={child} level={level + 1} />
+              <FileTreeNode key={index} node={child} level={level + 1} onFileClick={onFileClick} />
             ))}
           </div>
         )}
@@ -124,9 +142,11 @@ function FileTreeNode({ node, level = 0 }: { node: FileNode; level?: number }) {
   return (
     <Link
       to={node.path}
-      className={`flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted ${
-        isActive ? 'bg-accent text-accent-foreground' : ''
-      }`}
+      onClick={handleFileClick}
+      className={cn(
+        'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted',
+        isActive && 'bg-accent text-accent-foreground'
+      )}
       style={{ paddingLeft: `${level * 12 + 28}px` }}
     >
       {getFileIcon(node.name)}
@@ -135,53 +155,184 @@ function FileTreeNode({ node, level = 0 }: { node: FileNode; level?: number }) {
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  isMobile?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({
+  className,
+  collapsed = false,
+  onToggleCollapse,
+  isMobile = false,
+  onMobileClose,
+}: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Handle escape key to close mobile sidebar
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobile) {
+        onMobileClose?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isMobile, onMobileClose]);
+
+  // Filter file tree based on search query
+  const filteredFileTree = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return mockFileTree;
+    }
+
+    const filterNodes = (nodes: FileNode[]): FileNode[] => {
+      return nodes
+        .map((node) => {
+          if (node.type === 'file') {
+            return node.name.toLowerCase().includes(searchQuery.toLowerCase()) ? node : null;
+          } else {
+            const filteredChildren = filterNodes(node.children || []);
+            if (
+              filteredChildren.length > 0 ||
+              node.name.toLowerCase().includes(searchQuery.toLowerCase())
+            ) {
+              return {
+                ...node,
+                children: filteredChildren,
+                collapsed: false, // Auto-expand when searching
+              };
+            }
+            return null;
+          }
+        })
+        .filter((node): node is FileNode => node !== null);
+    };
+
+    return filterNodes(mockFileTree);
+  }, [searchQuery]);
+
+  const handleFileClick = useCallback(() => {
+    if (isMobile) {
+      onMobileClose?.();
+    }
+  }, [isMobile, onMobileClose]);
+
   return (
-    <aside className="w-64 border-r bg-card">
-      <div className="flex h-full flex-col">
-        {/* Search */}
-        <div className="border-b p-3">
-          <input
-            type="text"
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-          />
+    <>
+      {/* Mobile overlay */}
+      {isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={onMobileClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          'flex h-full flex-col bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
+          collapsed ? 'w-16' : 'w-64',
+          isMobile && 'fixed inset-y-0 left-0 z-50 shadow-xl lg:static lg:shadow-none',
+          className
+        )}
+      >
+        {/* Sidebar Header */}
+        <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
+          {!collapsed && (
+            <h2 className="text-sm font-semibold">Files</h2>
+          )}
+          {onToggleCollapse && !isMobile && (
+            <button
+              onClick={onToggleCollapse}
+              className="rounded-md p-1.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? (
+                <FaBars className="h-4 w-4" />
+              ) : (
+                <FaTimes className="h-4 w-4" />
+              )}
+            </button>
+          )}
+          {isMobile && (
+            <button
+              onClick={onMobileClose}
+              className="rounded-md p-1.5 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label="Close sidebar"
+            >
+              <FaTimes className="h-4 w-4" />
+            </button>
+          )}
         </div>
+
+        {/* Search */}
+        {!collapsed && (
+          <div className="border-b border-sidebar-border p-3">
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-auto p-2">
           <div className="mb-2">
             <Link
               to="/"
-              className="flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted"
+              className={cn(
+                'flex items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted',
+                collapsed ? 'justify-center' : ''
+              )}
             >
-              <FaHome className="h-4 w-4" />
-              <span>Home</span>
+              <FaHome className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Home</span>}
             </Link>
           </div>
 
-          <div className="mb-2 px-2">
-            <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Files</p>
-          </div>
+          {!collapsed && (
+            <div className="mb-2 px-2">
+              <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                Files
+              </p>
+            </div>
+          )}
 
           <div>
-            {mockFileTree.map((node, index) => (
-              <FileTreeNode key={index} node={node} />
+            {filteredFileTree.map((node, index) => (
+              <FileTreeNode key={index} node={node} onFileClick={handleFileClick} />
             ))}
           </div>
+
+          {/* Empty state when search has no results */}
+          {searchQuery && filteredFileTree.length === 0 && (
+            <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+              No files found
+            </div>
+          )}
         </nav>
 
         {/* Footer */}
-        <div className="border-t p-3">
-          <p className="text-xs text-muted-foreground">
-            Folder-Site CLI v0.1.0
-          </p>
-        </div>
-      </div>
-    </aside>
+        {!collapsed && (
+          <div className="border-t border-sidebar-border p-3">
+            <p className="text-xs text-muted-foreground">
+              Folder-Site CLI v0.1.0
+            </p>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

@@ -555,18 +555,3 @@ export function defaultMonitoringHook(error: AppError | Error, context: Context,
 
 // 添加默认监控钩子
 addMonitoringHook(defaultMonitoringHook);
-
-// ===== 导出所有错误类 =====
-export {
-  AppError,
-  HttpError,
-  NotFoundError,
-  BadRequestError,
-  UnauthorizedError,
-  ForbiddenError,
-  ConflictError,
-  ValidationError,
-  RateLimitError,
-  InternalServerError,
-  ServiceUnavailableError,
-};

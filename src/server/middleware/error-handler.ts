@@ -15,6 +15,8 @@ import {
   createErrorResponse,
   createHtmlErrorResponse,
   triggerMonitoringHooks,
+  addMonitoringHook,
+  removeMonitoringHook,
   classifyError,
   LogLevel,
 } from '../lib/error-handler.js';
@@ -254,19 +256,8 @@ export async function requestIdMiddleware(c: Context, next: Next): Promise<void>
   await next();
 }
 
-// ===== 导出所有错误类供外部使用 =====
+// ===== 重新导出错误处理相关的函数（不从 lib 重新导出错误类） =====
 export {
-  AppError,
-  HttpError,
-  NotFoundError,
-  BadRequestError,
-  ValidationError,
-  InternalServerError,
-  UnauthorizedError,
-  ForbiddenError,
-  ConflictError,
-  RateLimitError,
-  ServiceUnavailableError,
   classifyError,
   isAppError,
   addMonitoringHook,
