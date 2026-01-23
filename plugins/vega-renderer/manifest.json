@@ -1,0 +1,66 @@
+{
+  "id": "vega-renderer",
+  "name": "Vega Renderer",
+  "version": "1.0.0",
+  "description": "A plugin that renders Vega and Vega-Lite visualizations to SVG and other formats",
+  "author": {
+    "name": "Folder-Site Team"
+  },
+  "license": "MIT",
+  "entry": "index.ts",
+  "capabilities": [
+    {
+      "type": "renderer",
+      "name": "vega",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["svg", "png"],
+        "supportedThemes": ["light", "dark", "custom"]
+      }
+    },
+    {
+      "type": "renderer",
+      "name": "vega-lite",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["svg", "png"],
+        "supportedThemes": ["light", "dark", "custom"]
+      }
+    }
+  ],
+  "options": {
+    "type": "object",
+    "properties": {
+      "theme": {
+        "type": "string",
+        "description": "Default theme for Vega visualizations",
+        "enum": ["light", "dark", "custom"],
+        "default": "light"
+      },
+      "outputFormat": {
+        "type": "string",
+        "description": "Default output format for rendered visualizations",
+        "enum": ["svg", "png"],
+        "default": "svg"
+      },
+      "renderer": {
+        "type": "string",
+        "description": "Vega renderer type",
+        "enum": ["canvas", "svg"],
+        "default": "canvas"
+      },
+      "scaleFactor": {
+        "type": "number",
+        "description": "Scale factor for high-resolution output",
+        "default": 2,
+        "minimum": 1,
+        "maximum": 4
+      }
+    },
+    "required": []
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "folderSite": ">=0.1.0"
+  }
+}
