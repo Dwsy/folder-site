@@ -6,6 +6,7 @@ import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { join, relative, normalize } from 'node:path';
 import { FileIndexService } from '../services/index.js';
+import { mergeWhitelist } from '../lib/config-loader.js';
 import type { ApiResponse, FileListResponse, FileContentResponse, DirectoryTreeResponse } from '../../types/api.js';
 
 const files = new Hono();
@@ -18,11 +19,25 @@ const fileIndexService = new FileIndexService({
 // 初始化文件索引
 async function initFileIndex() {
   const { FileScanner } = await import('../services/scanner.js');
-  const scanner = new FileScanner({
+  type ScanOptions = import('../services/scanner.js').ScanOptions;
+
+  // 从环境变量和配置文件合并 whitelist
+  const cliWhitelist = process.env.WHITELIST;
+  const fileWhitelist = process.env.FILE_WHITELIST ? JSON.parse(process.env.FILE_WHITELIST) : undefined;
+  const whitelist = mergeWhitelist(cliWhitelist, fileWhitelist);
+
+  const scannerOptions: ScanOptions = {
     rootDir: process.cwd(),
     extensions: ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml', '.ts', '.tsx', '.js', '.jsx'],
     useGitignore: true,
-  });
+  };
+
+  // 如果有白名单配置，添加到扫描选项
+  if (whitelist.length > 0) {
+    scannerOptions.whitelist = whitelist;
+  }
+
+  const scanner = new FileScanner(scannerOptions);
   const result = await scanner.scan();
   fileIndexService.buildFromScanResult(result);
 }

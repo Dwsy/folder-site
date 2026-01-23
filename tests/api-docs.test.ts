@@ -90,7 +90,7 @@ describe('API 文档验证', () => {
 
     it('应包含获取文件内容端点文档', () => {
       expect(apiDocContent).toContain('### 5. 获取文件内容');
-      expect(apiDocContent).toContain('GET /api/files/:path');
+      expect(apiDocContent).toContain('GET /api/files/content');
     });
 
     it('应包含搜索（GET）端点文档', () => {
@@ -654,7 +654,8 @@ describe('文档一致性验证', () => {
       '/api',
       '/api/files',
       '/api/files/tree/list',
-      '/api/files/:path',
+      '/api/files/content',
+      '/api/files/tree/children',
       '/api/search',
       '/api/workhub',
       '/api/workhub/adrs',

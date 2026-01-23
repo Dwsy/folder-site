@@ -58,13 +58,42 @@ const DEFAULT_LANGUAGES: BundledLanguage[] = [
  * Default themes to load
  */
 const DEFAULT_THEMES: BundledTheme[] = [
+  // GitHub Series (3)
   'github-dark',
+  'github-dark-dimmed',
   'github-light',
-  'monokai',
-  'nord',
+
+  // Material Series (4)
+  'material-theme',
+  'material-theme-darker',
+  'material-theme-ocean',
+  'material-theme-palenight',
+
+  // Catppuccin Series (4)
+  'catppuccin-mocha',
+  'catppuccin-macchiato',
+  'catppuccin-frappe',
+  'catppuccin-latte',
+
+  // Classic Themes (8)
   'one-dark-pro',
+  'dracula',
+  'nord',
+  'tokyo-night',
+  'night-owl',
+  'monokai',
   'solarized-dark',
   'solarized-light',
+
+  // Modern Themes (8)
+  'one-light',
+  'min-light',
+  'rose-pine',
+  'rose-pine-moon',
+  'rose-pine-dawn',
+  'ayu-dark',
+  'everforest-dark',
+  'vitesse-dark',
 ];
 
 /**

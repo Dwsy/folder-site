@@ -33,7 +33,8 @@
 | `/api` | GET | API 信息 |
 | `/api/files` | GET | 获取文件列表 |
 | `/api/files/tree/list` | GET | 获取目录树 |
-| `/api/files/:path` | GET | 获取文件内容 |
+| `/api/files/content` | GET | 获取文件内容 |
+| `/api/files/tree/children` | GET | 获取目录子节点（懒加载） |
 | `/api/search` | GET | 执行搜索 |
 | `/api/search` | POST | 执行复杂搜索 |
 | `/api/workhub` | GET | 获取所有 Workhub 数据 |
@@ -402,24 +403,18 @@ curl "http://localhost:3000/api/files/tree/list?path=docs&depth=3"
 
 获取指定文件的内容。
 
-**端点**: `GET /api/files/:path`
-
-**路径参数**:
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `path` | string | 是 | 文件相对路径 |
+**端点**: `GET /api/files/content`
 
 **查询参数**:
 
 | 参数 | 类型 | 必需 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `render` | boolean | 否 | true | 是否渲染为 HTML |
+| `path` | string | 是 | - | 文件相对路径 |
 
 **请求示例**:
 
 ```bash
-curl "http://localhost:3000/api/files/docs/README.md?render=true"
+curl "http://localhost:3000/api/files/content?path=docs/README.md"
 ```
 
 **响应示例**:
@@ -461,6 +456,67 @@ curl "http://localhost:3000/api/files/docs/README.md?render=true"
 | `content` | string | 原始内容 |
 | `meta` | FileMeta | 文件元数据 |
 | `html` | string | 渲染后的 HTML（render=true 时） |
+
+---
+
+### 5.1 获取目录子节点（懒加载）
+
+获取指定路径下的直接子节点，支持懒加载。
+
+**端点**: `GET /api/files/tree/children`
+
+**查询参数**:
+
+| 参数 | 类型 | 必需 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `path` | string | 否 | "" | 父目录路径（空字符串表示根目录） |
+| `depth` | number | 否 | 1 | 子节点深度 |
+
+**请求示例**:
+
+```bash
+curl "http://localhost:3000/api/files/tree/children?path=docs&depth=1"
+```
+
+**响应示例**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "children": [
+      {
+        "name": "README.md",
+        "path": "docs/README.md",
+        "relativePath": "docs/README.md",
+        "isDirectory": false,
+        "extension": "md",
+        "size": 1024
+      },
+      {
+        "name": "guides",
+        "path": "docs/guides",
+        "relativePath": "docs/guides",
+        "isDirectory": true,
+        "extension": "",
+        "size": 0
+      }
+    ]
+  },
+  "timestamp": 1705867200000
+}
+```
+
+**字段说明**:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name` | string | 节点名称 |
+| `path` | string | 相对路径 |
+| `relativePath` | string | 相对路径 |
+| `isDirectory` | boolean | 是否为目录 |
+| `extension` | string | 文件扩展名（仅文件） |
+| `size` | number | 文件大小（字节） |
 
 ---
 
