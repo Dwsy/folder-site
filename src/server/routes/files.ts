@@ -39,13 +39,11 @@ async function initFileIndex() {
 
   const scanner = new FileScanner(scannerOptions);
   const result = await scanner.scan();
-  fileIndexService.addEntries(result.files.map(f => ({
+  await fileIndexService.addOrUpdateBatch(result.files.map(f => ({
+    path: f.path,
     name: f.name,
-    relativePath: f.path,
-    fullPath: f.path,
-    extension: f.extension,
     size: f.size,
-    modifiedAt: f.mtime,
+    mtime: f.mtime,
     isDirectory: f.isDirectory,
   })));
 }
@@ -169,7 +167,7 @@ files.get('/content', async (c) => {
     return c.json<ApiResponse<null>>({
       success: false,
       data: null,
-      error: 'Path parameter is required',
+      error: { code: 'MISSING_PATH', message: 'Path parameter is required' },
       timestamp: Date.now(),
     }, 400);
   }

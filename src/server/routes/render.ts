@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { OfficeRendererPlugin } from '../../plugins/office-renderer/index.js';
+import { OfficeRendererPlugin } from '../../../plugins/office-renderer/index.js';
 
 const renderApi = new Hono();
 
