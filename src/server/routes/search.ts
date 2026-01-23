@@ -39,10 +39,10 @@ async function getIndexService() {
 search.get('/', async (c) => {
   const startTime = performance.now();
 
-  const query = c.req.query('q';
+  const query = c.req.query('q');
   const scope = c.req.query('scope') as SearchRequest['scope'] || 'all';
-  const limit = parseInt(c.req.query('limit'] || '20', 10);
-  const offset = parseInt(c.req.query('offset'] || '0', 10);
+  const limit = parseInt(c.req.query('limit') || '20', 10);
+  const offset = parseInt(c.req.query('offset') || '0', 10);
 
   if (!query) {
     return c.json<ApiResponse>({

@@ -136,12 +136,14 @@ export class ExcelRenderer {
   /**
    * 检查文件格式是否支持
    *
-   * @param format - 文件格式（扩展名）
+   * @param format - 文件格式（扩展名，支持带点和不带点）
    * @returns 是否支持
    */
   supports(format: string): boolean {
     const normalizedFormat = format.toLowerCase();
-    return this.extensions.some((ext) => ext === normalizedFormat);
+    // 支持带点和不带点的格式
+    const formatWithDot = normalizedFormat.startsWith('.') ? normalizedFormat : `.${normalizedFormat}`;
+    return this.extensions.some((ext) => ext === formatWithDot);
   }
 
   /**
