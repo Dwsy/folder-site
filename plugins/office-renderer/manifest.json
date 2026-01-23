@@ -1,0 +1,7 @@
+{
+  "name": "office-renderer",
+  "version": "1.0.0",
+  "description": "Office文档渲染插件",
+  "main": "index.ts",
+  "supportedFormats": ["xlsx", "xls", "docx", "pdf", "zip", "rar"]
+}
