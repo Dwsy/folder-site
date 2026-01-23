@@ -1,0 +1,227 @@
+/**
+ * 移动端优化样式
+ * 包含触摸反馈、移动端专用样式和触摸手势优化
+ */
+
+/* ========== 触摸反馈 ========== */
+
+/* 所有可交互元素的触摸反馈 */
+button,
+a,
+[role="button"],
+[tabindex] {
+  /* 确保触摸反馈 */
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.3);
+  /* 防止双击缩放 */
+  touch-action: manipulation;
+}
+
+/* 按钮触摸时缩放效果 */
+button:active,
+[role="button"]:active {
+  transform: scale(0.95);
+  transition: transform 0.1s ease-out;
+}
+
+/* ========== 移动端按钮样式 ========== */
+
+/* 确保所有按钮最小高度符合 iOS 规范（44px） */
+@media (max-width: 1023px) {
+  button,
+  [role="button"],
+  .btn,
+  [data-button] {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 增大可点击区域 */
+  .sidebar button,
+  .sidebar [role="button"] {
+    padding: 0.75rem;
+  }
+
+  /* 搜索模态框按钮 */
+  .search-modal button,
+  .search-modal [role="button"] {
+    min-height: 48px;
+  }
+}
+
+/* ========== 移动端字体优化 ========== */
+
+/* 防止 iOS 自动缩放 */
+@media (max-width: 1023px) {
+  html {
+    /* 基础字体大小 16px 防止自动缩放 */
+    font-size: 16px;
+
+    /* 允许用户缩放 */
+    -webkit-text-size-adjust: 100%;
+
+    /* 优化文本渲染 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    /* 防止文本选中影响体验 */
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* 允许输入框和文本区域选中 */
+  }
+
+  /* 允许输入框和文本区域选中 */
+  input,
+  textarea,
+  [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* ========== 移动端侧边栏样式 ========== */
+
+@media (max-width: 1023px) {
+  [data-sidebar] {
+    /* 移动端侧边栏宽度：85vw，最大 320px */
+    width: 85vw !important;
+    max-width: 320px;
+
+    /* 优化阴影效果 */
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+
+    /* 优化过渡动画 */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 侧边栏打开状态 */
+  [data-sidebar]:not(.-translate-x-full) {
+    /* 添加触摸反馈 */
+    -webkit-overflow-scrolling: touch;
+
+    /* 优化滚动 */
+    overscroll-behavior: contain;
+  }
+}
+
+/* ========== 移动端内容区域 ========== */
+
+@media (max-width: 1023px) {
+  main {
+    /* 优化内容区域 padding */
+    padding: 1rem;
+
+    /* 优化滚动 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* 移动端底部导航栏留出空间 */
+  main {
+    padding-bottom: calc(1rem + 64px); /* 64px 是底部导航栏高度 */
+  }
+}
+
+/* ========== 移动端底部导航栏 ========== */
+
+@media (min-width: 1024px) {
+  /* 桌面端隐藏底部导航栏 */
+  [data-mobile-bottom-nav] {
+    display: none !important;
+  }
+}
+
+/* ========== 移动端搜索模态框 ========== */
+
+@media (max-width: 1023px) {
+  /* 搜索模态框全屏显示 */
+  [data-search-modal] {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    padding: 1rem;
+  }
+
+  /* 搜索结果列表优化 */
+  [data-search-results] {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ========== 触摸手势优化 ========== */
+
+/* 禁用页面横向滚动 */
+@media (max-width: 1023px) {
+  body {
+    overscroll-behavior-x: none;
+  }
+
+  /* 侧边栏区域允许横向滑动 */
+  [data-sidebar] {
+    overscroll-behavior-x: auto;
+  }
+}
+
+/* ========== 移动端动画优化 ========== */
+
+@media (max-width: 1023px) {
+  /* 减少复杂动画以提升性能 */
+  * {
+    /* 禁用不必要的过渡 */
+    transition: none !important;
+  }
+
+  /* 只保留必要的过渡 */
+  [data-sidebar],
+  [data-modal],
+  [data-overlay] {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+}
+
+/* ========== 移动端表单优化 ========== */
+
+@media (max-width: 1023px) {
+  input,
+  textarea,
+  select {
+    /* 增大字体防止自动缩放 */
+    font-size: 16px !important;
+
+    /* 增大触摸区域 */
+    min-height: 48px;
+    padding: 0.75rem;
+  }
+}
+
+/* ========== 移动端工具提示 ========== */
+
+@media (max-width: 1023px) {
+  /* 移动端禁用 hover tooltip */
+  [title]:hover::after {
+    display: none !important;
+  }
+}
+
+/* ========== 移动端滚动条隐藏 ========== */
+
+@media (max-width: 1023px) {
+  /* 隐藏滚动条但保持滚动功能 */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: none;
+  }
+}

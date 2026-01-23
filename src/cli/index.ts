@@ -25,6 +25,12 @@ async function startServer(config: CliConfig): Promise<void> {
   console.log(`🚀 Folder-Site CLI v${getVersion()}`);
   console.log(`🌐 Running at http://localhost:${port}`);
   console.log(`📁 Serving directory: ${process.cwd()}`);
+
+  // 显示白名单配置（如果有）
+  if (config.whitelist) {
+    console.log(`🔒 Whitelist mode: ${config.whitelist}`);
+  }
+
   console.log('');
   console.log('📚 API endpoints:');
   console.log('   - GET  /api/health  - Health check');
@@ -37,6 +43,18 @@ async function startServer(config: CliConfig): Promise<void> {
   // 设置环境变量
   process.env.PORT = port.toString();
   process.env.SERVE_DIR = dir;
+
+  // 传递白名单配置
+  if (config.whitelist) {
+    process.env.WHITELIST = config.whitelist;
+  }
+
+  // 读取配置文件中的白名单
+  const { loadConfig } = await import('../server/lib/config-loader.js');
+  const fileConfig = loadConfig(process.cwd());
+  if (fileConfig.build?.whitelist) {
+    process.env.FILE_WHITELIST = JSON.stringify(fileConfig.build.whitelist);
+  }
 
   // 导出 server 供 Bun 使用
   globalThis.server = {
