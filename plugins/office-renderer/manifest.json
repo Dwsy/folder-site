@@ -1,7 +1,55 @@
 {
-  "name": "office-renderer",
+  "id": "office-renderer",
+  "name": "Office Document Renderer",
   "version": "1.0.0",
-  "description": "Office文档渲染插件",
-  "main": "index.ts",
-  "supportedFormats": ["xlsx", "xls", "docx", "pdf", "zip", "rar"]
+  "description": "Render Excel, Word, PDF, and other office documents in Folder-Site",
+  "author": {
+    "name": "Folder-Site Team",
+    "email": "team@folderr-site.com"
+  },
+  "license": "MIT",
+  "entry": "index.ts",
+  "capabilities": [
+    {
+      "type": "renderer",
+      "name": "excel",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["xlsx", "xlsm", "xls", "csv", "ods"],
+        "supportsEditing": false,
+        "maxFileSize": 10485760
+      }
+    },
+    {
+      "type": "renderer",
+      "name": "word",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["docx", "dotx"],
+        "supportsEditing": false,
+        "maxFileSize": 10485760
+      }
+    },
+    {
+      "type": "renderer",
+      "name": "pdf",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["pdf"],
+        "supportsEditing": false,
+        "maxFileSize": 52428800,
+        "supportsPagination": true
+      }
+    },
+    {
+      "type": "renderer",
+      "name": "archive",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["zip", "rar", "jar"],
+        "supportsEditing": false,
+        "maxFileSize": 104857600
+      }
+    }
+  ]
 }
