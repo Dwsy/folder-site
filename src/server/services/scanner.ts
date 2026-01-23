@@ -49,6 +49,8 @@ export interface ScanOptions {
   strategy?: 'depth' | 'breadth';
   /** 是否使用 .gitignore */
   useGitignore?: boolean;
+  /** 白名单模式：只显示指定的文件夹和文件（glob 模式） */
+  whitelist?: string[];
 }
 
 /**
@@ -129,6 +131,7 @@ export class FileScanner {
       followSymlinks: options.followSymlinks ?? false,
       strategy: options.strategy || 'depth',
       useGitignore: options.useGitignore ?? true,
+      whitelist: options.whitelist,
     };
   }
 
@@ -140,15 +143,24 @@ export class FileScanner {
     const files: FileInfo[] = [];
     const directories: FileInfo[] = [];
 
-    // 构建 glob 模式
-    const extPatterns = this.options.extensions.map(ext => `**/*${ext}`);
-    const patterns = this.options.includeHidden || this.options.includeDotFiles
-      ? extPatterns
-      : extPatterns.filter(p => !p.includes('/.')).filter(Boolean);
+    // 确定使用白名单还是扩展名模式
+    const useWhitelist = this.options.whitelist && this.options.whitelist.length > 0;
 
-    // 构建 ignore 模式
-    const ignorePatterns = [...this.options.excludeDirs];
-    if (!this.options.includeHidden && !this.options.includeDotFiles) {
+    let patterns: string[];
+    if (useWhitelist) {
+      // 白名单模式：使用用户指定的 glob 模式
+      patterns = this.options.whitelist;
+    } else {
+      // 默认模式：基于扩展名扫描
+      const extPatterns = this.options.extensions.map(ext => `**/*${ext}`);
+      patterns = this.options.includeHidden || this.options.includeDotFiles
+        ? extPatterns
+        : extPatterns.filter(p => !p.includes('/.')).filter(Boolean);
+    }
+
+    // 构建 ignore 模式（仅在非白名单模式下使用）
+    const ignorePatterns = useWhitelist ? [] : [...this.options.excludeDirs];
+    if (!useWhitelist && !this.options.includeHidden && !this.options.includeDotFiles) {
       ignorePatterns.push('.*');
       ignorePatterns.push('**/.*');
     }
@@ -163,7 +175,7 @@ export class FileScanner {
       followSymbolicLinks: this.options.followSymlinks,
       deep: this.options.maxDepth || Number.POSITIVE_INFINITY,
       unique: true,
-      gitignore: this.options.useGitignore,
+      gitignore: useWhitelist ? false : this.options.useGitignore,
       objectMode: false,
     };
 
