@@ -36,6 +36,9 @@ temp/
 # AI Code Editor
 .ace-tool/
 
+# Pi Agent
+.pi/
+
 # OS
 Thumbs.db
 .DS_Store
