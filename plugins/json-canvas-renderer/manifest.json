@@ -1,0 +1,26 @@
+{
+  "id": "json-canvas-renderer",
+  "name": "JSON Canvas Renderer",
+  "version": "1.0.0",
+  "description": "A plugin that renders JSON Canvas format to visual diagrams",
+  "author": {
+    "name": "Folder-Site Team"
+  },
+  "license": "MIT",
+  "entry": "index.ts",
+  "capabilities": [
+    {
+      "type": "renderer",
+      "name": "json-canvas",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["svg", "png"],
+        "supportedThemes": ["light", "dark", "custom"]
+      }
+    }
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "folderSite": ">=0.1.0"
+  }
+}
