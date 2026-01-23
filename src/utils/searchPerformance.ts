@@ -226,7 +226,6 @@ export class SearchPerformanceTracker {
       cacheHits: this.cacheHits,
       cacheMisses: this.cacheMisses,
       cacheHitRate: hitRate,
-      averageResultCount: avgResultCount,
       measures: Object.fromEntries(this.measures),
     };
   }

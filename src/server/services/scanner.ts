@@ -131,7 +131,7 @@ export class FileScanner {
       followSymlinks: options.followSymlinks ?? false,
       strategy: options.strategy || 'depth',
       useGitignore: options.useGitignore ?? true,
-      whitelist: options.whitelist,
+      whitelist: options.whitelist || [],
     };
   }
 

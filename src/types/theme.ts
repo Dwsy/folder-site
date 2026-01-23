@@ -323,7 +323,7 @@ export function isValidThemeColor(colors: Partial<ThemeColors>): boolean {
   // 检查颜色格式（十六进制）
   const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
   
-  for (const [key, value] of Object.entries(colors)) {
+  for (const [, value] of Object.entries(colors)) {
     if (typeof value === 'string' && value !== '') {
       if (!hexColorRegex.test(value)) {
         return false;

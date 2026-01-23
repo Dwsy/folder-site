@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'node:events';
-import { join, normalize, relative } from 'node:path';
+import { normalize, relative } from 'node:path';
 import chokidar from 'chokidar';
 import type { FSWatcher } from 'chokidar';
 
@@ -100,7 +100,7 @@ export class FileWatcher extends EventEmitter {
       debounceDelay: options.debounceDelay ?? 300,
       usePolling: options.usePolling ?? false,
       pollInterval: options.pollInterval ?? 100,
-      ignored: options.ignored,
+      ignored: options.ignored ?? (() => false),
     };
   }
 

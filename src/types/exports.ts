@@ -88,8 +88,8 @@ export type {
   // Transformer
   TransformerOptions,
   TransformerPlugin,
-  TransformerPluginContext,
-  NodeTransformer,
+  TransformContext,
+  NodeVisitor,
 } from './transformer.js';
 
 export type {
@@ -119,7 +119,7 @@ export type {
 
 export type {
   // Render Cache
-  CacheEntry,
+  CacheItem,
   CacheStatistics,
   RenderCacheOptions,
   CacheInvalidationReason,

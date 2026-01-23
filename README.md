@@ -53,6 +53,8 @@ pnpm add -g folder-site
 bun install -g folder-site
 ```
 
+**Current Version**: [v1.0.0](https://www.npmjs.com/package/folder-site)
+
 ### Basic Usage
 
 ```bash
