@@ -2,51 +2,88 @@
  * Office 样式文件
  * 支持 Excel 表格、PDF 查看器、Archive 列表的样式
  * 支持亮色/暗色主题
+ * 支持动态 CSS 变量注入
  */
 
 /* ============================================
-   CSS 变量定义 - 亮色主题
+   动态 Office 主题变量
+   ============================================ */
+:root {
+  /* 这些变量由 useOfficeTheme Hook 动态注入 */
+  --office-primary-color: #0066cc;
+  --office-secondary-color: #6b7280;
+  --office-success-color: #10b981;
+  --office-warning-color: #f59e0b;
+  --office-error-color: #ef4444;
+  --office-info-color: #3b82f6;
+  --office-bg: #ffffff;
+  --office-text: #0a0a0a;
+  --office-border: #d4d4d4;
+  --office-header-bg: #f3f4f6;
+  --office-header-text: #0a0a0a;
+  --office-cell-bg: #ffffff;
+  --office-cell-text: #0a0a0a;
+  --office-hover-bg: #e0f2fe;
+  --office-hover-text: #0a0a0a;
+  --office-selected-bg: #0066cc;
+  --office-selected-text: #ffffff;
+  --office-grid-line: #e5e7eb;
+  --office-toolbar-bg: #ffffff;
+  --office-toolbar-border: #d4d4d4;
+  --office-scrollbar-track: #f3f4f6;
+  --office-scrollbar-thumb: rgba(107, 114, 128, 0.3);
+  --office-folder-color: #0066cc;
+  --office-file-color: #6b7280;
+  --office-expand-color: #6b7280;
+  --office-font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --office-border-radius: 6px;
+  --office-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --office-transition: 200ms;
+}
+
+/* ============================================
+   CSS 变量定义 - 亮色主题（兼容性）
    ============================================ */
 :root {
   /* Excel 主题变量 */
-  --excel-bg: hsl(var(--background));
-  --excel-text: hsl(var(--foreground));
-  --excel-border: hsl(var(--border));
-  --excel-header-bg: hsl(var(--muted));
-  --excel-header-text: hsl(var(--foreground));
-  --excel-cell-bg: hsl(var(--card));
-  --excel-cell-text: hsl(var(--card-foreground));
-  --excel-hover-bg: hsl(var(--accent));
-  --excel-hover-text: hsl(var(--accent-foreground));
-  --excel-selected-bg: hsl(var(--primary));
-  --excel-selected-text: hsl(var(--primary-foreground));
-  --excel-grid-line: hsl(var(--border));
-  
+  --excel-bg: var(--office-bg, hsl(var(--background)));
+  --excel-text: var(--office-text, hsl(var(--foreground)));
+  --excel-border: var(--office-border, hsl(var(--border)));
+  --excel-header-bg: var(--office-header-bg, hsl(var(--muted)));
+  --excel-header-text: var(--office-header-text, hsl(var(--foreground)));
+  --excel-cell-bg: var(--office-cell-bg, hsl(var(--card)));
+  --excel-cell-text: var(--office-cell-text, hsl(var(--card-foreground)));
+  --excel-hover-bg: var(--office-hover-bg, hsl(var(--accent)));
+  --excel-hover-text: var(--office-hover-text, hsl(var(--accent-foreground)));
+  --excel-selected-bg: var(--office-selected-bg, hsl(var(--primary)));
+  --excel-selected-text: var(--office-selected-text, hsl(var(--primary-foreground)));
+  --excel-grid-line: var(--office-grid-line, hsl(var(--border)));
+
   /* PDF 主题变量 */
-  --pdf-bg: hsl(var(--background));
-  --pdf-toolbar-bg: hsl(var(--card));
-  --pdf-toolbar-border: hsl(var(--border));
-  --pdf-page-bg: hsl(var(--background));
-  --pdf-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -2px hsl(var(--foreground) / 0.1);
-  --pdf-scrollbar-track: hsl(var(--muted));
-  --pdf-scrollbar-thumb: hsl(var(--muted-foreground) / 0.3);
+  --pdf-bg: var(--office-bg, hsl(var(--background)));
+  --pdf-toolbar-bg: var(--office-toolbar-bg, hsl(var(--card)));
+  --pdf-toolbar-border: var(--office-toolbar-border, hsl(var(--border)));
+  --pdf-page-bg: var(--office-bg, hsl(var(--background)));
+  --pdf-shadow: var(--office-shadow, 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -2px hsl(var(--foreground) / 0.1));
+  --pdf-scrollbar-track: var(--office-scrollbar-track, hsl(var(--muted)));
+  --pdf-scrollbar-thumb: var(--office-scrollbar-thumb, hsl(var(--muted-foreground) / 0.3));
   --pdf-scrollbar-thumb-hover: hsl(var(--muted-foreground) / 0.5);
-  --pdf-loading-bg: hsl(var(--muted));
-  --pdf-loading-text: hsl(var(--muted-foreground));
-  
+  --pdf-loading-bg: var(--office-header-bg, hsl(var(--muted)));
+  --pdf-loading-text: var(--office-secondary-color, hsl(var(--muted-foreground)));
+
   /* Archive 主题变量 */
-  --archive-bg: hsl(var(--background));
-  --archive-text: hsl(var(--foreground));
-  --archive-border: hsl(var(--border));
-  --archive-item-bg: hsl(var(--card));
-  --archive-item-hover-bg: hsl(var(--accent));
-  --archive-item-selected-bg: hsl(var(--primary));
-  --archive-folder-color: hsl(var(--primary));
-  --archive-file-color: hsl(var(--muted-foreground));
-  --archive-expand-color: hsl(var(--muted-foreground));
-  --archive-drag-bg: hsl(var(--accent));
-  --archive-drag-border: hsl(var(--primary));
-  
+  --archive-bg: var(--office-bg, hsl(var(--background)));
+  --archive-text: var(--office-text, hsl(var(--foreground)));
+  --archive-border: var(--office-border, hsl(var(--border)));
+  --archive-item-bg: var(--office-cell-bg, hsl(var(--card)));
+  --archive-item-hover-bg: var(--office-hover-bg, hsl(var(--accent)));
+  --archive-item-selected-bg: var(--office-selected-bg, hsl(var(--primary)));
+  --archive-folder-color: var(--office-folder-color, hsl(var(--primary)));
+  --archive-file-color: var(--office-file-color, hsl(var(--muted-foreground)));
+  --archive-expand-color: var(--office-expand-color, hsl(var(--muted-foreground)));
+  --archive-drag-bg: var(--office-hover-bg, hsl(var(--accent)));
+  --archive-drag-border: var(--office-selected-bg, hsl(var(--primary)));
+
   /* 通用 Office 主题变量 */
   --office-font-family: var(--font-family);
   --office-border-radius: var(--radius);
