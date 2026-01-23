@@ -88,7 +88,12 @@ export function createServer(): Hono {
   app.route('/api/files', filesRoutes);
   app.route('/api/search', searchRoutes);
   app.route('/api/workhub', workhubRoutes);
-  app.route('/api/render', import('./routes/render.js').then((m) => m.default));
+  // 动态加载 render 路由（由于依赖 Office 插件）
+  import('./routes/render.js').then((m) => {
+    app.route('/api/render', m.default);
+  }).catch((e) => {
+    console.error('Failed to load render routes:', e);
+  });
 
   // 静态文件服务 - 从 dist/client 目录提供
   // 配置了 MIME 类型映射和缓存控制

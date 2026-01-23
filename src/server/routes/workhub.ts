@@ -201,7 +201,7 @@ workhub.get('/issues/:id', async (c) => {
       return c.json<ApiResponse<never>>(
         {
           success: false,
-          error: 'Issue not found',
+          error: { code: 'ISSUE_NOT_FOUND', message: 'Issue not found', details: `ID: ${id}` },
           timestamp: Date.now(),
         },
         404
@@ -285,7 +285,7 @@ workhub.get('/prs/:id', async (c) => {
       return c.json<ApiResponse<never>>(
         {
           success: false,
-          error: 'PR not found',
+          error: { code: 'PR_NOT_FOUND', message: 'PR not found', details: `ID: ${id}` },
           timestamp: Date.now(),
         },
         404
