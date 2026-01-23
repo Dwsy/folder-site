@@ -6,8 +6,123 @@ import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiCode, FiEye } from 'react-icons/fi';
 import { useTheme } from '../hooks/useTheme.js';
 
+// Office 文档扩展名映射
+const OFFICE_EXTENSIONS = {
+  // Excel
+  'xlsx': 'excel',
+  'xlsm': 'excel',
+  'xls': 'excel',
+  'csv': 'excel',
+  'ods': 'excel',
+  // Word
+  'docx': 'word',
+  'dotx': 'word',
+  // PDF
+  'pdf': 'pdf',
+  // Archive
+  'zip': 'archive',
+  'rar': 'archive',
+  'jar': 'archive',
+  '7z': 'archive',
+} as const;
+
+type OfficeDocType = keyof typeof OFFICE_EXTENSIONS;
+
 interface FileViewProps {
   className?: string;
+}
+
+/**
+ * Office 文档查看器组件
+ * 用于显示 Excel、Word、PDF 等文档
+ */
+function OfficeDocumentViewer({
+  filePath,
+  docType,
+  onError,
+}: {
+  filePath: string;
+  docType: OfficeDocType;
+  onError: (error: Error) => void;
+}) {
+  const [html, setHtml] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setLocalError] = useState<Error | null>(null);
+
+  // 加载 Office 文档
+  useEffect(() => {
+    const loadDocument = async () => {
+      setLoading(true);
+      setLocalError(null);
+
+      try {
+        // 1. 获取文件内容
+        const fileResponse = await fetch(
+          `/api/files/content?path=${encodeURIComponent(filePath)}`
+        );
+        if (!fileResponse.ok) {
+          throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+        }
+        const fileResult = await fileResponse.json();
+        
+        // 2. 调用渲染 API
+        const renderResponse = await fetch('/api/render/office', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: docType,
+            content: fileResult.data.content,
+            options: {},
+          }),
+        });
+
+        if (!renderResponse.ok) {
+          throw new Error(`Failed to render document: ${renderResponse.statusText}`);
+        }
+
+        const renderResult = await renderResponse.json();
+        
+        if (renderResult.success && renderResult.data) {
+          setHtml(renderResult.data.html);
+        } else {
+          throw new Error(renderResult.error || 'Failed to render document');
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to load document');
+        setLocalError(error);
+        onError(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDocument();
+  }, [filePath, docType, onError]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-center">
+        <div className="animate-pulse text-muted-foreground">Loading document...</div>
+      </div>
+    );
+  }
+
+  if (error || setLocalError) {
+    const displayError = error || setLocalError;
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="text-red-500 mb-2">Error loading document</div>
+        <div className="text-sm text-muted-foreground">{displayError.message}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="office-document overflow-auto rounded-lg border bg-card"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
 }
 
 export function FileView({ className }: FileViewProps) {
@@ -81,6 +196,17 @@ export function FileView({ className }: FileViewProps) {
       setViewMode('code');
     }
   }, [filePath]);
+
+  // 检查是否为 Office 文档
+  const isOfficeDocument = (): boolean => {
+    const extension = filePath.split('.').pop()?.toLowerCase() || '';
+    return extension in OFFICE_EXTENSIONS;
+  };
+
+  const getOfficeDocType = (): OfficeDocType | null => {
+    const extension = filePath.split('.').pop()?.toLowerCase() || '';
+    return OFFICE_EXTENSIONS[extension as keyof typeof OFFICE_EXTENSIONS] || null;
+  };
 
   // Fetch file content
   useEffect(() => {
@@ -188,7 +314,13 @@ export function FileView({ className }: FileViewProps) {
       </div>
 
       {/* Content Display */}
-      {language === 'markdown' && viewMode === 'preview' ? (
+      {isOfficeDocument() ? (
+        <OfficeDocumentViewer
+          filePath={filePath}
+          docType={getOfficeDocType()!}
+          onError={setError}
+        />
+      ) : language === 'markdown' && viewMode === 'preview' ? (
         <MarkdownPreview
           content={content}
           theme={theme}
@@ -220,9 +352,18 @@ export function FileView({ className }: FileViewProps) {
       {!loading && !error && content && (
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
-            <span>Language: <span className="font-medium">{language}</span></span>
-            <span>Lines: <span className="font-medium">{content.split('\n').length}</span></span>
-            <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
+            {isOfficeDocument() ? (
+              <>
+                <span>Type: <span className="font-medium capitalize">{getOfficeDocType()}</span></span>
+                <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
+              </>
+            ) : (
+              <>
+                <span>Language: <span className="font-medium">{language}</span></span>
+                <span>Lines: <span className="font-medium">{content.split('\n').length}</span></span>
+                <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
+              </>
+            )}
           </div>
           <span className="text-xs">Read-only view</span>
         </div>

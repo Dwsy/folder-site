@@ -10,9 +10,11 @@
  * - 支持行数和列数限制
  * - HTML 转义防止 XSS 攻击
  * - 主题适配（亮色/暗色）
+ * - 集成安全验证模块（文件类型、魔数检查、XSS 防护）
  */
 
 import * as XLSX from 'xlsx';
+import { SecurityValidator } from '../../src/security/index.js';
 
 /**
  * Excel 渲染器配置选项
@@ -90,6 +92,24 @@ export class ExcelRenderer {
   /** 优先级 */
   priority: number = 50;
 
+  /** 安全验证器 */
+  private securityValidator: SecurityValidator;
+
+  /**
+   * 构造函数
+   */
+  constructor() {
+    // 初始化安全验证器
+    this.securityValidator = new SecurityValidator({
+      validateExtension: true,
+      validateMagicNumber: true,
+      validateFileSize: true,
+      sanitizeHtml: true,
+      strictMode: true,
+      allowedTypes: ['excel'],
+    });
+  }
+
   /**
    * 渲染 Excel 文件内容
    *
@@ -99,7 +119,7 @@ export class ExcelRenderer {
    */
   async render(
     content: string | ArrayBuffer,
-    options?: ExcelRendererOptions
+    options?: ExcelRendererOptions & { filePath?: string; fileSize?: number }
   ): Promise<string> {
     const startTime = Date.now();
 
@@ -116,16 +136,38 @@ export class ExcelRenderer {
     };
 
     try {
+      // 安全验证：检查文件类型和魔数
+      if (options?.filePath) {
+        const buffer = typeof content === 'string'
+          ? new TextEncoder().encode(content).buffer
+          : content;
+        
+        const validationResult = await this.securityValidator.validateFile(
+          options.filePath,
+          buffer,
+          options.fileSize
+        );
+        
+        if (!validationResult.valid) {
+          const errorMsg = validationResult.errors.join(', ');
+          throw new Error(`Security validation failed: ${errorMsg}`);
+        }
+      }
+
       // 读取工作簿
       const workbook = this.parseWorkbook(content);
 
       // 渲染工作簿
       const { html, metadata } = this.renderWorkbook(workbook, opts);
 
+      // XSS 防护：清理 HTML
+      const sanitizeResult = this.securityValidator.sanitizeHtml(html);
+      
       // 添加渲染时间
       metadata.renderTime = Date.now() - startTime;
 
-      return html;
+      // 返回清理后的 HTML
+      return sanitizeResult.clean;
     } catch (error) {
       throw new Error(
         `Failed to render Excel file: ${error instanceof Error ? error.message : String(error)}`

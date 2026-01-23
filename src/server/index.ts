@@ -88,6 +88,7 @@ export function createServer(): Hono {
   app.route('/api/files', filesRoutes);
   app.route('/api/search', searchRoutes);
   app.route('/api/workhub', workhubRoutes);
+  app.route('/api/render', import('./routes/render.js').then((m) => m.default));
 
   // 静态文件服务 - 从 dist/client 目录提供
   // 配置了 MIME 类型映射和缓存控制
