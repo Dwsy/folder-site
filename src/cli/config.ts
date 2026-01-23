@@ -16,6 +16,8 @@ export interface CliConfig {
   help: boolean;
   /** 是否显示版本信息 */
   version: boolean;
+  /** 白名单模式：只显示指定的文件夹和文件（glob 模式，逗号分隔） */
+  whitelist?: string;
 }
 
 /**

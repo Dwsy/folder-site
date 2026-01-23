@@ -182,4 +182,6 @@ export interface BuildConfig {
   minify?: boolean;
   /** 环境变量 */
   env?: Record<string, string>;
+  /** 白名单模式：只显示指定的文件夹和文件（glob 模式） */
+  whitelist?: string[];
 }
