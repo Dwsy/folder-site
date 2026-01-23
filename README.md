@@ -65,6 +65,9 @@ folder-site /path/to/docs
 # Specify port
 folder-site --port 8080
 
+# Use whitelist mode (only show specific files)
+folder-site --whitelist "docs/**/*,README.md"
+
 # Show version
 folder-site --version
 
@@ -78,6 +81,7 @@ Once the server starts, open `http://localhost:3000` in your browser.
 
 - [Installation Guide](./docs/INSTALLATION.md) - Detailed installation instructions
 - [Usage Guide](./docs/USAGE.md) - Complete usage documentation
+- [Whitelist Mode](./docs/WHITELIST_MODE.md) - Whitelist configuration guide
 - [API Documentation](./docs/API.md) - API interface documentation
 - [Troubleshooting](./docs/TROUBLESHOOTING.md) - Common issues and solutions
 
@@ -177,9 +181,27 @@ folder-site/
   "cache": {
     "enabled": true,
     "ttl": 3600000
+  },
+  "build": {
+    "whitelist": [
+      "docs/**/*",
+      "examples/*.md",
+      "README.md"
+    ]
   }
 }
 ```
+
+### Whitelist Mode
+
+Whitelist mode allows you to specify only certain folders and files to display:
+
+```bash
+# Use whitelist mode
+folder-site --whitelist "docs/**/*,examples/*.md,README.md"
+```
+
+See [Whitelist Mode Documentation](./docs/WHITELIST_MODE.md) for details.
 
 ### Environment Variables
 
@@ -187,11 +209,8 @@ folder-site/
 # Server port
 PORT=3000
 
-# Theme (light/dark)
-THEME=dark
-
-# Cache TTL (milliseconds)
-CACHE_TTL=3600000
+# Whitelist mode (comma-separated glob patterns)
+WHITELIST="docs/**/*,examples/*.md"
 ```
 
 ## 🤝 Contributing

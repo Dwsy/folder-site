@@ -65,6 +65,9 @@ folder-site /path/to/docs
 # 指定端口
 folder-site --port 8080
 
+# 使用白名单模式（只显示特定文件）
+folder-site --whitelist "docs/**/*,README.md"
+
 # 显示版本
 folder-site --version
 
@@ -78,6 +81,7 @@ folder-site --help
 
 - [安装指南](./docs/INSTALLATION.md) - 详细的安装说明
 - [使用指南](./docs/USAGE.md) - 完整的使用文档
+- [白名单模式](./docs/WHITELIST_MODE.md) - 白名单配置说明
 - [API 文档](./docs/API.md) - API 接口说明
 - [故障排查](./docs/TROUBLESHOOTING.md) - 常见问题解决
 
@@ -164,22 +168,26 @@ folder-site/
 
 ```json
 {
-  "port": 3000,
-  "theme": "dark",
-  "sidebar": {
-    "width": 280,
-    "collapsed": false
-  },
-  "search": {
-    "debounce": 50,
-    "maxResults": 10
-  },
-  "cache": {
-    "enabled": true,
-    "ttl": 3600000
+  "build": {
+    "whitelist": [
+      "docs/**/*",
+      "examples/*.md",
+      "README.md"
+    ]
   }
 }
 ```
+
+### 白名单模式
+
+白名单模式允许你指定只显示特定的文件夹和文件：
+
+```bash
+# 使用白名单模式
+folder-site --whitelist "docs/**/*,examples/*.md,README.md"
+```
+
+详细说明请参考 [白名单模式文档](./docs/WHITELIST_MODE.md)。
 
 ### 环境变量
 
@@ -187,11 +195,8 @@ folder-site/
 # 服务器端口
 PORT=3000
 
-# 主题 (light/dark)
-THEME=dark
-
-# 缓存 TTL (毫秒)
-CACHE_TTL=3600000
+# 白名单模式（逗号分隔的 glob 模式）
+WHITELIST="docs/**/*,examples/*.md"
 ```
 
 ## 🤝 贡献
