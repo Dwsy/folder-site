@@ -109,7 +109,7 @@ export class FileIndexWatcherService {
   /**
    * 执行初始扫描
    */
-  private async performInitialScan(): Promise<void> {
+  private async performInitialScan(): Promise<ScanResult> {
     const scanOptions: ScanOptions = {
       rootDir: this.rootDir,
       extensions: this.options.scanOptions.extensions,
@@ -130,6 +130,8 @@ export class FileIndexWatcherService {
     // 添加到索引
     const allItems = [...result.files, ...result.directories];
     await this.indexService.addOrUpdateBatch(allItems);
+
+    return result;
   }
 
   /**
@@ -150,31 +152,31 @@ export class FileIndexWatcherService {
     // 监听文件变化事件
     this.watcher.on('change', async (event: WatcherChangeEvent) => {
       this.log(`File changed: ${event.relativePath}`);
-      await this.indexer.handleChange(event.type, event.path);
+      await this.indexer.handleChange('change', event.path);
     });
 
     this.watcher.on('add', async (event: WatcherChangeEvent) => {
       this.log(`File added: ${event.relativePath}`);
-      await this.indexer.handleChange(event.type, event.path);
+      await this.indexer.handleChange('add', event.path);
     });
 
     this.watcher.on('unlink', async (event: WatcherChangeEvent) => {
       this.log(`File removed: ${event.relativePath}`);
-      await this.indexer.handleChange(event.type, event.path);
+      await this.indexer.handleChange('unlink', event.path);
     });
 
     this.watcher.on('addDir', async (event: WatcherChangeEvent) => {
       this.log(`Directory added: ${event.relativePath}`);
-      await this.indexer.handleDirectoryChange(event.type, event.path);
+      await this.indexer.handleDirectoryChange('addDir', event.path);
     });
 
     this.watcher.on('unlinkDir', async (event: WatcherChangeEvent) => {
       this.log(`Directory removed: ${event.relativePath}`);
-      await this.indexer.handleDirectoryChange(event.type, event.path);
+      await this.indexer.handleDirectoryChange('unlinkDir', event.path);
     });
 
     // 启动监视器
-    await this.watcher.watch();
+    this.watcher.start();
 
     this.log('Watcher started');
   }
@@ -290,7 +292,7 @@ export class FileIndexWatcherService {
     try {
       // 停止监视器
       if (this.watcher) {
-        await this.watcher.unwatch();
+        await this.watcher.stop();
         this.watcher = null;
       }
 

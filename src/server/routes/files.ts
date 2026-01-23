@@ -39,7 +39,15 @@ async function initFileIndex() {
 
   const scanner = new FileScanner(scannerOptions);
   const result = await scanner.scan();
-  fileIndexService.buildFromScanResult(result);
+  fileIndexService.addEntries(result.files.map(f => ({
+    name: f.name,
+    relativePath: f.path,
+    fullPath: f.path,
+    extension: f.extension,
+    size: f.size,
+    modifiedAt: f.mtime,
+    isDirectory: f.isDirectory,
+  })));
 }
 
 // 初始化索引（异步）
@@ -49,7 +57,7 @@ initFileIndex().catch(console.error);
  * 获取文件列表
  */
 files.get('/', async (c) => {
-  const entries = fileIndexService.list();
+  const entries = fileIndexService.getAllEntries();
   const response: FileListResponse = {
     files: entries.map(e => ({
       name: e.name,
@@ -75,7 +83,7 @@ files.get('/', async (c) => {
  */
 files.get('/tree/list', async (c) => {
   const depth = parseInt(c.req.query('depth') || '10', 10);
-  const entries = fileIndexService.list();
+  const entries = fileIndexService.getAllEntries();
 
   // 按路径构建 Map（扁平化存储所有节点）
   const pathMap = new Map<string, any[]>();
@@ -214,7 +222,7 @@ files.get('/content', async (c) => {
 files.get('/tree/children', async (c) => {
   const path = c.req.query('path') || '';
   const depth = parseInt(c.req.query('depth') || '1', 10);
-  const entries = fileIndexService.list();
+  const entries = fileIndexService.getAllEntries();
 
   // 筛选指定路径下的直接子节点
   const children = entries.filter(entry => {
