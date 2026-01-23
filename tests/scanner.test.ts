@@ -208,4 +208,108 @@ describe("FileScanner", () => {
       expect(nestedFile?.relativePath).toBe("docs/nested/detail.md");
     });
   });
+
+  describe("白名单模式", () => {
+    it("应该只扫描白名单中的文件", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: ["docs/**/*"],
+      });
+      const result = await scanner.scan();
+
+      // 应该只包含 docs 目录中的文件
+      result.files.forEach((file) => {
+        expect(file.relativePath).toMatch(/^docs\//);
+      });
+
+      // 不应该包含根目录的文件
+      const readmeFile = result.files.find((f) => f.name === "README.md");
+      expect(readmeFile).toBeUndefined();
+    });
+
+    it("应该支持多个白名单模式", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: ["README.md", "docs/**/*.md"],
+      });
+      const result = await scanner.scan();
+
+      // 应该包含 README.md
+      const readmeFile = result.files.find((f) => f.name === "README.md");
+      expect(readmeFile).toBeDefined();
+
+      // 应该包含 docs 目录中的 .md 文件
+      const docsFile = result.files.find((f) => f.relativePath === "docs/guide.md");
+      expect(docsFile).toBeDefined();
+
+      // 不应该包含 .mmd 文件
+      const mmdFile = result.files.find((f) => f.name === "diagram.mmd");
+      expect(mmdFile).toBeUndefined();
+    });
+
+    it("应该支持通配符模式", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: ["**/*.md"],
+      });
+      const result = await scanner.scan();
+
+      // 应该只包含 .md 文件
+      result.files.forEach((file) => {
+        expect(file.extension).toBe(".md");
+      });
+
+      // 不应该包含 .mmd 或 .json 文件
+      const mmdFile = result.files.find((f) => f.extension === ".mmd");
+      const jsonFile = result.files.find((f) => f.extension === ".json");
+      expect(mmdFile).toBeUndefined();
+      expect(jsonFile).toBeUndefined();
+    });
+
+    it("空白名单数组应该使用默认黑名单模式", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: [],
+      });
+      const result = await scanner.scan();
+
+      // 应该包含所有支持的文件类型
+      expect(result.files.length).toBeGreaterThan(0);
+
+      // 不应该包含 node_modules 中的文件（默认排除）
+      const nodeModulesFile = result.files.find((f) => f.relativePath.includes("node_modules"));
+      expect(nodeModulesFile).toBeUndefined();
+    });
+
+    it("白名单应该优先于黑名单", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: ["docs/**/*"],
+        excludeDirs: ["node_modules"],
+      });
+      const result = await scanner.scan();
+
+      // 白名单模式，应该只包含 docs 目录中的文件
+      result.files.forEach((file) => {
+        expect(file.relativePath).toMatch(/^docs\//);
+      });
+    });
+
+    it("应该支持精确文件路径", async () => {
+      const scanner = new FileScanner({
+        rootDir: testDir,
+        whitelist: ["README.md", "config.json"],
+      });
+      const result = await scanner.scan();
+
+      // 应该只包含指定的文件
+      expect(result.files.length).toBe(2);
+
+      const readmeFile = result.files.find((f) => f.name === "README.md");
+      const configFile = result.files.find((f) => f.name === "config.json");
+
+      expect(readmeFile).toBeDefined();
+      expect(configFile).toBeDefined();
+    });
+  });
 });
