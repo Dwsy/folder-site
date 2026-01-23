@@ -1,0 +1,1086 @@
+/**
+ * Office 样式文件
+ * 支持 Excel 表格、PDF 查看器、Archive 列表的样式
+ * 支持亮色/暗色主题
+ */
+
+/* ============================================
+   CSS 变量定义 - 亮色主题
+   ============================================ */
+:root {
+  /* Excel 主题变量 */
+  --excel-bg: hsl(var(--background));
+  --excel-text: hsl(var(--foreground));
+  --excel-border: hsl(var(--border));
+  --excel-header-bg: hsl(var(--muted));
+  --excel-header-text: hsl(var(--foreground));
+  --excel-cell-bg: hsl(var(--card));
+  --excel-cell-text: hsl(var(--card-foreground));
+  --excel-hover-bg: hsl(var(--accent));
+  --excel-hover-text: hsl(var(--accent-foreground));
+  --excel-selected-bg: hsl(var(--primary));
+  --excel-selected-text: hsl(var(--primary-foreground));
+  --excel-grid-line: hsl(var(--border));
+  
+  /* PDF 主题变量 */
+  --pdf-bg: hsl(var(--background));
+  --pdf-toolbar-bg: hsl(var(--card));
+  --pdf-toolbar-border: hsl(var(--border));
+  --pdf-page-bg: hsl(var(--background));
+  --pdf-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -2px hsl(var(--foreground) / 0.1);
+  --pdf-scrollbar-track: hsl(var(--muted));
+  --pdf-scrollbar-thumb: hsl(var(--muted-foreground) / 0.3);
+  --pdf-scrollbar-thumb-hover: hsl(var(--muted-foreground) / 0.5);
+  --pdf-loading-bg: hsl(var(--muted));
+  --pdf-loading-text: hsl(var(--muted-foreground));
+  
+  /* Archive 主题变量 */
+  --archive-bg: hsl(var(--background));
+  --archive-text: hsl(var(--foreground));
+  --archive-border: hsl(var(--border));
+  --archive-item-bg: hsl(var(--card));
+  --archive-item-hover-bg: hsl(var(--accent));
+  --archive-item-selected-bg: hsl(var(--primary));
+  --archive-folder-color: hsl(var(--primary));
+  --archive-file-color: hsl(var(--muted-foreground));
+  --archive-expand-color: hsl(var(--muted-foreground));
+  --archive-drag-bg: hsl(var(--accent));
+  --archive-drag-border: hsl(var(--primary));
+  
+  /* 通用 Office 主题变量 */
+  --office-font-family: var(--font-family);
+  --office-border-radius: var(--radius);
+  --office-transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --office-focus-ring: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--background));
+}
+
+/* ============================================
+   CSS 变量定义 - 暗色主题
+   ============================================ */
+.dark {
+  /* Excel 暗色主题 */
+  --excel-grid-line: hsl(var(--border) / 0.5);
+  --excel-hover-bg: hsl(var(--accent));
+  
+  /* PDF 暗色主题 */
+  --pdf-page-bg: hsl(var(--card));
+  --pdf-shadow: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
+  
+  /* Archive 暗色主题 */
+  --archive-folder-color: hsl(var(--primary));
+  --archive-file-color: hsl(var(--muted-foreground));
+}
+
+/* ============================================
+   Excel 表格样式
+   ============================================ */
+.excel-workbook {
+  font-family: var(--office-font-family);
+  background: var(--excel-bg);
+  color: var(--excel-text);
+  border-radius: var(--office-border-radius);
+  overflow: hidden;
+  transition: var(--office-transition);
+}
+
+/* Excel 工作表标签 */
+.excel-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--excel-header-bg);
+  border-bottom: 1px solid var(--excel-border);
+  overflow-x: auto;
+}
+
+.excel-tab {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--excel-header-text);
+  white-space: nowrap;
+  transition: var(--office-transition);
+  position: relative;
+}
+
+.excel-tab:hover {
+  background: var(--excel-hover-bg);
+  color: var(--excel-hover-text);
+}
+
+.excel-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--office-focus-ring);
+}
+
+.excel-tab.active {
+  background: var(--excel-cell-bg);
+  color: var(--excel-selected-text);
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.excel-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--excel-selected-bg);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Excel 工作表容器 */
+.excel-sheet {
+  display: none;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.excel-sheet.active {
+  display: block;
+}
+
+/* Excel 表格 */
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--excel-bg);
+  color: var(--excel-text);
+  font-size: 13px;
+  border: 1px solid var(--excel-grid-line);
+  border-radius: var(--office-border-radius);
+  overflow: hidden;
+}
+
+.excel-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.excel-table th {
+  background: var(--excel-header-bg);
+  border: 1px solid var(--excel-grid-line);
+  border-bottom-width: 2px;
+  padding: 8px 12px;
+  font-weight: 600;
+  color: var(--excel-header-text);
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+.excel-table th::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.excel-table th:hover::after {
+  background: var(--excel-selected-bg);
+}
+
+.excel-table td {
+  background: var(--excel-cell-bg);
+  border: 1px solid var(--excel-grid-line);
+  padding: 8px 12px;
+  color: var(--excel-cell-text);
+  text-align: left;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+}
+
+/* Excel 单元格悬停效果 */
+.excel-table tbody tr:hover td {
+  background: var(--excel-hover-bg);
+  color: var(--excel-hover-text);
+}
+
+/* Excel 单元格选中效果 */
+.excel-table td.selected,
+.excel-table th.selected {
+  background: var(--excel-selected-bg) !important;
+  color: var(--excel-selected-text) !important;
+}
+
+/* Excel 单元格类型样式 */
+.excel-cell-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.excel-cell-date {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.excel-cell-time {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.excel-cell-currency {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.excel-cell-percentage {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.excel-cell-boolean {
+  text-align: center;
+  font-weight: 500;
+}
+
+.excel-cell-formula {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  color: var(--excel-selected-text);
+}
+
+/* Excel 空工作表 */
+.excel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--pdf-loading-text);
+  font-size: 14px;
+  text-align: center;
+}
+
+.excel-empty::before {
+  content: '📊';
+  display: block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* Excel 元数据 */
+.excel-metadata {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--pdf-loading-text);
+  background: var(--excel-header-bg);
+  border-radius: var(--office-border-radius);
+  border: 1px solid var(--excel-border);
+}
+
+.excel-metadata span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.excel-metadata span::before {
+  content: '•';
+  opacity: 0.5;
+}
+
+.excel-metadata span:first-child::before {
+  display: none;
+}
+
+/* ============================================
+   PDF 查看器样式
+   ============================================ */
+.pdf-viewer {
+  font-family: var(--office-font-family);
+  background: var(--pdf-bg);
+  color: var(--excel-text);
+  border-radius: var(--office-border-radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+}
+
+/* PDF 工具栏 */
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--pdf-toolbar-bg);
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+  flex-wrap: wrap;
+}
+
+.pdf-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 12px;
+  border-right: 1px solid var(--pdf-toolbar-border);
+}
+
+.pdf-toolbar-group:last-child {
+  padding-right: 0;
+  border-right: none;
+  margin-left: auto;
+}
+
+/* PDF 工具栏按钮 */
+.pdf-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: var(--pdf-bg);
+  color: var(--excel-text);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--office-transition);
+}
+
+.pdf-toolbar-btn:hover:not(:disabled) {
+  background: var(--excel-hover-bg);
+  border-color: var(--excel-selected-bg);
+}
+
+.pdf-toolbar-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--office-focus-ring);
+}
+
+.pdf-toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-toolbar-btn-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* PDF 页面导航输入 */
+.pdf-page-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: var(--pdf-bg);
+  color: var(--excel-text);
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+  transition: var(--office-transition);
+}
+
+.pdf-page-input:focus {
+  outline: none;
+  border-color: var(--excel-selected-bg);
+  box-shadow: var(--office-focus-ring);
+}
+
+/* PDF 页面计数 */
+.pdf-page-count {
+  font-size: 13px;
+  color: var(--pdf-loading-text);
+  padding: 0 8px;
+}
+
+/* PDF 缩放控件 */
+.pdf-zoom-select {
+  padding: 6px 10px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: var(--pdf-bg);
+  color: var(--excel-text);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--office-transition);
+}
+
+.pdf-zoom-select:hover {
+  border-color: var(--excel-selected-bg);
+}
+
+.pdf-zoom-select:focus {
+  outline: none;
+  border-color: var(--excel-selected-bg);
+  box-shadow: var(--office-focus-ring);
+}
+
+/* PDF 内容区域 */
+.pdf-content {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: var(--pdf-bg);
+}
+
+/* PDF 页面 */
+.pdf-page {
+  background: var(--pdf-page-bg);
+  box-shadow: var(--pdf-shadow);
+  border-radius: 4px;
+  max-width: 100%;
+  transition: var(--office-transition);
+}
+
+.pdf-page canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* PDF 加载状态 */
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: var(--pdf-loading-bg);
+  border-radius: var(--office-border-radius);
+  min-height: 300px;
+}
+
+.pdf-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--pdf-toolbar-border);
+  border-top-color: var(--excel-selected-bg);
+  border-radius: 50%;
+  animation: pdf-spinner 1s linear infinite;
+}
+
+@keyframes pdf-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pdf-loading-text {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--pdf-loading-text);
+}
+
+/* PDF 错误状态 */
+.pdf-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  border-radius: var(--office-border-radius);
+  min-height: 300px;
+}
+
+.pdf-error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.pdf-error-text {
+  font-size: 14px;
+  color: var(--pdf-loading-text);
+  text-align: center;
+}
+
+/* PDF 自定义滚动条 */
+.pdf-content::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.pdf-content::-webkit-scrollbar-track {
+  background: var(--pdf-scrollbar-track);
+  border-radius: 5px;
+}
+
+.pdf-content::-webkit-scrollbar-thumb {
+  background: var(--pdf-scrollbar-thumb);
+  border-radius: 5px;
+  border: 2px solid var(--pdf-scrollbar-track);
+}
+
+.pdf-content::-webkit-scrollbar-thumb:hover {
+  background: var(--pdf-scrollbar-thumb-hover);
+}
+
+/* ============================================
+   Archive 列表样式
+   ============================================ */
+.archive-viewer {
+  font-family: var(--office-font-family);
+  background: var(--archive-bg);
+  color: var(--archive-text);
+  border-radius: var(--office-border-radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+/* Archive 工具栏 */
+.archive-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--pdf-toolbar-bg);
+  border-bottom: 1px solid var(--archive-border);
+}
+
+.archive-toolbar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--archive-text);
+}
+
+.archive-toolbar-info {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--pdf-loading-text);
+}
+
+/* Archive 列表容器 */
+.archive-list {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+/* Archive 列表项 */
+.archive-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--archive-item-bg);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--office-transition);
+  user-select: none;
+}
+
+.archive-item:hover {
+  background: var(--archive-item-hover-bg);
+  border-color: var(--excel-hover-bg);
+}
+
+.archive-item.selected {
+  background: var(--archive-item-selected-bg);
+  color: var(--excel-selected-text);
+}
+
+.archive-item.dragging {
+  opacity: 0.5;
+  background: var(--archive-drag-bg);
+  border: 2px dashed var(--archive-drag-border);
+}
+
+.archive-item.drag-over {
+  background: var(--archive-drag-bg);
+  border: 2px dashed var(--archive-drag-border);
+}
+
+/* 展开/折叠指示器 */
+.archive-item-expand {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--archive-expand-color);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.archive-item-expand.expanded {
+  transform: rotate(90deg);
+}
+
+.archive-item-expand svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* Archive 图标 */
+.archive-item-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-item-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.archive-item[data-type="folder"] .archive-item-icon {
+  color: var(--archive-folder-color);
+}
+
+.archive-item[data-type="file"] .archive-item-icon {
+  color: var(--archive-file-color);
+}
+
+/* Archive 名称 */
+.archive-item-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Archive 大小 */
+.archive-item-size {
+  font-size: 11px;
+  color: var(--pdf-loading-text);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Archive 修改时间 */
+.archive-item-modified {
+  font-size: 11px;
+  color: var(--pdf-loading-text);
+  flex-shrink: 0;
+}
+
+/* Archive 子项容器 */
+.archive-children {
+  margin-left: 24px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.archive-children.expanded {
+  max-height: 5000px;
+}
+
+/* Archive 空状态 */
+.archive-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--pdf-loading-text);
+  font-size: 14px;
+  text-align: center;
+}
+
+.archive-empty::before {
+  content: '📦';
+  display: block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* Archive 拖拽提示 */
+.archive-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  border: 2px dashed var(--archive-border);
+  border-radius: var(--office-border-radius);
+  background: var(--archive-item-bg);
+  color: var(--pdf-loading-text);
+  font-size: 14px;
+  text-align: center;
+  transition: var(--office-transition);
+}
+
+.archive-drop-zone.active {
+  border-color: var(--archive-drag-border);
+  background: var(--archive-drag-bg);
+  color: var(--archive-text);
+}
+
+.archive-drop-zone::before {
+  content: '📁';
+  display: block;
+  font-size: 40px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* ============================================
+   Office 通用样式
+   ============================================ */
+.office-document {
+  width: 100%;
+  min-height: 400px;
+  font-family: var(--office-font-family);
+}
+
+.office-document * {
+  box-sizing: border-box;
+}
+
+/* Office 加载动画 */
+.office-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  min-height: 300px;
+}
+
+.office-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--pdf-toolbar-border);
+  border-top-color: var(--excel-selected-bg);
+  border-radius: 50%;
+  animation: office-spinner 1s linear infinite;
+}
+
+@keyframes office-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.office-loading-text {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--pdf-loading-text);
+}
+
+/* Office 错误状态 */
+.office-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  min-height: 300px;
+  border-radius: var(--office-border-radius);
+  background: var(--excel-header-bg);
+  border: 1px solid var(--excel-border);
+}
+
+.office-error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.office-error-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--excel-text);
+  margin-bottom: 8px;
+}
+
+.office-error-message {
+  font-size: 14px;
+  color: var(--pdf-loading-text);
+  text-align: center;
+  max-width: 400px;
+}
+
+.office-error-retry {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: var(--excel-selected-bg);
+  color: var(--excel-selected-text);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--office-transition);
+}
+
+.office-error-retry:hover {
+  opacity: 0.9;
+}
+
+.office-error-retry:focus-visible {
+  outline: none;
+  box-shadow: var(--office-focus-ring);
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+
+/* 小屏幕适配 */
+@media (max-width: 640px) {
+  .excel-tabs {
+    padding: 6px 8px;
+  }
+  
+  .excel-tab {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  
+  .excel-sheet {
+    padding: 12px;
+  }
+  
+  .excel-table th,
+  .excel-table td {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .pdf-toolbar {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  
+  .pdf-toolbar-group {
+    padding-right: 8px;
+  }
+  
+  .pdf-toolbar-btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  
+  .pdf-toolbar-btn span {
+    display: none;
+  }
+  
+  .pdf-content {
+    padding: 16px;
+  }
+  
+  .archive-item {
+    padding: 6px 10px;
+  }
+  
+  .archive-item-name {
+    font-size: 12px;
+  }
+  
+  .archive-item-size,
+  .archive-item-modified {
+    display: none;
+  }
+}
+
+/* 中等屏幕适配 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .excel-table th,
+  .excel-table td {
+    padding: 7px 10px;
+  }
+  
+  .pdf-toolbar-btn span {
+    display: inline;
+  }
+}
+
+/* ============================================
+   打印样式
+   ============================================ */
+@media print {
+  .excel-tabs,
+  .excel-metadata,
+  .pdf-toolbar,
+  .archive-toolbar {
+    display: none !important;
+  }
+  
+  .excel-sheet,
+  .pdf-content,
+  .archive-list {
+    padding: 0 !important;
+  }
+  
+  .excel-table {
+    border: none;
+  }
+  
+  .pdf-page {
+    box-shadow: none;
+    margin-bottom: 0;
+  }
+}
+
+/* ============================================
+   无障碍支持
+   ============================================ */
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  :root {
+    --excel-grid-line: hsl(var(--foreground));
+    --excel-border: hsl(var(--foreground));
+  }
+  
+  .excel-table th,
+  .excel-table td {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  .excel-tab,
+  .excel-table td,
+  .pdf-toolbar-btn,
+  .archive-item,
+  .archive-children,
+  .archive-drop-zone {
+    transition: none;
+  }
+  
+  .excel-loading-spinner,
+  .office-loading-spinner,
+  .pdf-loading-spinner {
+    animation: none;
+  }
+}
+
+/* 焦点可见性增强 */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ============================================
+   工具类
+   ============================================ */
+
+/* 隐藏元素 */
+.office-hidden {
+  display: none !important;
+}
+
+/* 文本截断 */
+.office-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 滚动条隐藏 */
+.office-scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.office-scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 自定义滚动条 */
+.office-scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.office-scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.office-scrollbar-thin::-webkit-scrollbar-track {
+  background: var(--pdf-scrollbar-track);
+  border-radius: 3px;
+}
+
+.office-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--pdf-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.office-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--pdf-scrollbar-thumb-hover);
+}
+
+/* 玻璃效果 */
+.office-glass {
+  backdrop-filter: blur(8px);
+  background: hsl(var(--background) / 0.8);
+}
+
+/* 阴影 */
+.office-shadow-sm {
+  box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+}
+
+.office-shadow {
+  box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.1),
+              0 1px 2px -1px hsl(var(--foreground) / 0.1);
+}
+
+.office-shadow-md {
+  box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.1),
+              0 2px 4px -2px hsl(var(--foreground) / 0.1);
+}
+
+.office-shadow-lg {
+  box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.1),
+              0 4px 6px -4px hsl(var(--foreground) / 0.1);
+}
+
+/* 圆角 */
+.office-rounded-sm {
+  border-radius: 4px;
+}
+
+.office-rounded {
+  border-radius: 6px;
+}
+
+.office-rounded-md {
+  border-radius: 8px;
+}
+
+.office-rounded-lg {
+  border-radius: 12px;
+}
+
+/* 间距 */
+.office-p-2 { padding: 8px; }
+.office-p-3 { padding: 12px; }
+.office-p-4 { padding: 16px; }
+.office-p-6 { padding: 24px; }
+
+.office-gap-2 { gap: 8px; }
+.office-gap-3 { gap: 12px; }
+.office-gap-4 { gap: 16px; }
