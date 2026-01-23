@@ -196,7 +196,7 @@ describe('Office Render API', () => {
 
       const response2 = await fetch(baseUrl, {
         method: 'POST',
-        headers: { { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           type: 'excel',
           content: testCSV,

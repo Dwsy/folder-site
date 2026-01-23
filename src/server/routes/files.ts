@@ -208,7 +208,7 @@ files.get('/content', async (c) => {
     return c.json<ApiResponse<null>>({
       success: false,
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to read file',
+      error: { code: 'FILE_READ_ERROR', message: error instanceof Error ? error.message : 'Failed to read file' },
       timestamp: Date.now(),
     }, 404);
   }
