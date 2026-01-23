@@ -8,10 +8,9 @@
  * - 支持错误处理和重试
  */
 
-import { stat, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { stat } from 'node:fs/promises';
 import type { FileIndexService } from './file-index.js';
-import type { FileIndexChange, FileInfo } from '../../types/indexing.js';
+import type { FileInfo } from '../../types/indexing.js';
 
 /**
  * 增量索引更新器配置
@@ -57,6 +56,8 @@ export class IncrementalIndexer {
     this.indexService = options.indexService;
     this.rootPath = options.rootPath;
     this.options = {
+      indexService: options.indexService,
+      rootPath: options.rootPath,
       debounceDelay: options.debounceDelay ?? 300,
       batchDelay: options.batchDelay ?? 1000,
       enableLogging: options.enableLogging ?? true,

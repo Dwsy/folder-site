@@ -209,9 +209,6 @@ export class SearchPerformanceTracker {
 
     const totalRequests = this.cacheHits + this.cacheMisses;
     const hitRate = totalRequests > 0 ? this.cacheHits / totalRequests : 0;
-    const avgResultCount = this.resultCounts.length > 0
-      ? this.resultCounts.reduce((a, b) => a + b, 0) / this.resultCounts.length
-      : 0;
 
     return {
       totalSearches: this.metrics.length,

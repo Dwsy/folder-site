@@ -9,7 +9,7 @@
  */
 
 import Fuse from 'fuse.js';
-import { readFile, stat, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import type {
   FileInfo,
@@ -18,7 +18,6 @@ import type {
   FileIndexServiceOptions,
   FileIndexSearchOptions,
   FileIndexSearchResult,
-  FileIndexChangeType,
   FileIndexChange,
   FileIndexUpdateSummary,
 } from '../../types/indexing.js';
@@ -68,7 +67,6 @@ export class FileIndexService {
         includeScore: true,
         includeMatches: true,
         shouldSort: true,
-        sortBy: (a, b) => (a.score || 0) - (b.score || 0),
       },
     };
 
@@ -194,7 +192,7 @@ export class FileIndexService {
 
     // 重建 Fuse 索引
     if (this.fuse) {
-      this.fuse.add([entry]);
+      this.fuse.add(entry);
     } else {
       this.rebuildFuseIndex();
     }

@@ -34,7 +34,11 @@ workhub.get('/', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to parse WorkHub data',
+        error: {
+          code: 'WORKHUB_PARSE_ERROR',
+          message: 'Failed to parse WorkHub data',
+          details: error instanceof Error ? error.message : String(error),
+        },
         timestamp: Date.now(),
       },
       500
@@ -72,7 +76,11 @@ workhub.get('/adrs', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to parse ADRs',
+        error: {
+          code: 'ADR_PARSE_ERROR',
+          message: 'Failed to parse ADRs',
+          details: error instanceof Error ? error.message : String(error),
+        },
         timestamp: Date.now(),
       },
       500
@@ -101,7 +109,11 @@ workhub.get('/adrs/:id', async (c) => {
       return c.json<ApiResponse<never>>(
         {
           success: false,
-          error: 'ADR not found',
+          error: {
+            code: 'ADR_NOT_FOUND',
+            message: 'ADR not found',
+            details: `ID: ${id}`,
+          },
           timestamp: Date.now(),
         },
         404
@@ -118,7 +130,11 @@ workhub.get('/adrs/:id', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to fetch ADR',
+        error: {
+          code: 'ADR_FETCH_ERROR',
+          message: 'Failed to fetch ADR',
+          details: error instanceof Error ? error.message : String(error),
+        },
         timestamp: Date.now(),
       },
       500
@@ -156,7 +172,7 @@ workhub.get('/issues', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to parse Issues',
+        error: { code: 'ISSUE_PARSE_ERROR', message: 'Failed to parse Issues', details: error instanceof Error ? error.message : String(error) },
         timestamp: Date.now(),
       },
       500
@@ -202,7 +218,7 @@ workhub.get('/issues/:id', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to fetch Issue',
+        error: { code: 'ISSUE_FETCH_ERROR', message: 'Failed to fetch Issue', details: error instanceof Error ? error.message : String(error) },
         timestamp: Date.now(),
       },
       500
@@ -240,7 +256,7 @@ workhub.get('/prs', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to parse PRs',
+        error: { code: 'PR_PARSE_ERROR', message: 'Failed to parse PRs', details: error instanceof Error ? error.message : String(error) },
         timestamp: Date.now(),
       },
       500
@@ -286,7 +302,7 @@ workhub.get('/prs/:id', async (c) => {
     return c.json<ApiResponse<never>>(
       {
         success: false,
-        error: 'Failed to fetch PR',
+        error: { code: 'PR_FETCH_ERROR', message: 'Failed to fetch PR', details: error instanceof Error ? error.message : String(error) },
         timestamp: Date.now(),
       },
       500

@@ -7,7 +7,7 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeStringify from 'rehype-stringify';
 import { statSync } from 'fs';
 import { resolve } from 'path';
-import { CacheWrapper, type CacheEntry, DEFAULT_CACHE_CONFIG } from '../lib/render-cache';
+import { CacheWrapper } from '../lib/render-cache.js';
 
 /**
  * Markdown processing options
@@ -225,7 +225,7 @@ export function getGlobalCacheWrapper(): CacheWrapper {
     const { defaultCacheWrapper } = require('../lib/render-cache');
     globalCacheWrapper = defaultCacheWrapper;
   }
-  return globalCacheWrapper;
+  return globalCacheWrapper!;
 }
 
 /**
@@ -273,11 +273,6 @@ export async function processMarkdownWithCache(
     const cachedEntry = cache.get(absolutePath, processorOptions);
 
     if (cachedEntry) {
-      // Verify file hasn't been modified
-      const cachedMtime = cache.getStatistics().totalSize > 0 
-        ? fileMtime 
-        : 0;
-
       return {
         html: cachedEntry.html,
         metadata: {

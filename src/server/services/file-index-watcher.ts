@@ -49,7 +49,7 @@ export class FileIndexWatcherService {
     this.options = {
       rootDir: this.rootDir,
       indexPath: options.indexPath || join(this.rootDir, '.folder-site', 'index.json'),
-      scanOptions: options.scanOptions || {},
+      scanOptions: options.scanOptions || { rootDir: this.rootDir },
       watcherOptions: options.watcherOptions || {},
       enableWatcher: options.enableWatcher ?? true,
       enableLogging: options.enableLogging ?? true,

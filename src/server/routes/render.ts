@@ -4,39 +4,31 @@
  */
 
 import { Hono } from 'hono';
-import { ExcelRenderer } from '../../plugins/office-renderer/ExcelRenderer.js';
-import WordRenderer from '../../plugins/office-renderer/WordRenderer.js';
-import PDFRenderer from '../../plugins/office-renderer/PDFRenderer.js';
-import ArchiveRenderer from '../../plugins/office-renderer/ArchiveRenderer.js';
+import { OfficeRendererPlugin } from '../../plugins/office-renderer/index.js';
 
 const renderApi = new Hono();
 
-// 渲染器实例缓存
-const renderers: Map<string, any> = new Map();
+// Office 渲染器插件实例
+let officePlugin: OfficeRendererPlugin | null = null;
+
+/**
+ * 获取 Office 插件实例
+ */
+function getOfficePlugin() {
+  if (!officePlugin) {
+    officePlugin = new OfficeRendererPlugin();
+    officePlugin.initialize();
+    officePlugin.activate();
+  }
+  return officePlugin;
+}
 
 /**
  * 获取渲染器实例
  */
 function getRenderer(type: string) {
-  if (!renderers.has(type)) {
-    switch (type) {
-      case 'excel':
-        renderers.set('excel', new ExcelRenderer());
-        break;
-      case 'word':
-        renderers.set('word', new WordRenderer());
-        break;
-      case 'pdf':
-        renderers.set('pdf', new PDFRenderer());
-        break;
-      case 'archive':
-        renderers.set('archive', new ArchiveRenderer());
-        break;
-      default:
-        throw new Error(`Unknown renderer type: ${type}`);
-    }
-  }
-  return renderers.get(type);
+  const plugin = getOfficePlugin();
+  return plugin.getRenderer(type);
 }
 
 /**
@@ -75,7 +67,7 @@ renderApi.post('/office', async (c) => {
     if (typeof content === 'string') {
       buffer = new TextEncoder().encode(content).buffer;
     } else if (content instanceof Uint8Array) {
-      buffer = content.buffer;
+      buffer = content.buffer.slice(0);
     } else if (content instanceof ArrayBuffer) {
       buffer = content;
     } else {

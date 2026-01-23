@@ -5,6 +5,9 @@
 import type { IFuseOptions, FuseResultMatch } from 'fuse.js';
 import type { FileInfo } from './files.js';
 
+// Re-export FileInfo for convenience
+export type { FileInfo } from './files.js';
+
 /**
  * 索引条目类型
  */
