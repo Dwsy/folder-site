@@ -36,6 +36,9 @@ const DEFAULT_SKIP_LANGUAGES = [
   'html',
   'json-canvas',
   'canvas',
+  'math',
+  'latex',
+  'tex',
 ];
 
 /**

@@ -34,8 +34,18 @@ interface CanvasData {
 export function createJsonCanvasRenderer() {
   return async (container: HTMLElement, theme: 'light' | 'dark') => {
     console.log('[JSON Canvas] Starting render...');
-    const canvasBlocks = container.querySelectorAll('pre.json-canvas code');
+    console.log('[JSON Canvas] Container:', container);
+    
+    // 尝试多种选择器
+    const canvasBlocks = container.querySelectorAll('pre.json-canvas code, pre[class*="json-canvas"] code');
     console.log('[JSON Canvas] Found blocks:', canvasBlocks.length);
+    
+    // 调试：列出所有 pre 元素
+    const allPres = container.querySelectorAll('pre');
+    console.log('[JSON Canvas] All pre elements:', allPres.length);
+    allPres.forEach((pre, i) => {
+      console.log(`[JSON Canvas] Pre ${i}:`, pre.className, pre.querySelector('code')?.className);
+    });
     
     if (canvasBlocks.length === 0) return;
 

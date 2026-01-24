@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { SearchModal, type SearchResultItem } from './components/search/index.js';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
+import { TOCProvider } from './contexts/TOCContext.js';
 
 // 导入布局和页面
 import { MainLayout } from './layouts/MainLayout.js';
@@ -138,7 +139,9 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <RouterProvider router={router} />
+        <TOCProvider>
+          <RouterProvider router={router} />
+        </TOCProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
