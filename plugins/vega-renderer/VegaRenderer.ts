@@ -13,7 +13,7 @@
  */
 
 import embed from 'vega-embed';
-import type { RendererPlugin } from '../../types/plugin.js';
+import type { RendererPlugin } from '../../src/server/lib/plugin-registry.js';
 import { JSDOM } from 'jsdom';
 
 // 在 Node.js 环境中设置 DOM（与 MermaidRenderer 保持一致）

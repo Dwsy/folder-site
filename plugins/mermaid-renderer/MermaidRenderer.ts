@@ -13,7 +13,7 @@
  */
 
 import mermaid from 'mermaid';
-import type { RendererPlugin } from '../../types/plugin.js';
+import type { RendererPlugin } from '../../src/server/lib/plugin-registry.js';
 import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 
@@ -209,7 +209,7 @@ export class MermaidRenderer implements RendererPlugin {
     try {
       mermaid.initialize({
         startOnLoad: false,
-        theme: 'light',
+        theme: 'default' as any, // 使用 default 主题，避免类型错误
         securityLevel: 'loose',
         fontFamily: 'sans-serif',
         fontSize: 16,
@@ -317,7 +317,8 @@ export class MermaidRenderer implements RendererPlugin {
       this.configureMermaid(mergedOptions);
 
       // 渲染图表
-      const svg = await mermaid.render(id, parseResult.code || content);
+      const renderResult = await mermaid.render(id, parseResult.code || content);
+      const svg = typeof renderResult === 'string' ? renderResult : (renderResult as any).svg;
       
       // 处理输出格式
       let finalContent: string;
@@ -340,7 +341,7 @@ export class MermaidRenderer implements RendererPlugin {
           result: {
             success: true,
             content: finalContent,
-            contentType,
+            contentType: contentType as 'image/png' | 'image/svg+xml',
             diagramType: parseResult.diagramType,
             duration: Date.now() - startTime,
           },

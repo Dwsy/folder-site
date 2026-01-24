@@ -103,7 +103,7 @@ export class ExcelRenderer {
     this.securityValidator = new SecurityValidator({
       validateExtension: true,
       validateMagicNumber: true,
-      validateFileSize: true,
+      validateFileSize: 10 * 1024 * 1024, // 10MB
       sanitizeHtml: true,
       strictMode: true,
       allowedTypes: ['excel'],

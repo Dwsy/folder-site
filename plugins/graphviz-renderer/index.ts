@@ -4,7 +4,7 @@
  * 导出插件接口，用于插件系统加载和注册
  */
 
-import type { Plugin, PluginManifest, PluginContext } from '../../types/plugin.js';
+import type { Plugin, PluginManifest, PluginContext } from '../../src/types/plugin.js';
 import { GraphvizRenderer } from './GraphvizRenderer.js';
 
 // =============================================================================

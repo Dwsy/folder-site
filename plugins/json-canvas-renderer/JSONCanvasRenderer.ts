@@ -13,7 +13,7 @@
  * - 渲染结果缓存
  */
 
-import type { RendererPlugin } from '../../types/plugin.js';
+import type { RendererPlugin } from '../../src/server/lib/plugin-registry.js';
 
 // =============================================================================
 // 类型定义

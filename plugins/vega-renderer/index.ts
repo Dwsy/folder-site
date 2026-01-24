@@ -2,7 +2,7 @@
  * Vega Renderer Plugin
  */
 
-import type { Plugin, PluginContext, PluginManifest, PluginStatus } from '../../types/plugin.js';
+import type { Plugin, PluginContext, PluginManifest, PluginStatus } from '../../src/types/plugin.js';
 import { VegaRenderer } from './VegaRenderer.js';
 
 export class VegaRendererPlugin implements Plugin {

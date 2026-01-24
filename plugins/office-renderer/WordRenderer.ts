@@ -1,5 +1,5 @@
 import { renderAsync } from 'docx-preview';
-import type { RendererPlugin } from '../../types/plugin.js';
+import type { RendererPlugin } from '../../src/server/lib/plugin-registry.js';
 
 export interface WordRendererOptions {
   inWrapper?: boolean;
@@ -75,10 +75,10 @@ export class WordRenderer implements RendererPlugin {
       await renderAsync(buffer, container, null, {
         inWrapper: opts.inWrapper,
         useBase64URL: opts.useBase64URL,
-        showChanges: opts.showChanges,
+        // showChanges: opts.showChanges,  // 该选项不存在于类型定义中
         experimental: opts.experimental,
         trimXmlDeclaration: opts.trimXmlDeclaration,
-        useMathMLPolyfill: opts.useMathMLPolyfill,
+        // useMathMLPolyfill: opts.useMathMLPolyfill,  // 该选项不存在于类型定义中
         renderChanges: opts.renderChanges,
         renderHeaders: opts.renderHeaders,
         renderFooters: opts.renderFooters,

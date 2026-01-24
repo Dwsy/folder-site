@@ -16,6 +16,16 @@
       "constraints": {
         "supportedFormats": ["svg", "png"],
         "supportedThemes": ["light", "dark", "custom"]
+      },
+      "frontend": {
+        "enabled": true,
+        "codeBlockLang": ["vega"],
+        "library": "vega-embed",
+        "className": "vega",
+        "theme": {
+          "light": "default",
+          "dark": "dark"
+        }
       }
     },
     {
@@ -25,6 +35,16 @@
       "constraints": {
         "supportedFormats": ["svg", "png"],
         "supportedThemes": ["light", "dark", "custom"]
+      },
+      "frontend": {
+        "enabled": true,
+        "codeBlockLang": ["vega-lite", "vl"],
+        "library": "vega-embed",
+        "className": "vega-lite",
+        "theme": {
+          "light": "default",
+          "dark": "dark"
+        }
       }
     }
   ],

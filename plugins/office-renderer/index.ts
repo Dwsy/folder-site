@@ -5,7 +5,7 @@
  * 支持 Excel、Word、PDF、Archive 等多种 Office 文档格式渲染
  */
 
-import type { Plugin, PluginManifest, PluginContext } from '../../types/plugin.js';
+import type { Plugin, PluginManifest, PluginContext } from '../../src/types/plugin.js';
 import { ExcelRenderer } from './ExcelRenderer.js';
 import WordRenderer from './WordRenderer.js';
 import PDFRenderer from './PDFRenderer.js';
@@ -423,7 +423,7 @@ export default OfficeRendererPlugin;
 // =============================================================================
 
 export { ExcelRenderer, WordRenderer, PDFRenderer, ArchiveRenderer };
-export type { ExcelRendererOptions, RenderMetadata as ExcelRenderMetadata } from './ExcelRenderer.js';
-export type { WordRendererOptions, RenderMetadata as WordRenderMetadata } from './WordRenderer.js';
-export type { PDFRendererOptions, RenderMetadata as PDFRenderMetadata } from './PDFRenderer.js';
-export type { ArchiveRendererOptions, RenderMetadata as ArchiveRenderMetadata } from './ArchiveRenderer.js';
+export type { ExcelRendererOptions } from './ExcelRenderer.js';
+export type { WordRendererOptions } from './WordRenderer.js';
+export type { PDFRendererOptions } from './PDFRenderer.js';
+export type { ArchiveRendererOptions } from './ArchiveRenderer.js';

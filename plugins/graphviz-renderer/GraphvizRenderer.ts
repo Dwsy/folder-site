@@ -14,7 +14,7 @@
  */
 
 import { instance } from '@viz-js/viz';
-import type { RendererPlugin } from '../../types/plugin.js';
+import type { RendererPlugin } from '../../src/server/lib/plugin-registry.js';
 
 // =============================================================================
 // 类型定义

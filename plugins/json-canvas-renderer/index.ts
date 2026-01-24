@@ -2,7 +2,7 @@
  * JSON Canvas Renderer Plugin
  */
 
-import type { Plugin, PluginContext, PluginManifest, PluginStatus } from '../../types/plugin.js';
+import type { Plugin, PluginContext, PluginManifest, PluginStatus } from '../../src/types/plugin.js';
 import { JSONCanvasRenderer } from './JSONCanvasRenderer.js';
 
 export class JSONCanvasRendererPlugin implements Plugin {

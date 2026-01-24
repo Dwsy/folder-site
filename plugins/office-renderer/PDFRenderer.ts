@@ -268,9 +268,10 @@ export class PDFRenderer {
 
     // 渲染页面到 canvas
     await page.render({
+      canvas: canvas,  // 添加 canvas 属性
       canvasContext: context,
       viewport: viewport,
-    }).promise;
+    } as any).promise;
 
     // 转换为 base64 图片
     const imageData = canvas.toDataURL('image/jpeg', options.imageQuality);
