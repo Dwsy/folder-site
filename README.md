@@ -147,12 +147,35 @@ folder-site/
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd+P` / `Ctrl+P` | Quick file search |
+| `Cmd+P` / `Ctrl+P` | Quick file search with advanced syntax |
 | `Esc` | Close modal |
 | `↑` / `↓` | Navigate results |
 | `Enter` | Open selected file |
 | `Cmd+K` / `Ctrl+K` | Toggle command palette |
 | `Cmd+D` / `Ctrl+D` | Toggle dark/light theme |
+
+### Advanced Search Syntax
+
+Quick Search now supports powerful logical operators:
+
+```
+# Basic search
+markdown
+
+# Exact match
+"README.md"
+
+# Logical operators
+react AND tutorial          # Both terms
+vue OR react               # Either term
+code AND NOT test          # Exclude term
+
+# Grouping
+(react OR vue) AND tutorial
+markdown AND (guide OR tutorial) AND NOT draft
+```
+
+See [Search Syntax Guide](./docs/guides/search-syntax.md) for more details.
 
 ## 📁 Supported File Types
 

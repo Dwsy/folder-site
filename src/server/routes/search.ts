@@ -40,9 +40,7 @@ search.get('/', async (c) => {
   const startTime = performance.now();
 
   const query = c.req.query('q');
-  const scope = c.req.query('scope') as SearchRequest['scope'] || 'all';
   const limit = parseInt(c.req.query('limit') || '20', 10);
-  const offset = parseInt(c.req.query('offset') || '0', 10);
 
   if (!query) {
     return c.json<ApiResponse>({
@@ -62,7 +60,7 @@ search.get('/', async (c) => {
     const duration = performance.now() - startTime;
 
     const response: SearchResponse = {
-      results: results.map(r => ({
+      results: results.map((r: any) => ({
         path: r.item.relativePath,
         name: r.item.name,
         type: r.item.type,
@@ -71,7 +69,6 @@ search.get('/', async (c) => {
       total: results.length,
       duration: Math.round(duration),
       query,
-      stats: service.getStats(),
     };
 
     return c.json<ApiResponse<SearchResponse>>({
@@ -114,8 +111,6 @@ search.post('/', async (c) => {
   try {
     const service = await getIndexService();
     const results = service.search(body.query, {
-      fuzzy: body.fuzzy ?? true,
-      exact: body.exact ?? false,
       limit: body.limit ?? 20,
     });
 
@@ -131,7 +126,6 @@ search.post('/', async (c) => {
       total: results.length,
       duration: Math.round(duration),
       query: body.query,
-      stats: service.getStats(),
     };
 
     return c.json<ApiResponse<SearchResponse>>({

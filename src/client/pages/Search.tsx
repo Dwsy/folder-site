@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 import { SearchModal, SearchResults, type SearchResultItem } from '../components/search/index.js';
+import { cn } from '../utils/cn.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 /**
  * 搜索页面组件
@@ -9,6 +11,7 @@ import { SearchModal, SearchResults, type SearchResultItem } from '../components
 export function Search() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasTOC } = useTOC();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -164,7 +167,7 @@ export function Search() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-4xl' : 'max-w-full')}>
       {/* 页面标题 */}
       <div className="mb-6">
         <h1 className="mb-2 text-3xl font-bold">Search</h1>

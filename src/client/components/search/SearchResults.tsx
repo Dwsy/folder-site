@@ -125,7 +125,7 @@ export function SearchResults({
   activePath,
 }: SearchResultsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // 限制显示数量
   const visibleResults = useMemo(() => {
@@ -230,15 +230,18 @@ export function SearchResults({
           const isActive = activePath === item.path;
 
           return (
-            <Link
+            <div
               key={`${item.path}-${index}`}
               ref={(el) => (itemRefs.current[index] = el)}
-              to={item.path}
-              onClick={() => handleClick(item, index)}
+              onClick={() => {
+                handleClick(item, index);
+                // Navigate to the item path
+                window.location.href = item.path;
+              }}
               onMouseEnter={() => handleMouseEnter(index)}
-              onKeyDown={(e) => handleKeyDown(e, item)}
+              onKeyDown={(e) => handleKeyDown(e, item, index)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors cursor-pointer',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 'group',
                 isSelected && 'bg-accent text-accent-foreground',
@@ -248,6 +251,7 @@ export function SearchResults({
               role="option"
               aria-selected={isSelected}
               aria-current={isActive ? 'page' : undefined}
+              tabIndex={isSelected ? 0 : -1}
             >
               {/* 文件图标 */}
               <div className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -286,7 +290,7 @@ export function SearchResults({
                   </kbd>
                 </span>
               )}
-            </Link>
+            </div>
           );
         })}
       </div>

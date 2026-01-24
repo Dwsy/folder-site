@@ -25,6 +25,8 @@ import { SearchInput } from './SearchInput.js';
 import { SearchResults, type SearchResultItem } from './SearchResults.js';
 import { LRUSearchCache } from '../../../utils/searchCache.js';
 import { SearchPerformanceTracker } from '../../../utils/searchPerformance.js';
+import { useFileAccessHistory } from '../../hooks/useFileAccessHistory.js';
+import { parseSearchQuery, evaluateQuery } from '../../../utils/searchQueryParser.js';
 
 /**
  * 搜索模态框属性
@@ -87,6 +89,9 @@ export function SearchModal({
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 访问历史 hook
+  const { getRecentFiles } = useFileAccessHistory();
+
   // 搜索历史
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -136,14 +141,37 @@ export function SearchModal({
     return () => clearTimeout(timer);
   }, [query, debounceDelay]);
 
-  // 模糊搜索（使用 Fuse.js + LRU 缓存 + 性能追踪）
+  // 模糊搜索（支持逻辑查询 + Fuse.js + LRU 缓存 + 性能追踪）
   const searchResults = useMemo(() => {
     if (!debouncedQuery.trim()) {
-      // 如果没有查询，显示默认推荐
-      return files.slice(0, maxResults).map((file) => ({
-        ...file,
-        score: 1,
-      }));
+      // 如果没有查询，按访问次数排序显示
+      const recentFiles = getRecentFiles(maxResults);
+
+      return files
+        .map((file) => ({
+          ...file,
+          score: 1,
+        }))
+        .sort((a, b) => {
+          const aIndex = recentFiles.findIndex(f => f.path === a.path);
+          const bIndex = recentFiles.findIndex(f => f.path === b.path);
+
+          // 两个都在历史记录中，按访问次数和最近访问时间排序
+          if (aIndex !== -1 && bIndex !== -1) {
+            return (recentFiles[aIndex].visitCount - recentFiles[bIndex].visitCount) ||
+                   (recentFiles[bIndex].lastAccessed - recentFiles[aIndex].lastAccessed);
+          }
+
+          // 只有 a 在历史记录中
+          if (aIndex !== -1) return -1;
+
+          // 只有 b 在历史记录中
+          if (bIndex !== -1) return 1;
+
+          // 都不在历史记录中，保持原顺序
+          return 0;
+        })
+        .slice(0, maxResults);
     }
 
     const tracker = perfTracker.current;
@@ -161,17 +189,83 @@ export function SearchModal({
 
     tracker?.recordCacheHit(false);
 
-    // 使用 Fuse.js 搜索
-    const fuseResults = fuse.search(debouncedQuery);
+    // 解析查询
+    const parsed = parseSearchQuery(debouncedQuery);
 
-    // 转换为搜索结果格式
-    const results: SearchResultItem[] = fuseResults
-      .slice(0, maxResults)
-      .map((result) => ({
-        ...result.item,
-        score: 1 - (result.score || 0), // Fuse.js 返回的是距离分数，需要转换
-        matchedIndices: result.matches?.[0]?.indices || [],
-      }));
+    let results: SearchResultItem[] = [];
+
+    // 如果是逻辑查询，使用逻辑评估
+    if (parsed.isLogicalQuery && parsed.ast) {
+      // 创建模糊匹配函数
+      const fuzzyMatcher = (term: string, item: any, exact?: boolean): boolean => {
+        const searchText = `${item.name} ${item.path}`.toLowerCase();
+        const termLower = term.toLowerCase();
+
+        if (exact) {
+          // 精确匹配
+          return searchText.includes(termLower);
+        }
+
+        // 使用 Fuse.js 进行模糊匹配
+        const termFuse = new Fuse([item], {
+          keys: ['name', 'path'],
+          threshold: 0.3,
+        });
+        const termResults = termFuse.search(term);
+        return termResults.length > 0;
+      };
+
+      // 过滤文件
+      const filteredFiles = files.filter(file => 
+        evaluateQuery(parsed.ast!, file, fuzzyMatcher)
+      );
+
+      // 对结果进行评分和排序
+      results = filteredFiles.map(file => {
+        // 计算每个搜索词的匹配分数
+        let totalScore = 0;
+        let matchCount = 0;
+
+        for (const term of parsed.terms) {
+          const termFuse = new Fuse([file], {
+            keys: [
+              { name: 'name', weight: 0.7 },
+              { name: 'path', weight: 0.3 }
+            ],
+            threshold: 0.3,
+            includeScore: true,
+          });
+          const termResults = termFuse.search(term);
+          if (termResults.length > 0 && termResults[0].score !== undefined) {
+            totalScore += (1 - termResults[0].score);
+            matchCount++;
+          }
+        }
+
+        const avgScore = matchCount > 0 ? totalScore / matchCount : 0;
+
+        return {
+          ...file,
+          score: avgScore,
+          matchedIndices: [] as number[],
+        };
+      }).sort((a, b) => b.score - a.score).slice(0, maxResults);
+    } else {
+      // 使用 Fuse.js 模糊搜索
+      const fuseResults = fuse.search(debouncedQuery);
+
+      // 转换为搜索结果格式
+      results = fuseResults
+        .slice(0, maxResults)
+        .map((result) => {
+          const indices = result.matches?.[0]?.indices || [];
+          return {
+            ...result.item,
+            score: 1 - (result.score || 0), // Fuse.js 返回的是距离分数，需要转换
+            matchedIndices: indices.flat() as number[],
+          };
+        });
+    }
 
     // 缓存结果
     searchCache.current.set(cacheKey, results);
@@ -180,7 +274,7 @@ export function SearchModal({
     tracker?.endMeasure(measureId ?? '');
 
     return results;
-  }, [files, debouncedQuery, maxResults, fuse]);
+  }, [files, debouncedQuery, maxResults, fuse, getRecentFiles]);
 
   // 保存搜索历史
   useEffect(() => {
@@ -254,6 +348,11 @@ export function SearchModal({
     (item: SearchResultItem, index: number) => {
       setSelectedIndex(index);
       onSelect?.(item);
+
+      // 记录访问历史
+      const { recordAccess } = useFileAccessHistory.getState();
+      recordAccess(item.path, item.name);
+
       navigate(item.path);
       handleClose();
     },
@@ -367,9 +466,41 @@ export function SearchModal({
                 value={query}
                 onChange={handleQueryChange}
                 onClear={handleClearQuery}
-                placeholder="Search files and folders..."
+                placeholder="Search files and folders... (try: react AND tutorial)"
                 autoFocus
               />
+              
+              {/* 搜索语法提示 */}
+              {!query && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span>
+                      <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                        term1 AND term2
+                      </kbd>
+                      {' '}Both terms
+                    </span>
+                    <span>
+                      <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                        term1 OR term2
+                      </kbd>
+                      {' '}Either term
+                    </span>
+                    <span>
+                      <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                        term1 AND NOT term2
+                      </kbd>
+                      {' '}Exclude
+                    </span>
+                    <span>
+                      <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">
+                        "exact match"
+                      </kbd>
+                      {' '}Exact
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 搜索结果 */}

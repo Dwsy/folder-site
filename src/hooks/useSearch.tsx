@@ -19,7 +19,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { LRUSearchCache } from '../utils/searchCache.js';
-import { SearchPerformanceTracker } from '../utils/searchPerformance.js';
+import { SearchPerformanceTracker, type SearchMetrics } from '../utils/searchPerformance.js';
 
 /**
  * 搜索结果项
@@ -94,7 +94,7 @@ export interface UseSearchReturn {
   /** 清除缓存 */
   clearCache: () => void;
   /** 获取性能指标 */
-  getPerformanceMetrics: () => SearchMetrics;
+  getPerformanceMetrics: () => import('../utils/searchPerformance.js').SearchPerformanceStats;
   /** 获取缓存统计 */
   getCacheStats: () => import('../utils/searchCache.js').CacheStats;
 }
