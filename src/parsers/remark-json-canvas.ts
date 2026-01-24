@@ -19,27 +19,21 @@ export const remarkJsonCanvas: Plugin<[RemarkJsonCanvasOptions?], Root> = (optio
       if (node.lang === 'json-canvas' || node.lang === 'canvas') {
         const data = node.data || (node.data = {});
         
+        // 保存原始内容到 data 属性
         const hProperties = {
           className: [className],
           'data-json-canvas': 'true',
+          'data-content': node.value,  // 保存原始内容
           ...(autoRender && { 'data-auto-render': 'true' }),
         };
 
-        (node as any).type = 'html';
-        node.value = `<pre class="${className}"><code>${escapeHtml(node.value)}</code></pre>`;
         data.hProperties = hProperties;
+        
+        // 不转换为 HTML，保持为 code 节点
+        // 让 rehype 处理时应用 hProperties
       }
     });
   };
 };
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 export default remarkJsonCanvas;
