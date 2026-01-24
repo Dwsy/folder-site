@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Plugin System Debug</title>
+  <script type="module">
+    // 测试 API 端点
+    fetch('/api/plugins/manifests')
+      .then(res => res.json())
+      .then(data => {
+        console.log('Manifests:', data);
+        document.getElementById('manifests').textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        console.error('Error:', err);
+        document.getElementById('manifests').textContent = 'Error: ' + err.message;
+      });
+  </script>
+</head>
+<body>
+  <h1>Plugin System Debug</h1>
+  <h2>Manifests:</h2>
+  <pre id="manifests">Loading...</pre>
+</body>
+</html>

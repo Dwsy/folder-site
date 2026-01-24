@@ -1,0 +1,53 @@
+{
+  "id": "infographic-renderer",
+  "name": "Infographic Renderer",
+  "version": "1.0.0",
+  "description": "A plugin that renders AntV G2 infographics",
+  "author": {
+    "name": "Folder-Site Team"
+  },
+  "license": "MIT",
+  "entry": "index.ts",
+  "capabilities": [
+    {
+      "type": "renderer",
+      "name": "infographic",
+      "version": "1.0.0",
+      "constraints": {
+        "supportedFormats": ["svg", "canvas"],
+        "supportedThemes": ["light", "dark"]
+      },
+      "frontend": {
+        "enabled": true,
+        "codeBlockLang": ["infographic"],
+        "library": "@antv/infographic",
+        "className": "infographic",
+        "theme": {
+          "light": "light",
+          "dark": "dark"
+        }
+      }
+    }
+  ],
+  "options": {
+    "type": "object",
+    "properties": {
+      "theme": {
+        "type": "string",
+        "description": "Default theme for infographics",
+        "enum": ["light", "dark"],
+        "default": "light"
+      },
+      "autoFit": {
+        "type": "boolean",
+        "description": "Auto fit chart to container",
+        "default": true
+      }
+    },
+    "required": []
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "folderSite": ">=0.1.0"
+  }
+}
