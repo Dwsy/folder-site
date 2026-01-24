@@ -17,19 +17,24 @@ function execCommand(command: string, args: string[], cwd?: string): Promise<str
     const child = spawn(command, args, {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
-      encoding: 'utf-8',
     });
 
     let stdout = '';
     let stderr = '';
 
-    child.stdout?.on('data', (data) => {
-      stdout += data;
-    });
+    if (child.stdout) {
+      child.stdout.setEncoding('utf-8');
+      child.stdout.on('data', (data) => {
+        stdout += data;
+      });
+    }
 
-    child.stderr?.on('data', (data) => {
-      stderr += data;
-    });
+    if (child.stderr) {
+      child.stderr.setEncoding('utf-8');
+      child.stderr.on('data', (data) => {
+        stderr += data;
+      });
+    }
 
     child.on('close', (code) => {
       if (code === 0) {
@@ -96,9 +101,12 @@ export async function searchFiles(
     const output = await execCommand(fdPath, args);
     const lines = output.trim().split('\n').filter(line => line);
 
-    return lines.map((path) => {
-      const relativePath = path.replace(rootDir + '/', '');
-      const name = path.split('/').pop() || path;
+    return lines.map((absolutePath) => {
+      // 转换为相对路径
+      const relativePath = absolutePath.startsWith(rootDir)
+        ? absolutePath.slice(rootDir.length + 1)
+        : absolutePath;
+      const name = relativePath.split('/').pop() || relativePath;
 
       return {
         path: relativePath,
@@ -173,7 +181,7 @@ export async function searchContent(
     const output = await execCommand(rgPath, args);
     const lines = output.trim().split('\n').filter(line => line);
 
-    return parseRipgrepOutput(lines);
+    return parseRipgrepOutput(lines, rootDir);
   } catch (error) {
     console.error('Content search error:', error);
     return [];
@@ -183,7 +191,7 @@ export async function searchContent(
 /**
  * 解析 ripgrep JSON 输出
  */
-function parseRipgrepOutput(lines: string[]): ContentSearchResult[] {
+function parseRipgrepOutput(lines: string[], rootDir: string = process.cwd()): ContentSearchResult[] {
   const results: Map<string, ContentSearchResult> = new Map();
 
   for (const line of lines) {
@@ -191,15 +199,20 @@ function parseRipgrepOutput(lines: string[]): ContentSearchResult[] {
       const data = JSON.parse(line);
 
       if (data.type === 'begin') {
-        const path = data.data.path.text;
-        results.set(path, {
-          path,
-          name: path.split('/').pop() || path,
+        const absolutePath = data.data.path.text;
+        // 转换为相对路径
+        const relativePath = absolutePath.startsWith(rootDir)
+          ? absolutePath.slice(rootDir.length + 1)
+          : absolutePath;
+        
+        results.set(absolutePath, {
+          path: relativePath,
+          name: relativePath.split('/').pop() || relativePath,
           matches: [],
         });
       } else if (data.type === 'match') {
-        const path = data.data.path.text;
-        const result = results.get(path);
+        const absolutePath = data.data.path.text;
+        const result = results.get(absolutePath);
         if (result) {
           result.matches.push({
             lineNumber: data.data.line_number,

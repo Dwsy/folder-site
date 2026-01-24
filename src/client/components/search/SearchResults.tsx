@@ -25,6 +25,16 @@ export interface SearchResultItem {
   matchedIndices?: number[];
   /** 文件扩展名 */
   extension?: string;
+  /** 内容搜索匹配（v2） */
+  matches?: Array<{
+    lineNumber: number;
+    line: string;
+    submatches: Array<{
+      match: string;
+      start: number;
+      end: number;
+    }>;
+  }>;
 }
 
 /**
@@ -53,6 +63,10 @@ export interface SearchResultsProps {
   onKeyDown?: (e: React.KeyboardEvent, item: SearchResultItem) => void;
   /** 当前活动文件路径 */
   activePath?: string;
+  /** 是否显示数字快捷键 */
+  showNumberShortcuts?: boolean;
+  /** 是否显示字母快捷键 (QWERTY) */
+  showLetterShortcuts?: boolean;
 }
 
 /**
@@ -123,6 +137,8 @@ export function SearchResults({
   noResultsText = 'No results found',
   onKeyDown,
   activePath,
+  showNumberShortcuts = false,
+  showLetterShortcuts = false,
 }: SearchResultsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -278,10 +294,24 @@ export function SearchResults({
                 </span>
               </div>
 
+              {/* 字母快捷键提示 */}
+              {showLetterShortcuts && index < 8 && (
+                <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline text-muted-foreground">
+                  {String.fromCharCode(81 + index)}
+                </kbd>
+              )}
+
+              {/* 数字快捷键提示 */}
+              {showNumberShortcuts && !showLetterShortcuts && index < 9 && (
+                <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline text-muted-foreground">
+                  {index + 1}
+                </kbd>
+              )}
+
               {/* 快捷键提示 */}
-              {isSelected && (
+              {isSelected && !showNumberShortcuts && !showLetterShortcuts && (
                 <span className="text-xs text-muted-foreground">
-                  <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+                  <kbd className="hidden rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px] sm:inline">
                     Enter
                   </kbd>
                 </span>

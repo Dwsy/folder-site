@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './providers/ThemeProvider.js';
+import { TabsProvider, useTabs } from './contexts/TabsContext.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
-import { SearchModal, type SearchResultItem } from './components/search/index.js';
+import { SearchModalV2, type SearchResultItem } from './components/search/index.js';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
 import { TOCProvider } from './contexts/TOCContext.js';
@@ -23,6 +24,7 @@ import { NotFound } from './pages/NotFound.js';
 function RootLayout() {
   const location = useLocation();
   const { toggleTheme } = useTheme();
+  const { closeTab, activeTabId, tabs, reopenClosedTab } = useTabs();
   const [searchOpen, setSearchOpen] = useState(false);
   const [files, setFiles] = useState<SearchResultItem[]>([]);
 
@@ -32,6 +34,9 @@ function RootLayout() {
     { key: 'Cmd+P', callback: () => setSearchOpen(true) },
     { key: 'Cmd+D', callback: () => toggleTheme() },
     { key: 'Escape', callback: () => searchOpen && setSearchOpen(false) },
+    // 标签页快捷键
+    { key: 'Cmd+W', callback: () => activeTabId && closeTab(activeTabId) },
+    { key: 'Cmd+Shift+T', callback: () => reopenClosedTab() },
   ]);
 
   // 从 API 获取文件列表
@@ -98,10 +103,9 @@ function RootLayout() {
       <Outlet />
 
       {/* 搜索模态框 */}
-      <SearchModal
+      <SearchModalV2
         open={searchOpen}
         onOpenChange={setSearchOpen}
-        files={files}
         activePath={location.pathname}
         onSelect={handleSearchSelect}
       />
@@ -113,7 +117,11 @@ function RootLayout() {
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <RootLayout />,
+    element: (
+      <TabsProvider>
+        <RootLayout />
+      </TabsProvider>
+    ),
     children: [
       {
         element: <MainLayout />,

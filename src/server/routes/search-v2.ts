@@ -14,6 +14,7 @@ import type {
   ContentSearchResult,
 } from '../../types/search.js';
 import { searchFiles, searchContent, search, isSearchAvailable } from '../services/search-service.js';
+import searchCacheService from '../services/search-cache-service.js';
 
 const searchV2 = new Hono();
 
@@ -169,18 +170,34 @@ searchV2.get('/', async (c) => {
   };
 
   try {
+    // 生成缓存键
+    const cacheKey = `${mode}:${query}:${JSON.stringify(options)}`;
+
+    // 尝试从缓存获取
     let fileResults: SearchResult[] = [];
     let contentResults: ContentSearchResult[] = [];
+    let fromCache = false;
 
-    if (mode === 'filename') {
-      fileResults = await searchFiles(query, options);
-    } else if (mode === 'content') {
-      contentResults = await searchContent(query, options);
+    const cached = searchCacheService.get(cacheKey);
+    if (cached) {
+      fileResults = cached.fileResults;
+      contentResults = cached.contentResults;
+      fromCache = true;
     } else {
-      // auto mode: search both
-      const results = await search(query, options);
-      fileResults = results.fileResults;
-      contentResults = results.contentResults;
+      // 缓存未命中，执行搜索
+      if (mode === 'filename') {
+        fileResults = await searchFiles(query, options);
+      } else if (mode === 'content') {
+        contentResults = await searchContent(query, options);
+      } else {
+        // auto mode: search both
+        const results = await search(query, options);
+        fileResults = results.fileResults;
+        contentResults = results.contentResults;
+      }
+
+      // 保存到缓存
+      searchCacheService.set(cacheKey, { fileResults, contentResults });
     }
 
     const duration = performance.now() - startTime;
@@ -210,6 +227,34 @@ searchV2.get('/', async (c) => {
       timestamp: Date.now(),
     }, 500);
   }
+});
+
+/**
+ * 获取缓存统计
+ */
+searchV2.get('/cache/stats', async (c) => {
+  const stats = searchCacheService.getStats();
+
+  return c.json<ApiResponse>({
+    success: true,
+    data: stats,
+    timestamp: Date.now(),
+  });
+});
+
+/**
+ * 清空缓存
+ */
+searchV2.post('/cache/clear', async (c) => {
+  searchCacheService.clear();
+
+  return c.json<ApiResponse>({
+    success: true,
+    data: {
+      message: 'Cache cleared successfully',
+    },
+    timestamp: Date.now(),
+  });
 });
 
 /**

@@ -6,6 +6,7 @@
  */
 
 import { existsSync, mkdirSync, chmodSync } from 'node:fs';
+import { mkdir, unlink } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { arch, platform } from 'node:process';
@@ -13,7 +14,7 @@ import { createGunzip } from 'node:zlib';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { extract } from 'tar';
-import { TOOLS, type ToolName, type ToolConfig } from './tools-config.js';
+import { TOOLS, type ToolName, type ToolConfig, type Platform, type Architecture } from './tools-config.js';
 
 /**
  * 获取工具目录
@@ -73,9 +74,9 @@ export async function downloadTool(tool: ToolName): Promise<string> {
   console.log(`Latest version: ${version}`);
 
   // 2. 获取下载 URL
-  const assetName = config.getAssetName(version, platform(), arch());
+  const assetName = config.getAssetName(version, platform as Platform, arch as Architecture);
   if (!assetName) {
-    throw new Error(`Unsupported platform: ${platform()} ${arch()}`);
+    throw new Error(`Unsupported platform: ${platform} ${arch}`);
   }
 
   const downloadUrl = `https://github.com/${config.repo}/releases/download/${config.tagPrefix}${version}/${assetName}`;

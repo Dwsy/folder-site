@@ -4,7 +4,20 @@
  * Configuration for managing external tools (fd, rg) with automatic download
  */
 
-import type { Platform, Architecture } from './tools-manager.js';
+/**
+ * Platform types
+ */
+export type Platform = 'darwin' | 'linux' | 'win32';
+
+/**
+ * Architecture types
+ */
+export type Architecture = 'x64' | 'arm64';
+
+/**
+ * Tool names
+ */
+export type ToolName = 'fd' | 'rg';
 
 /**
  * Tool version

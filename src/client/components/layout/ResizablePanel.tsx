@@ -30,18 +30,33 @@ export function ResizablePanel({
   collapsed = false,
   collapsedWidth = 64,
 }: ResizablePanelProps) {
-  const [width, setWidth] = useState(defaultWidth);
+  const [width, setWidth] = useState(() => {
+    if (typeof window === 'undefined') return defaultWidth;
+    try {
+      const saved = localStorage.getItem('sidebar-width');
+      return saved ? parseInt(saved, 10) : defaultWidth;
+    } catch {
+      return defaultWidth;
+    }
+  });
   const [isResizing, setIsResizing] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update width when collapsed state changes
   useEffect(() => {
     if (collapsed) {
       setWidth(collapsedWidth);
     } else {
-      setWidth(defaultWidth);
+      // 展开时，优先使用保存的宽度，如果没有则使用默认宽度
+      try {
+        const saved = localStorage.getItem('sidebar-width');
+        setWidth(saved ? parseInt(saved, 10) : defaultWidth);
+      } catch {
+        setWidth(defaultWidth);
+      }
     }
   }, [collapsed, defaultWidth, collapsedWidth]);
 
