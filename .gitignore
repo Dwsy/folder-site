@@ -74,3 +74,8 @@ examples/*.gz
 test-*.ts
 test-*.tsx
 源*.html
+# Testing
+test-*.ts
+test-*.tsx
+test-*.md
+test-*.js
