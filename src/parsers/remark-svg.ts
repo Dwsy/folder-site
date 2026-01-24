@@ -22,12 +22,10 @@ export const remarkSvg: Plugin<[RemarkSvgOptions?], Root> = (options = {}) => {
         const hProperties = {
           className: [className],
           'data-svg': 'true',
+          'data-content': node.value,  // 保存原始内容
           ...(autoRender && { 'data-auto-render': 'true' }),
         };
 
-        // 直接输出 SVG（不转义）
-        (node as any).type = 'html';
-        node.value = `<div class="svg-wrapper">${node.value}</div>`;
         data.hProperties = hProperties;
       }
     });
