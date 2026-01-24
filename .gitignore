@@ -45,3 +45,27 @@ Thumbs.db
 
 # Task tracking (optional - uncomment if you don't want to track task files)
 # task/
+# Personal example files (user data)
+examples/*.jpg
+examples/*.jpeg
+examples/*.png
+examples/*.gif
+examples/*.webp
+examples/*.pdf
+examples/*.docx
+examples/*.doc
+examples/*.pptx
+examples/*.ppt
+examples/*.xlsx
+examples/*.xls
+examples/*.zip
+examples/*.rar
+examples/*.7z
+examples/*.tar
+examples/*.gz
+
+# Temporary user files
+.folder-site/
+毕业*.html
+test-*.ts
+test-*.tsx
