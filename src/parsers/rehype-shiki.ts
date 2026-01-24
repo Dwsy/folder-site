@@ -98,26 +98,43 @@ export const rehypeShiki: Plugin<[RehypeShikiOptions?], Root> = (options = {}) =
       codeBlocks.map(async ({ node, lang, code }) => {
         try {
           const html = await highlighter.codeToHtml(code, { lang: lang as any, theme: theme as any });
-          return { node, html };
+          // Extract only the inner content, remove outer <pre> tag
+          const match = html.match(/<pre[^>]*>([\s\S]*)<\/pre>/);
+          const innerHtml = match ? match[1] : html;
+          return { node, html: innerHtml, lang, code };
         } catch (err) {
           console.error(`Failed to highlight code (lang: ${lang}):`, err);
-          // Return fallback HTML
-          return { node, html: `<pre><code>${escapeHtml(code)}</code></pre>` };
+          // Return fallback HTML without pre tag
+          return { node, html: `<code>${escapeHtml(code)}</code>`, lang, code };
         }
       })
     );
 
     // Update the tree with highlighted code
-    for (const { node, html } of highlightResults) {
-      // Replace the original pre element with the highlighted one
+    for (let i = 0; i < highlightResults.length; i++) {
+      const { node, html, lang, code } = highlightResults[i];
+      
+      // Create wrapper with language badge and copy button
+      const wrapperHtml = `<div class="code-block-wrapper group relative rounded-lg overflow-hidden border bg-muted/30" data-language="${escapeHtml(lang)}">
+  <div class="code-block-header flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/50">
+    <div class="flex items-center gap-2 min-w-0">${lang && lang !== 'plaintext' && lang !== 'text' ? `
+      <div class="code-language-badge flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+        <span class="code-language-icon flex items-center justify-center" data-lang="${escapeHtml(lang)}" style="width: 16px; height: 16px;"></span>
+        <span class="text-xs font-mono font-medium uppercase whitespace-nowrap">${escapeHtml(lang)}</span>
+      </div>` : ''}
+    </div>
+    <button class="code-copy-button flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm transition-all hover:bg-background border shrink-0" data-code="${escapeHtml(code).replace(/"/g, '&quot;')}" onclick="const btn=this;const code=btn.getAttribute('data-code');const unescapeHtml=(str)=>{const textarea=document.createElement('textarea');textarea.innerHTML=str;return textarea.value;};navigator.clipboard.writeText(unescapeHtml(code)).then(()=>{btn.classList.add('copied');btn.innerHTML='<svg class=\\'h-4 w-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M5 13l4 4L19 7\\'/></svg><span class=\\'hidden sm:inline whitespace-nowrap\\'>已复制</span>';setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML='<svg class=\\'h-4 w-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z\\'/></svg><span class=\\'hidden sm:inline whitespace-nowrap\\'>复制</span>';},2000);}).catch(err=>{console.error('复制失败:',err);});" title="复制代码">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      <span class="hidden sm:inline whitespace-nowrap">复制</span>
+    </button>
+  </div>
+  <pre class="code-block-content">${html}</pre>
+</div>`;
+      
+      // Replace the original pre element with the enhanced wrapper
       node.children = [{
-        type: 'element',
-        tagName: 'div',
-        properties: { className: ['shiki-wrapper'] },
-        children: [{
-          type: 'raw',
-          value: html,
-        }]
+        type: 'raw',
+        value: wrapperHtml,
       }];
     }
   };

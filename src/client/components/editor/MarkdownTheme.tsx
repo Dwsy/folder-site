@@ -1,10 +1,10 @@
 /**
  * Markdown Theme Provider
  *
- * Provides GitHub Markdown CSS theme support with dynamic theming
+ * Provides Markdown CSS theme support with dynamic theming
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ThemeMode } from '../../../types/theme.js';
 
 interface MarkdownThemeProps {
@@ -14,13 +14,58 @@ interface MarkdownThemeProps {
   enabled?: boolean;
 }
 
+type MarkdownStyleTheme = 'github' | 'vitesse' | 'nord' | 'dracula' | 'one-dark' | 'catppuccin';
+
+/**
+ * Get markdown theme from localStorage
+ */
+function getStoredMarkdownTheme(): MarkdownStyleTheme {
+  if (typeof window === 'undefined') return 'github';
+
+  try {
+    const stored = localStorage.getItem('folder-site-markdown-theme-style');
+    if (stored && ['github', 'vitesse', 'nord', 'dracula', 'one-dark', 'catppuccin'].includes(stored)) {
+      return stored as MarkdownStyleTheme;
+    }
+  } catch (error) {
+    console.warn('Failed to read markdown theme from localStorage:', error);
+  }
+
+  return 'github';
+}
+
+/**
+ * Get theme CSS URL based on theme and light/dark mode
+ */
+function getThemeCssUrl(theme: MarkdownStyleTheme, isDark: boolean): string {
+  switch (theme) {
+    case 'github':
+      return `/styles/github-markdown${isDark ? '-dark' : '-light'}.css`;
+    case 'vitesse':
+      return `/styles/vitesse${isDark ? '-dark' : '-light'}.css`;
+    case 'nord':
+      return `/styles/nord.css`;
+    case 'dracula':
+      return `/styles/dracula.css`;
+    case 'one-dark':
+      return `/styles/one-dark.css`;
+    case 'catppuccin':
+      return `/styles/catppuccin.css`;
+    default:
+      return `/styles/github-markdown${isDark ? '-dark' : '-light'}.css`;
+  }
+}
+
 /**
  * Markdown Theme Component
  *
- * Dynamically loads GitHub Markdown CSS based on theme mode
- * Note: Code highlighting uses Shiki, which includes its own themes
+ * Dynamically loads Markdown CSS based on theme mode
  */
 export function MarkdownTheme({ theme, enabled = true }: MarkdownThemeProps) {
+  const [storedMarkdownTheme, setStoredMarkdownTheme] = useState<MarkdownStyleTheme>(() =>
+    getStoredMarkdownTheme()
+  );
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -29,15 +74,16 @@ export function MarkdownTheme({ theme, enabled = true }: MarkdownThemeProps) {
       const existingLinks = document.querySelectorAll('link[data-markdown-theme]');
       existingLinks.forEach(link => link.remove());
 
-      // Determine theme to use
+      // Determine light/dark mode
       const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      const themeName = isDark ? 'github-markdown-dark' : 'github-markdown';
 
-      // Create and append GitHub Markdown theme link
+      const cssUrl = getThemeCssUrl(storedMarkdownTheme, isDark);
+
+      // Create and append Markdown theme link
       const markdownLink = document.createElement('link');
       markdownLink.rel = 'stylesheet';
-      markdownLink.href = `https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown${isDark ? '-dark' : ''}.css`;
-      markdownLink.dataset.markdownTheme = themeName;
+      markdownLink.href = cssUrl;
+      markdownLink.dataset.markdownTheme = storedMarkdownTheme;
       markdownLink.id = 'markdown-theme-css';
       document.head.appendChild(markdownLink);
     };
@@ -51,7 +97,19 @@ export function MarkdownTheme({ theme, enabled = true }: MarkdownThemeProps) {
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [theme, enabled]);
+
+    // Listen for markdown theme changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'folder-site-markdown-theme-style' && e.newValue) {
+        if (['github', 'vitesse', 'nord', 'dracula', 'one-dark', 'catppuccin'].includes(e.newValue)) {
+          setStoredMarkdownTheme(e.newValue as MarkdownStyleTheme);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [theme, enabled, storedMarkdownTheme]);
 
   return null;
 }

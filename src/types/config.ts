@@ -38,6 +38,8 @@ export interface SiteConfig {
 export interface ThemeConfig {
   /** 主题模式 */
   mode?: 'light' | 'dark' | 'auto';
+  /** Markdown 主题模式 */
+  markdownTheme?: 'light' | 'dark' | 'auto';
   /** 主题颜色 */
   primaryColor?: string;
   /** 主题字体 */

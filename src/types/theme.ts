@@ -19,6 +19,21 @@ export const ThemeMode = {
 export type ThemeMode = typeof ThemeMode[keyof typeof ThemeMode];
 
 /**
+ * Markdown 主题类型
+ */
+export type MarkdownThemeType =
+  | 'github-light'
+  | 'github-dark'
+  | 'vitesse-light'
+  | 'vitesse-dark'
+  | 'nord'
+  | 'dracula'
+  | 'one-light'
+  | 'one-dark'
+  | 'solarized-light'
+  | 'solarized-dark';
+
+/**
  * 主题颜色配置（完整版）
  */
 export interface ThemeColors {

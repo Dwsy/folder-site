@@ -1,4 +1,4 @@
-import { FaCog } from 'react-icons/fa';
+import { FiSettings } from 'react-icons/fi';
 import { cn } from '../../utils/cn.js';
 
 interface SettingsButtonProps {
@@ -18,7 +18,7 @@ export function SettingsButton({ onClick, className }: SettingsButtonProps) {
       aria-label="Open settings"
       title="Settings"
     >
-      <FaCog className="h-5 w-5" />
+      <FiSettings className="h-5 w-5" />
     </button>
   );
 }

@@ -138,14 +138,23 @@ export function CodeBlock({
       aria-label={`Code block${filename ? ` for ${filename}` : ''}`}
     >
       {/* Header with filename and controls */}
-      {(filename || showCopyButton || showWrapToggle) && (
+      {(filename || language || showCopyButton || showWrapToggle) && (
         <div className="flex items-center justify-between gap-2 px-4 py-2 border-b bg-muted/50">
-          {/* Filename */}
-          {filename && (
-            <div className="flex-1 text-sm font-medium text-muted-foreground truncate">
-              {filename}
-            </div>
-          )}
+          {/* Filename and Language */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {filename && (
+              <div className="text-sm font-medium text-muted-foreground truncate">
+                {filename}
+              </div>
+            )}
+            {language && language !== 'text' && (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                <span className="text-xs font-mono font-medium uppercase">
+                  {language}
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Controls */}
           <div className="flex items-center gap-1">
