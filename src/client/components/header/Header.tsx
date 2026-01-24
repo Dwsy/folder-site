@@ -40,7 +40,7 @@ export interface HeaderProps {
 
   /**
    * GitHub repository URL
-   * @default "https://github.com/yourusername/folder-site"
+   * @default "https://github.com/Dwsy/folder-site"
    */
   githubUrl?: string;
 
@@ -78,7 +78,7 @@ export function Header({
   onSidebarToggle,
   showThemeToggle = true,
   showGitHubLink = true,
-  githubUrl = 'https://github.com/yourusername/folder-site',
+  githubUrl = 'https://github.com/Dwsy/folder-site',
   showMobileSearch = true,
   onSearchClick,
   actions,

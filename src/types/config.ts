@@ -28,6 +28,8 @@ export interface SiteConfig {
   search?: SearchConfig;
   /** 导出配置 */
   export?: ExportConfig;
+  /** 是否显示 GitHub 按钮 */
+  showGitHubLink?: boolean;
 }
 
 /**

@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import type { HealthCheckResponse, ApiResponse } from '../../types/api.js';
+import { loadConfig } from '../lib/config-loader.js';
 
 const api = new Hono();
 
@@ -41,8 +42,23 @@ api.get('/', (c) => {
         search: '/api/search',
         workhub: '/api/workhub',
         export: '/api/export',
+        config: '/api/config',
       },
     },
+    timestamp: Date.now(),
+  });
+});
+
+/**
+ * 配置端点
+ */
+api.get('/config', (c) => {
+  const rootDir = process.env.FOLDER_SITE_ROOT || process.cwd();
+  const config = loadConfig(rootDir);
+
+  return c.json<ApiResponse>({
+    success: true,
+    data: config,
     timestamp: Date.now(),
   });
 });

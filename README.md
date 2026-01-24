@@ -17,7 +17,7 @@ Folder-Site CLI is a powerful command-line tool that transforms any directory in
 - 🚀 **One-command Launch** - Start a local server with a single command
 - 📁 **File Tree Navigation** - Expandable/collapsible directory tree
 - 📝 **Markdown Rendering** - Full GFM support with syntax highlighting
-- 🔍 **Fast Search** - Cmd+P fuzzy file search (< 100ms)
+- 🔍 **Advanced Search** - File name & content search with ripgrep (< 50ms)
 - 🔄 **Live Preview** - Auto-refresh on file changes
 - 🌓 **Dark/Light Theme** - Theme switching with persistence
 - 🔌 **Plugin System** - Extensible renderer architecture
@@ -179,6 +179,41 @@ markdown AND (guide OR tutorial) AND NOT draft
 
 See [Search Syntax Guide](./docs/guides/search-syntax.md) for more details.
 
+### Search v2 Features
+
+The new search system provides enhanced capabilities:
+
+**Search Modes:**
+- **Files** - Search file names only (fastest)
+- **Content** - Search file contents using ripgrep
+- **Auto** - Search both files and content in parallel
+
+**API Endpoints:**
+```bash
+# Check tool status
+GET /api/search/v2/status
+
+# File name search
+GET /api/search/v2/files?q=package&limit=20
+
+# Content search
+GET /api/search/v2/content?q=export&limit=50
+
+# Unified search
+GET /api/search/v2?q=search&mode=auto
+
+# Cache management
+GET /api/search/v2/cache/stats
+POST /api/search/v2/cache/clear
+```
+
+**Performance:**
+- File name search: ~27ms
+- Content search: ~34ms
+- Cached results: ~5ms (4-6x faster)
+
+See [Search v2 Documentation](./docs/SEARCH_V2.md) for details.
+
 ## 📁 Supported File Types
 
 | Extension | Type | Renderer |
@@ -195,6 +230,12 @@ See [Search Syntax Guide](./docs/guides/search-syntax.md) for more details.
 
 ```json
 {
+  "site": {
+    "title": "My Documentation Site",
+    "description": "A documentation site built with Folder-Site",
+    "language": "zh-CN",
+    "showGitHubLink": true
+  },
   "port": 3000,
   "theme": "dark",
   "sidebar": {
@@ -218,6 +259,13 @@ See [Search Syntax Guide](./docs/guides/search-syntax.md) for more details.
   }
 }
 ```
+
+#### Site Configuration Options
+
+- `title` - Site title (displayed in header)
+- `description` - Site description
+- `language` - Site language code
+- `showGitHubLink` - Show/hide GitHub button (default: `true`)
 
 ### Whitelist Mode
 
@@ -271,3 +319,66 @@ MIT License - See [LICENSE](./LICENSE) file
 ---
 
 **Ready to get started?** → [Quick Start Guide](./docs/INSTALLATION.md) 🚀
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 500 Internal Server Error
+
+If you see errors like:
+```
+GET http://localhost:3010/api/files/tree/list net::ERR_ABORTED 500 (Internal Server Error)
+```
+
+**Quick Fix**:
+```bash
+bash scripts/quick-fix.sh
+```
+
+Then clear your browser cache and visit `http://localhost:3008`
+
+**Detailed Guide**: See [docs/TROUBLESHOOTING_500_ERROR.md](./docs/TROUBLESHOOTING_500_ERROR.md)
+
+#### Port Already in Use
+
+```bash
+# Find process using port 3008
+lsof -i :3008
+
+# Kill the process
+kill -9 <PID>
+
+# Or use a different port
+PORT=3009 bun run dev
+```
+
+#### Diagnostic Tool
+
+Run the diagnostic script to check system status:
+
+```bash
+bash scripts/diagnose.sh
+```
+
+This will show:
+- Port usage
+- tmux sessions
+- API health status
+- File tree API status
+
+### Getting Help
+
+If you encounter issues:
+
+1. Run diagnostic script:
+   ```bash
+   bash scripts/diagnose.sh > diagnosis.txt
+   ```
+
+2. Check browser console (F12 > Console)
+
+3. Check server logs
+
+4. Open an issue with the above information
+
