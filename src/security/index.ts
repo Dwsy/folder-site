@@ -9,14 +9,37 @@
  */
 
 import type {
-  SecurityValidationOptions,
-  SecurityValidationResult,
   FileValidationOptions,
-  SanitizeOptions,
+  FileValidationResult,
+  XSSSanitizeOptions as SanitizeOptions,
 } from './types.js';
 import { FileTypeValidator } from './file-type-validator.js';
 import { MagicNumberValidator } from './magic-number-validator.js';
 import { XSSSanitizer } from './xss-sanitizer.js';
+
+/**
+ * 安全验证选项
+ */
+interface SecurityValidationOptions extends FileValidationOptions {
+  validateExtension?: boolean;
+  validateMagicNumber?: boolean;
+  validateFileSize?: number;
+  sanitizeHtml?: boolean;
+  strictMagicNumberCheck?: boolean;
+  strictMode?: boolean;
+  sanitizeOptions?: SanitizeOptions;
+}
+
+/**
+ * 安全验证结果
+ */
+interface SecurityValidationResult {
+  valid: boolean;
+  safe: boolean;
+  errors: string[];
+  warnings: string[];
+  details: Record<string, unknown>;
+}
 
 /**
  * 默认安全配置
@@ -25,8 +48,7 @@ const DEFAULT_SECURITY_CONFIG: SecurityValidationOptions = {
   // 文件类型验证
   validateExtension: true,
   validateMagicNumber: true,
-  validateFileSize: true,
-  maxFileSize: 10 * 1024 * 1024, // 10MB
+  validateFileSize: 10 * 1024 * 1024, // 10MB
   
   // XSS 防护
   sanitizeHtml: true,
@@ -135,7 +157,7 @@ export class SecurityValidator {
         
         if (!magicResult.valid) {
           errors.push(magicResult.error || 'Magic number validation failed');
-        } else if (magicResult.code === 'MAGIC_NUMBER_WARNING') {
+        } else if (magicResult.errorCode === 'unknown_error') {
           warnings.push(magicResult.message || 'Magic number warning');
         }
         details.magicNumberValid = magicResult.valid;
@@ -163,7 +185,7 @@ export class SecurityValidator {
       // 如果未启用清理，返回原始内容
       return {
         clean: html,
-        wasModified: false,
+        modified: false,
         originalLength: html.length,
         cleanLength: html.length,
         removedLength: 0,
@@ -174,7 +196,7 @@ export class SecurityValidator {
   }
 
   /**
-   * 验证并清理 HTML 内容
+   * 验证并清理 HTML内容
    *
    * @param html - 待验证和清理的 HTML
    * @returns 验证和清理结果

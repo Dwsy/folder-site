@@ -7,7 +7,7 @@ import {
   MouseEvent,
   TouchEvent,
 } from 'react';
-import { cn } from '../../utils/cn';
+import { cn } from '../../utils/cn.js';
 
 interface ResizablePanelProps {
   children: ReactNode;
@@ -85,15 +85,15 @@ export function ResizablePanel({
       document.body.style.userSelect = '';
     };
 
-    document.addEventListener('mousemove', handleMouseMove as EventListener);
+    document.addEventListener('mousemove', handleMouseMove as unknown as EventListener);
     document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleTouchMove as EventListener);
+    document.addEventListener('touchmove', handleTouchMove as unknown as EventListener);
     document.addEventListener('touchend', handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove as EventListener);
+      document.removeEventListener('mousemove', handleMouseMove as unknown as EventListener);
       document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleTouchMove as EventListener);
+      document.removeEventListener('touchmove', handleTouchMove as unknown as EventListener);
       document.removeEventListener('touchend', handleMouseUp);
     };
   }, [isResizing, minWidth, maxWidth, onResize]);

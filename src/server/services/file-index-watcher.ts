@@ -138,6 +138,8 @@ export class FileIndexWatcherService {
    * 启动文件监视器
    */
   private async startWatcher(): Promise<void> {
+    this.log('Starting watcher...');
+
     const watcherOptions: WatcherOptions = {
       rootDir: this.rootDir,
       extensions: this.options.scanOptions.extensions,
@@ -146,6 +148,12 @@ export class FileIndexWatcherService {
       ignoreInitial: true,
       ...this.options.watcherOptions,
     };
+
+    this.log(`Watcher options:`, {
+      rootDir: watcherOptions.rootDir,
+      extensions: watcherOptions.extensions,
+      excludeDirs: watcherOptions.excludeDirs,
+    });
 
     this.watcher = new FileWatcher(watcherOptions);
 
@@ -173,6 +181,15 @@ export class FileIndexWatcherService {
     this.watcher.on('unlinkDir', async (event: WatcherChangeEvent) => {
       this.log(`Directory removed: ${event.relativePath}`);
       await this.indexer.handleDirectoryChange('unlinkDir', event.path);
+    });
+
+    // 监听 watcher 事件
+    this.watcher.on('ready', () => {
+      this.log('Watcher is ready');
+    });
+
+    this.watcher.on('error', (error) => {
+      this.log('Watcher error:', error);
     });
 
     // 启动监视器

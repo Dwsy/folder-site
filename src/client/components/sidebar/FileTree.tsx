@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileIcon, FolderIcon, DefaultFolderOpenedIcon } from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
+import { useFileAccessHistory } from '../../hooks/useFileAccessHistory.js';
 
 /**
  * 文件树节点类型
@@ -118,9 +119,14 @@ function FileTreeNodeComponent({
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+
+      // 记录访问历史
+      const { recordAccess } = useFileAccessHistory.getState();
+      recordAccess(node.path, node.name);
+
       onFileClick?.(node.path, node);
     },
-    [node.path, node, onFileClick]
+    [node.path, node.name, onFileClick]
   );
 
   // 处理键盘事件

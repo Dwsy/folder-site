@@ -63,9 +63,26 @@ export interface PluginSandboxConfig {
   /** 是否启用执行日志 */
   enableExecutionLogging?: boolean;
   
+  /** 安全级别 */
+  securityLevel?: 'strict' | 'moderate' | 'lenient';
+  
+  /** 资源限制配置 */
+  resourceLimits?: {
+    maxExecutionTime: number;
+    maxMemory: number;
+    maxCpuUsage: number;
+  };
+  
+  /** 权限策略配置 */
+  permissionPolicy?: {
+    defaultAllow: boolean;
+    allowedPermissions: string[];
+    deniedPermissions: string[];
+  };
+
   /** 沙箱隔离级别 */
   isolationLevel?: SandboxIsolationLevel;
-  
+
   /** 沙箱实现方式 */
   implementation?: SandboxImplementation;
 }
@@ -133,6 +150,17 @@ export const DEFAULT_SANDBOX_CONFIG: Required<PluginSandboxConfig> = {
   enableExecutionLogging: true,
   isolationLevel: SandboxIsolationLevel.Medium,
   implementation: SandboxImplementation.Worker,
+  securityLevel: 'strict',
+  resourceLimits: {
+    maxExecutionTime: 30000,
+    maxMemory: 128,
+    maxCpuUsage: 80,
+  },
+  permissionPolicy: {
+    defaultAllow: false,
+    allowedPermissions: [],
+    deniedPermissions: [],
+  },
 };
 
 // =============================================================================
@@ -535,6 +563,26 @@ export enum SecurityEventAction {
   
   /** 终止沙箱 */
   Terminate = 'terminate',
+}
+
+/**
+ * 安全检查结果
+ */
+export interface SecurityCheck {
+  /** 是否通过检查 */
+  passed: boolean;
+  
+  /** 违规项列表 */
+  violations: string[];
+  
+  /** 警告列表 */
+  warnings?: string[];
+  
+  /** 检查时间戳 */
+  timestamp?: number;
+  
+  /** 检查详情 */
+  details?: Record<string, unknown>;
 }
 
 // =============================================================================

@@ -25,6 +25,7 @@ import type { ThemeMode } from '../../../types/theme.js';
 import { MarkdownTheme, getMarkdownBodyClass, getMarkdownThemeStyles } from './MarkdownTheme.js';
 import { TOC, extractHeadings, addHeadingIdsWithItems, useActiveHeading, type TOCItem } from './TOC.js';
 import { MarkdownRenderer } from './MarkdownRenderer.js';
+import { useTOC } from '../../contexts/TOCContext.js';
 
 export interface MarkdownPreviewProps {
   /** Markdown content to render */
@@ -84,9 +85,16 @@ export function MarkdownPreview({
     metadata: undefined,
   });
   const [copied, setCopied] = useState(false);
+  const { setHasTOC } = useTOC();
 
   // Track active heading - use tocItems directly (with IDs already added)
   const activeHeadingId = useActiveHeading(state.tocItems || [], 'main');
+
+  // Update TOC visibility state
+  useEffect(() => {
+    const hasTOCItems = showTOC && state.tocItems && state.tocItems.length > 0;
+    setHasTOC(hasTOCItems);
+  }, [showTOC, state.tocItems, setHasTOC]);
 
   // Render markdown
   useEffect(() => {

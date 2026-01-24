@@ -78,7 +78,7 @@ export function useSwipeGesture({
     if (isOpen && deltaX < 0) {
       // 向左滑动关闭侧边栏
       const progress = Math.min(Math.abs(deltaX) / window.innerWidth, 1);
-      const sidebar = document.querySelector('[data-sidebar]');
+      const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
       if (sidebar) {
         sidebar.style.transform = `translateX(-${progress * 100}%)`;
       }
@@ -88,7 +88,7 @@ export function useSwipeGesture({
     if (!isOpen && enableEdgeSwipe && deltaX > 0) {
       // 从左边缘向右滑动打开侧边栏
       const progress = Math.min(deltaX / window.innerWidth, 1);
-      const sidebar = document.querySelector('[data-sidebar]');
+      const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
       if (sidebar) {
         sidebar.style.transform = `translateX(-${(1 - progress) * 100}%)`;
       }
@@ -125,7 +125,7 @@ export function useSwipeGesture({
     };
 
     // 恢复侧边栏样式
-    const sidebar = document.querySelector('[data-sidebar]');
+    const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
     if (sidebar) {
       sidebar.style.transform = '';
     }

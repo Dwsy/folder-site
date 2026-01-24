@@ -4,75 +4,180 @@
 
 import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
-import { join, relative, normalize } from 'node:path';
-import { FileIndexService } from '../services/index.js';
+import { join } from 'node:path';
+import { FileIndexWatcherService } from '../services/file-index-watcher.js';
+import { getFileFormatService } from '../services/file-format-service.js';
 import { mergeWhitelist } from '../lib/config-loader.js';
 import type { ApiResponse, FileListResponse, FileContentResponse, DirectoryTreeResponse } from '../../types/api.js';
 
 const files = new Hono();
 
-// 创建文件索引服务实例
-const fileIndexService = new FileIndexService({
-  includeDirectories: true,
-});
+// 创建文件索引和监视服务实例
+let fileIndexWatcherService: FileIndexWatcherService | null = null;
+let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 
-// 初始化文件索引
+// 日志工具
+const logger = {
+  debug: process.env.NODE_ENV === 'development' ? console.log : () => {},
+  info: console.log,
+  warn: console.warn,
+  error: console.error,
+};
+
+// 初始化文件索引和监视
 async function initFileIndex() {
-  const { FileScanner } = await import('../services/scanner.js');
-  type ScanOptions = import('../services/scanner.js').ScanOptions;
+  try {
+    // 从环境变量和配置文件合并 whitelist
+    const cliWhitelist = process.env.WHITELIST;
+    const fileWhitelist = process.env.FILE_WHITELIST ? JSON.parse(process.env.FILE_WHITELIST) : undefined;
+    const whitelist = mergeWhitelist(cliWhitelist, fileWhitelist);
 
-  // 从环境变量和配置文件合并 whitelist
-  const cliWhitelist = process.env.WHITELIST;
-  const fileWhitelist = process.env.FILE_WHITELIST ? JSON.parse(process.env.FILE_WHITELIST) : undefined;
-  const whitelist = mergeWhitelist(cliWhitelist, fileWhitelist);
+    // 从插件中提取支持的文件格式
+    const formatService = getFileFormatService();
 
-  const scannerOptions: ScanOptions = {
-    rootDir: process.cwd(),
-    extensions: ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml', '.ts', '.tsx', '.js', '.jsx'],
-    useGitignore: true,
-  };
+    // 尝试从插件管理器获取插件
+    try {
+      const { PluginManager } = await import('../lib/plugin-manager.js');
+      const pluginManager = new PluginManager({
+        pluginPaths: [join(process.cwd(), 'plugins')],
+      });
 
-  // 如果有白名单配置，添加到扫描选项
-  if (whitelist.length > 0) {
-    scannerOptions.whitelist = whitelist;
+      // 只需要发现插件，不需要加载完整代码
+      const discovery = await pluginManager.discover({
+        manifestFile: 'manifest.json',
+      });
+
+      logger.info(`[Files Route] Discovered ${discovery.manifests.length} plugin manifests`);
+
+      // 直接从 discovery.manifests 中提取支持的格式
+      for (const { manifest } of discovery.manifests) {
+        logger.debug(`[Files Route] Processing plugin: ${manifest.id} with ${manifest.capabilities?.length || 0} capabilities`);
+        formatService.extractFromPlugins([{ manifest }]);
+      }
+
+      logger.info(`[Files Route] Loaded ${formatService.getSupportedCount()} file formats`);
+    } catch (error) {
+      logger.warn('[Files Route] Failed to load plugins, using base formats only:', error);
+    }
+
+    const scanOptions = {
+      rootDir: process.cwd(),
+      extensions: formatService.getSupportedExtensions(),
+      useGitignore: true,
+      whitelist: whitelist.length > 0 ? whitelist : undefined,
+    };
+
+    // 创建并初始化文件索引和监视服务
+    fileIndexWatcherService = new FileIndexWatcherService({
+      rootDir: process.cwd(),
+      scanOptions,
+      enableWatcher: true,
+      enableLogging: true,
+    });
+
+    await fileIndexWatcherService.initialize();
+
+    isInitialized = true;
+    logger.info('[Files Route] File index watcher initialized successfully');
+  } catch (error) {
+    isInitialized = false;
+    logger.error('[Files Route] Failed to initialize file index watcher:', error);
+    throw error;
   }
-
-  const scanner = new FileScanner(scannerOptions);
-  const result = await scanner.scan();
-  await fileIndexService.addOrUpdateBatch(result.files.map(f => ({
-    path: f.path,
-    name: f.name,
-    size: f.size,
-    mtime: f.mtime,
-    isDirectory: f.isDirectory,
-  })));
 }
 
-// 初始化索引（异步）
-initFileIndex().catch(console.error);
+// 初始化索引和监视器（异步）
+initPromise = initFileIndex().catch(console.error);
+
+/**
+ * 等待初始化完成
+ */
+async function waitForInitialization(): Promise<void> {
+  if (isInitialized) return;
+  if (initPromise) {
+    await initPromise;
+  }
+  if (!isInitialized) {
+    throw new Error('File index watcher service not initialized');
+  }
+}
+
+/**
+ * 重新扫描文件系统并更新索引
+ */
+files.post('/refresh', async (c) => {
+  console.log('[Files API] Refreshing file index...');
+
+  try {
+    if (!fileIndexWatcherService) {
+      throw new Error('File index watcher service not initialized');
+    }
+
+    // 重新扫描
+    await fileIndexWatcherService.refresh();
+
+    const entries = fileIndexWatcherService.getAllEntries();
+    const stats = fileIndexWatcherService.getStats();
+
+    return c.json<ApiResponse<{ message: string; stats: any; total: number }>>({
+      success: true,
+      data: {
+        message: 'File index refreshed successfully',
+        stats,
+        total: entries.length,
+      },
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('[Files API] Failed to refresh index:', error);
+    return c.json<ApiResponse<null>>({
+      success: false,
+      data: null,
+      error: {
+        code: 'REFRESH_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to refresh file index',
+      },
+      timestamp: Date.now(),
+    }, 500);
+  }
+});
 
 /**
  * 获取文件列表
  */
 files.get('/', async (c) => {
-  const entries = fileIndexService.getAllEntries();
-  const response: FileListResponse = {
-    files: entries.map(e => ({
-      name: e.name,
-      path: e.relativePath,
-      type: e.isDirectory ? 'folder' : 'file',
-      extension: e.extension,
-      size: e.size,
-      modifiedAt: e.modifiedAt,
-    })),
-    total: entries.length,
-  };
+  try {
+    await waitForInitialization();
 
-  return c.json<ApiResponse<FileListResponse>>({
-    success: true,
-    data: response,
-    timestamp: Date.now(),
-  });
+    if (!fileIndexWatcherService) {
+      return c.json<ApiResponse<null>>({
+        success: false,
+        data: null,
+        error: { code: 'NOT_INITIALIZED', message: 'File index watcher not initialized' },
+        timestamp: Date.now(),
+      }, 503);
+    }
+
+    const entries = fileIndexWatcherService.getAllEntries();
+    const response: FileListResponse = {
+      files: entries,
+      total: entries.length,
+    };
+
+    return c.json<ApiResponse<FileListResponse>>({
+      success: true,
+      data: response,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    return c.json<ApiResponse<null>>({
+      success: false,
+      data: null,
+      error: { code: 'SERVICE_ERROR', message: error instanceof Error ? error.message : 'Service error' },
+      timestamp: Date.now(),
+    }, 503);
+  }
 });
 
 /**
@@ -80,8 +185,20 @@ files.get('/', async (c) => {
  * 注意：这个路由必须在通配符路由之前定义
  */
 files.get('/tree/list', async (c) => {
-  const depth = parseInt(c.req.query('depth') || '10', 10);
-  const entries = fileIndexService.getAllEntries();
+  try {
+    await waitForInitialization();
+
+    if (!fileIndexWatcherService) {
+      return c.json<ApiResponse<null>>({
+        success: false,
+        data: null,
+        error: { code: 'NOT_INITIALIZED', message: 'File index watcher not initialized' },
+        timestamp: Date.now(),
+      }, 503);
+    }
+
+    const depth = parseInt(c.req.query('depth') || '10', 10);
+    const entries = fileIndexWatcherService.getAllEntries();
 
   // 按路径构建 Map（扁平化存储所有节点）
   const pathMap = new Map<string, any[]>();
@@ -125,7 +242,16 @@ files.get('/tree/list', async (c) => {
     if (currentDepth >= depth) return [];
 
     const children = pathMap.get(parentPath) || [];
-    return children.map(child => {
+
+    // 排序：目录在前，文件在后，按名称字母顺序
+    const sortedChildren = children.sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) {
+        return a.isDirectory ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    return sortedChildren.map(child => {
       if (child.isDirectory && child.hasChildren) {
         return {
           ...child,
@@ -155,6 +281,14 @@ files.get('/tree/list', async (c) => {
     data: response,
     timestamp: Date.now(),
   });
+  } catch (error) {
+    return c.json<ApiResponse<null>>({
+      success: false,
+      data: null,
+      error: { code: 'SERVICE_ERROR', message: error instanceof Error ? error.message : 'Service error' },
+      timestamp: Date.now(),
+    }, 503);
+  }
 });
 
 /**
@@ -218,9 +352,21 @@ files.get('/content', async (c) => {
  * 获取目录的子节点（懒加载）
  */
 files.get('/tree/children', async (c) => {
-  const path = c.req.query('path') || '';
-  const depth = parseInt(c.req.query('depth') || '1', 10);
-  const entries = fileIndexService.getAllEntries();
+  try {
+    await waitForInitialization();
+
+    if (!fileIndexWatcherService) {
+      return c.json<ApiResponse<null>>({
+        success: false,
+        data: null,
+        error: { code: 'NOT_INITIALIZED', message: 'File index watcher not initialized' },
+        timestamp: Date.now(),
+      }, 503);
+    }
+
+    const path = c.req.query('path') || '';
+    const depth = parseInt(c.req.query('depth') || '1', 10);
+    const entries = fileIndexWatcherService.getAllEntries();
 
   // 筛选指定路径下的直接子节点
   const children = entries.filter(entry => {
@@ -250,6 +396,14 @@ files.get('/tree/children', async (c) => {
     data: { children: nodes },
     timestamp: Date.now(),
   });
+  } catch (error) {
+    return c.json<ApiResponse<null>>({
+      success: false,
+      data: null,
+      error: { code: 'SERVICE_ERROR', message: error instanceof Error ? error.message : 'Service error' },
+      timestamp: Date.now(),
+    }, 503);
+  }
 });
 
 export default files;

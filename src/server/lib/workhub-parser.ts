@@ -137,7 +137,7 @@ export class WorkHubParser {
       filePath: file.path,
       content: this.options.parseContent ? content : undefined,
       metadata,
-      createdAt: (metadata.date || metadata.created) ? new Date(metadata.date || metadata.created as string) : file.createdAt,
+      createdAt: (metadata.date || metadata.created || '') ? new Date(metadata.date || metadata.created || '' as string) : file.createdAt,
       updatedAt: metadata.updated ? new Date(metadata.updated as string) : file.modifiedAt,
       // ADR 特有字段
       context: this.extractSection(content, 'Context|背景'),
@@ -182,13 +182,13 @@ export class WorkHubParser {
       // Issue 特有字段
       goal: this.extractSection(content, 'Goal'),
       background: this.extractSection(content, '背景|问题|Background'),
-      acceptanceCriteria: this.extractChecklist(content, '验收标准|Acceptance Criteria'),
+      acceptanceCriteria: this.extractChecklist(content, '验收标准|Acceptance Criteria') as any,
       phases: this.extractPhases(content),
-      decisions: this.extractTable(content, '关键决策|Decisions'),
-      errors: this.extractTable(content, '遇到的错误|Errors'),
+      decisions: this.extractTable(content, '关键决策|Decisions') as any,
+      errors: this.extractTable(content, '遇到的错误|Errors') as any,
       relatedResources: this.extractRelatedResources(content),
       notes: this.extractSection(content, 'Notes|备注'),
-      statusLog: this.extractStatusLog(content),
+      statusLog: this.extractStatusLog(content) as any,
       assignee: metadata.assignee,
       estimatedHours: metadata.estimatedHours,
     };
@@ -226,17 +226,17 @@ export class WorkHubParser {
       background: this.extractSection(content, '背景与目的|Why|Background'),
       changes: this.extractSection(content, '变更内容概述|What|Changes'),
       linkedIssues: this.extractLinkedIssues(content),
-      testResult: this.extractChecklist(content, '测试与验证结果|Test Result'),
+      testResult: this.extractChecklist(content, '测试与验证结果|Test Result') as any,
       riskAssessment: this.extractSection(content, '风险与影响评估|Risk Assessment'),
       rollbackPlan: this.extractSection(content, '回滚方案|Rollback Plan'),
       changeType: this.extractChangeType(content),
-      fileChanges: this.extractTable(content, '文件变更列表|File Changes'),
+      fileChanges: this.extractTable(content, '文件变更列表|File Changes') as any,
       breakingChange: this.extractBreakingChange(content),
       performanceImpact: this.extractPerformanceImpact(content),
       dependencyChanges: this.extractDependencyChanges(content),
       securityConsiderations: this.extractSection(content, '安全考虑|Security'),
-      reviewChecklist: this.extractChecklist(content, '代码审查检查清单|Review Checklist'),
-      reviewLog: this.extractReviewLog(content),
+      reviewChecklist: this.extractChecklist(content, '代码审查检查清单|Review Checklist') as any,
+      reviewLog: this.extractReviewLog(content) as any,
       mergedAt: metadata.mergedAt ? new Date(metadata.mergedAt) : undefined,
       mergedBy: metadata.mergedBy,
       commitHash: metadata.commitHash,
@@ -710,3 +710,5 @@ export async function parsePRs(docsDir: string): Promise<PREntry[]> {
   const parser = new WorkHubParser(docsDir, { includeADRs: false, includeIssues: false, includePRs: true });
   return parser.parsePRs();
 }
+// Re-export WorkHubResult for convenience
+export type { WorkHubResult } from '../../types/workhub.js';

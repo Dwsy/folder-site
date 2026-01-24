@@ -5,7 +5,8 @@ import { Header } from '../components/header/Header.js';
 import { SettingsPanel, SettingsButton } from '../components/settings/index.js';
 import { MobileBottomNav } from '../components/mobile/MobileBottomNav.js';
 import { SearchModal } from '../components/search/SearchModal.js';
-import { cn } from '../utils/cn';
+import { cn } from '../utils/cn.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 interface MainLayoutProps {
   children?: ReactNode;
@@ -18,6 +19,7 @@ const MAX_SIDEBAR_OFFSET = 85;
 
 export function MainLayout({ children }: MainLayoutProps) {
   const location = useLocation();
+  const { hasTOC, setHasTOC } = useTOC();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -74,6 +76,11 @@ export function MainLayout({ children }: MainLayoutProps) {
 
     fetchFileTree();
   }, []);
+
+  // 路由变化时重置 TOC 状态
+  useEffect(() => {
+    setHasTOC(false);
+  }, [location.pathname, setHasTOC]);
 
   // 收集所有文件用于搜索
   const collectAllFiles = useCallback((nodes: any[]): any[] => {
@@ -201,13 +208,13 @@ export function MainLayout({ children }: MainLayoutProps) {
         sidebarTranslateX.current = Math.min(deltaX, screenWidth * 0.85);
 
         // 应用平移效果到侧边栏
-        const sidebar = document.querySelector('[data-sidebar]');
+        const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
         if (sidebar) {
           sidebar.style.transform = `translateX(${Math.max(0, sidebarTranslateX.current - screenWidth * 0.85)}px)`;
         }
 
         // 更新遮罩层透明度
-        const overlay = document.querySelector('[data-sidebar-overlay]');
+        const overlay = document.querySelector('[data-sidebar-overlay]') as HTMLElement | null;
         if (overlay) {
           overlay.setAttribute('data-opacity', String(Math.min(progress, 1)));
         }
@@ -223,7 +230,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         const translateX = Math.max(deltaX, -screenWidth * 0.85);
         sidebarTranslateX.current = translateX;
 
-        const sidebar = document.querySelector('[data-sidebar]');
+        const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
         if (sidebar) {
           sidebar.style.transform = `translateX(${translateX}px)`;
         }
@@ -253,7 +260,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       sidebarTranslateX.current = 0;
 
       // 重置侧边栏位置
-      const sidebar = document.querySelector('[data-sidebar]');
+      const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
       if (sidebar) {
         sidebar.style.transform = '';
       }
@@ -275,7 +282,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       sidebarTranslateX.current = 0;
 
       // 重置侧边栏位置
-      const sidebar = document.querySelector('[data-sidebar]');
+      const sidebar = document.querySelector('[data-sidebar]') as HTMLElement | null;
       if (sidebar) {
         sidebar.style.transform = '';
       }
@@ -388,7 +395,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           className={cn(
             'flex-1 overflow-auto',
             isMobile && 'w-full',
-            'lg:mr-64' // Add right margin for desktop TOC
+            hasTOC && 'lg:mr-64' // Add right margin for desktop TOC only when TOC exists
           )}
         >
           {children || <Outlet />}

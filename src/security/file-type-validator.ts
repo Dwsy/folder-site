@@ -8,43 +8,39 @@
  */
 
 import type {
-  FileType,
   FileExtension,
-  ValidationResult,
+  FileValidationResult as ValidationResult,
   FileValidationOptions,
 } from './types.js';
+
+// 定义文件类型
+type FileType = 'word' | 'excel' | 'powerpoint' | 'pdf' | 'text' | 'html' | 'archive';
 
 /**
  * 默认支持的文件类型配置
  */
 const DEFAULT_FILE_TYPES: Record<FileExtension, FileType> = {
   // Office 文档
-  '.docx': 'word',
-  '.dotx': 'word',
-  '.doc': 'word',
-  '.xlsx': 'excel',
-  '.xlsm': 'excel',
-  '.xls': 'excel',
-  '.csv': 'excel',
-  '.ods': 'excel',
-  '.pptx': 'powerpoint',
-  '.ppt': 'powerpoint',
-  '.pdf': 'pdf',
+  docx: 'word',
+  dotx: 'word',
+  doc: 'word',
+  xlsx: 'excel',
+  xlsm: 'excel',
+  xls: 'excel',
+  csv: 'excel',
+  ods: 'excel',
+  pptx: 'powerpoint',
+  ppt: 'powerpoint',
+  pdf: 'pdf',
   
   // 文本文件
-  '.txt': 'text',
-  '.md': 'text',
-  '.json': 'text',
-  '.xml': 'text',
-  '.html': 'html',
-  '.htm': 'html',
+  txt: 'text',
+  md: 'text',
   
   // 压缩文件
-  '.zip': 'archive',
-  '.rar': 'archive',
-  '.7z': 'archive',
-  '.tar': 'archive',
-  '.gz': 'archive',
+  zip: 'archive',
+  rar: 'archive',
+  '7z': 'archive',
 };
 
 /**
@@ -75,11 +71,11 @@ export class FileTypeValidator {
 
     // 设置允许的文件类型
     if (options?.allowedTypes) {
-      this.allowedTypes = new Set(options.allowedTypes);
+      this.allowedTypes = new Set(options.allowedTypes as FileType[]);
     } else {
       // 默认允许所有类型
       this.allowedTypes = new Set(
-        Object.values(this.fileTypes).filter((v, i, a) => a.indexOf(v) === i)
+        Object.values(this.fileTypes).filter((v, i, a) => a.indexOf(v) === i) as FileType[]
       );
     }
 
@@ -111,7 +107,7 @@ export class FileTypeValidator {
       return {
         valid: false,
         error: 'File has no extension',
-        code: 'NO_EXTENSION',
+        errorCode: 'file_empty',
       };
     }
 
@@ -120,7 +116,7 @@ export class FileTypeValidator {
       return {
         valid: false,
         error: `File extension "${extension}" is not allowed`,
-        code: 'EXTENSION_NOT_ALLOWED',
+        errorCode: 'extension_not_allowed',
         details: {
           extension,
           allowedExtensions: Array.from(this.allowedExtensions),
@@ -129,14 +125,14 @@ export class FileTypeValidator {
     }
 
     // 获取文件类型
-    const fileType = this.fileTypes[extension];
+    const fileType = this.fileTypes[extension as FileExtension];
 
     // 检查文件类型是否在允许列表中
     if (!this.allowedTypes.has(fileType)) {
       return {
         valid: false,
         error: `File type "${fileType}" is not allowed`,
-        code: 'TYPE_NOT_ALLOWED',
+        errorCode: 'type_mismatch',
         details: {
           fileType,
           allowedTypes: Array.from(this.allowedTypes),

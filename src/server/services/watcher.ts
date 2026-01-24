@@ -8,25 +8,7 @@ import { EventEmitter } from 'node:events';
 import { normalize, relative } from 'node:path';
 import chokidar from 'chokidar';
 import type { FSWatcher } from 'chokidar';
-
-// 支持的文件扩展名（与 scanner 保持一致）
-const SUPPORTED_EXTENSIONS = ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml'];
-
-// 默认排除的目录（与 scanner 保持一致）
-const DEFAULT_EXCLUDE_DIRS = [
-  'node_modules',
-  '.git',
-  'dist',
-  'build',
-  'coverage',
-  '.next',
-  '.nuxt',
-  'target',
-  '__pycache__',
-  'venv',
-  'env',
-  '.env',
-];
+import { BASE_EXTENSIONS, DEFAULT_EXCLUDE_DIRS } from '../lib/constants.js';
 
 /**
  * 文件监听选项
@@ -94,7 +76,7 @@ export class FileWatcher extends EventEmitter {
     this.rootDir = normalize(options.rootDir);
     this.options = {
       rootDir: this.rootDir,
-      extensions: options.extensions || SUPPORTED_EXTENSIONS,
+      extensions: options.extensions || BASE_EXTENSIONS,
       excludeDirs: options.excludeDirs || DEFAULT_EXCLUDE_DIRS,
       ignoreInitial: options.ignoreInitial ?? true,
       debounceDelay: options.debounceDelay ?? 300,
@@ -117,9 +99,32 @@ export class FileWatcher extends EventEmitter {
       // 构建 chokidar 的忽略模式
       const ignoredPatterns = this.buildIgnoredPatterns();
 
+      // 将数组转换为组合函数
+      const combinedIgnored = (path: string) => {
+        for (const pattern of ignoredPatterns) {
+          if (typeof pattern === 'function') {
+            if (pattern(path)) {
+              return true;
+            }
+          } else if (pattern instanceof RegExp) {
+            if (pattern.test(path)) {
+              return true;
+            }
+          } else if (typeof pattern === 'string') {
+            if (path.includes(pattern)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      console.log('[FileWatcher] Starting watcher with root:', this.rootDir);
+      console.log('[FileWatcher] Ignored patterns:', ignoredPatterns.length);
+
       // 创建 chokidar 监听器
       this.watcher = chokidar.watch(this.rootDir, {
-        ignored: ignoredPatterns,
+        ignored: combinedIgnored,
         persistent: true,
         ignoreInitial: this.options.ignoreInitial,
         usePolling: this.options.usePolling,
@@ -137,15 +142,18 @@ export class FileWatcher extends EventEmitter {
       this.watcher.on('ready', () => {
         this.isWatching = true;
         this.watchedPaths.add(this.rootDir);
+        console.log('[FileWatcher] Watcher is ready');
         this.emit('ready');
       });
 
       // 监听错误
       this.watcher.on('error', (error) => {
+        console.error('[FileWatcher] Error:', error);
         this.emit('error', error);
       });
 
     } catch (error) {
+      console.error('[FileWatcher] Failed to start:', error);
       this.emit('error', new Error(`Failed to start watcher: ${error}`));
     }
   }
@@ -244,8 +252,11 @@ export class FileWatcher extends EventEmitter {
 
     // 只监听支持的文件类型
     if (!isDirectory && !this.matchesExtension(extension)) {
+      console.log(`[FileWatcher] Ignoring ${type} event for unsupported extension: ${extension} at ${path}`);
       return;
     }
+
+    console.log(`[FileWatcher] Processing ${type} event: ${path}`);
 
     // 创建事件对象
     const event: WatcherChangeEvent = {
@@ -314,15 +325,8 @@ export class FileWatcher extends EventEmitter {
 
     // 添加文件扩展名过滤（只监听支持的文件）
     patterns.push((path: string) => {
-      // 检查是否为目录
-      const isDir = path.endsWith('/') || path.endsWith('\\');
-      if (isDir) {
-        return false; // 不忽略目录（由排除目录模式处理）
-      }
-
-      // 检查文件扩展名
-      const ext = this.getExtension(path);
-      return !this.matchesExtension(ext);
+      // 不做扩展名过滤，让 handleFileEvent 来处理
+      return false;
     });
 
     return patterns;
@@ -360,7 +364,7 @@ export function createWatcher(options: WatcherOptions): FileWatcher {
 export function createWatcherDefault(rootDir: string): FileWatcher {
   return createWatcher({
     rootDir,
-    extensions: SUPPORTED_EXTENSIONS,
+    extensions: BASE_EXTENSIONS,
     excludeDirs: DEFAULT_EXCLUDE_DIRS,
     debounceDelay: 300,
   });

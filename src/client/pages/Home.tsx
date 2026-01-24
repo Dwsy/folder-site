@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
 import { FaBook, FaCode, FaGithub, FaRocket } from 'react-icons/fa';
+import { cn } from '../utils/cn.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 export function Home() {
+  const { hasTOC } = useTOC();
+
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-4xl' : 'max-w-full')}>
       <div className="mb-8">
         <h1 className="mb-4 text-4xl font-bold">Welcome to Folder-Site CLI</h1>
         <p className="text-lg text-muted-foreground">

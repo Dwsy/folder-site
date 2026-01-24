@@ -8,7 +8,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { cn } from '../../utils/cn.js';
 import { markdownToHTMLAsync, markdownToHTML } from '../../../parsers/index.js';
-import { useVirtualScroll } from '../hooks/useVirtualScroll.js';
+import { useVirtualScroll } from '../../hooks/useVirtualScroll.js';
 import type { ParseResult } from '../../../types/parser.js';
 
 export interface MarkdownBlock {
@@ -19,6 +19,7 @@ export interface MarkdownBlock {
   level?: number; // For headings
   language?: string; // For code blocks
   index: number;
+  offset?: number; // Vertical offset in pixels
   estimatedHeight: number;
   isRendered: boolean;
 }
@@ -346,9 +347,9 @@ export function VirtualMarkdownRenderer({
   }, [blocks]);
 
   // Virtual scroll hook
-  const { visibleRange, scrollToIndex, containerHeight } = useVirtualScroll({
+  const { visibleRange, scrollToItem, innerHeight } = useVirtualScroll({
     itemCount: blocks.length,
-    estimatedItemSize: estimatedBlockHeight,
+    estimatedItemHeight: estimatedBlockHeight,
     containerHeight: typeof height === 'number' ? height : 600,
     overscan,
     enabled: enableVirtualScroll && blocks.length > 20,

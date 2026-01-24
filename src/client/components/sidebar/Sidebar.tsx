@@ -19,6 +19,8 @@ import {
 } from '@react-symbols/icons/utils';
 import { cn } from '../../utils/cn.js';
 import { SearchModal } from '../search/SearchModal.js';
+import { FilePreviewModal } from '../file-preview/FilePreviewModal.js';
+import { useFileAccessHistory } from '../../hooks/useFileAccessHistory.js';
 
 interface FileNode {
   name: string;
@@ -54,13 +56,14 @@ function getFileIcon(filename: string) {
 interface FileTreeNodeProps {
   node: FileNode;
   level?: number;
-  onFileClick?: (path: string) => void;
+  onFileClick?: (path: string, name: string) => void;
+  onFileAltClick?: (path: string, name: string, e: React.MouseEvent) => void;
   activePath?: string;
   onToggleCollapse?: (path: string) => void;
   expandedPaths?: Set<string>;
 }
 
-function FileTreeNode({ node, level = 0, onFileClick, activePath, onToggleCollapse, expandedPaths }: FileTreeNodeProps) {
+function FileTreeNode({ node, level = 0, onFileClick, onFileAltClick, activePath, onToggleCollapse, expandedPaths }: FileTreeNodeProps) {
   const isExpanded = expandedPaths?.has(node.path);
   const isActive = activePath === `/file/${node.path}`;
 
@@ -68,9 +71,16 @@ function FileTreeNode({ node, level = 0, onFileClick, activePath, onToggleCollap
     onToggleCollapse?.(node.path);
   }, [node.path, onToggleCollapse]);
 
-  const handleFileClick = useCallback(() => {
-    onFileClick?.(node.path);
-  }, [node.path, onFileClick]);
+  const handleFileClick = useCallback((e: React.MouseEvent) => {
+    // Alt+点击打开文件预览模态框
+    if (e.altKey && onFileAltClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      onFileAltClick(node.path, node.name, e);
+      return;
+    }
+    onFileClick?.(node.path, node.name);
+  }, [node.path, node.name, onFileClick, onFileAltClick]);
 
   if (node.type === 'folder') {
     const paddingLeft = level * 12 + 8;
@@ -130,6 +140,7 @@ function FileTreeNode({ node, level = 0, onFileClick, activePath, onToggleCollap
                   node={child}
                   level={level + 1}
                   onFileClick={onFileClick}
+                  onFileAltClick={onFileAltClick}
                   activePath={activePath}
                   onToggleCollapse={onToggleCollapse}
                   expandedPaths={expandedPaths}
@@ -187,6 +198,11 @@ export function Sidebar({
   const [error, setError] = useState<Error | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
+  const [previewOpen, setPreviewOpen] = useState<boolean>(false);
+  const [previewFilePath, setPreviewFilePath] = useState<string>('');
+
+  // 访问历史 hook
+  useFileAccessHistory();
 
   // Fetch file tree from API
   useEffect(() => {
@@ -346,6 +362,12 @@ export function Sidebar({
     setSearchOpen(true);
   }, []);
 
+  // Handle file alt+click to open preview modal
+  const handleFileAltClick = useCallback((path: string, name: string, e: React.MouseEvent) => {
+    setPreviewFilePath(path);
+    setPreviewOpen(true);
+  }, []);
+
   // Handle escape key to close mobile sidebar
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -358,7 +380,11 @@ export function Sidebar({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isMobile, onMobileClose]);
 
-  const handleFileClick = useCallback(() => {
+  const handleFileClick = useCallback((path: string, name: string) => {
+    // 记录访问历史
+    const { recordAccess } = useFileAccessHistory.getState();
+    recordAccess(path, name);
+
     if (isMobile) {
       onMobileClose?.();
     }
@@ -495,6 +521,7 @@ export function Sidebar({
                 node={node}
                 level={0}
                 onFileClick={handleFileClick}
+                onFileAltClick={handleFileAltClick}
                 activePath={activePath}
                 onToggleCollapse={handleToggleCollapse}
                 expandedPaths={expandedPaths}
@@ -525,6 +552,13 @@ export function Sidebar({
         onOpenChange={setSearchOpen}
         files={collectAllFiles(fileTree)}
         activePath={activePath}
+      />
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        filePath={previewFilePath}
       />
     </>
   );

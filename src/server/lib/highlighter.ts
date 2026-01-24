@@ -174,7 +174,8 @@ export class Highlighter implements IHighlighter {
       'c++': 'cpp',
       'c#': 'csharp',
       dockerfile: 'dockerfile',
-      text: 'plaintext',
+      text: 'markdown',
+      plaintext: 'markdown',
     };
 
     return (aliases[normalized] as BundledLanguage) || (normalized as BundledLanguage);

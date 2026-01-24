@@ -157,9 +157,7 @@ export function TOC({
       }
       
       seenIds.set(originalId, count + 1);
-      
-      console.log('[TOC] ensureUnique:', 'original:', originalId, 'count:', count, 'unique:', uniqueId);
-      
+
       const uniqueItem: TOCItem = {
         ...item,
         id: uniqueId,

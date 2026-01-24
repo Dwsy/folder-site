@@ -56,11 +56,13 @@ async function startServer(config: CliConfig): Promise<void> {
     process.env.FILE_WHITELIST = JSON.stringify(fileConfig.build.whitelist);
   }
 
-  // 导出 server 供 Bun 使用
-  globalThis.server = {
+  // 启动 Bun 服务器
+  const server = Bun.serve({
     port,
     fetch: app.fetch,
-  };
+  });
+
+  console.log(`✅ Server started successfully on port ${port}`);
 }
 
 /**

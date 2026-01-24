@@ -40,7 +40,7 @@ type ComponentVariant = 'default' | 'pill' | 'outline' | 'ghost';
 /**
  * OfficeThemeToggle 组件属性
  */
-interface OfficeThemeToggleProps {
+export interface OfficeThemeToggleProps {
   /** 组件尺寸 */
   size?: ComponentSize;
   /** 组件变体 */

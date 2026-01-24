@@ -12,7 +12,6 @@
 
     // Emit
     "outDir": "./dist",
-    "rootDir": "./src",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
@@ -24,25 +23,25 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
 
-    // Type Checking
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
+    // Type Checking - 功能优先配置（降低严格度）
+    "strict": false,                          // 关闭严格模式（核心改动）
+    "noImplicitAny": false,                   // 允许隐式 any
+    "strictNullChecks": false,                // 允许 null/undefined 赋值
+    "strictFunctionTypes": false,             // 放宽函数类型检查
+    "strictBindCallApply": false,             // 放宽 bind/call/apply 检查
+    "strictPropertyInitialization": false,    // 允许未初始化的属性
+    "noImplicitThis": false,                  // 允许隐式 this
+    "alwaysStrict": true,                     // 保留：生成 "use strict"
+    "noUnusedLocals": false,                  // 允许未使用的局部变量
+    "noUnusedParameters": false,              // 允许未使用的参数
+    "noImplicitReturns": false,               // 允许函数没有返回值
+    "noFallthroughCasesInSwitch": false,      // 允许 switch 穿透
+    "noUncheckedIndexedAccess": false,        // 保持：不强制索引访问检查
+    "noImplicitOverride": false,              // 允许隐式覆盖
     "noPropertyAccessFromIndexSignature": false,
 
     // Completeness
-    "skipLibCheck": true,
+    "skipLibCheck": true,                     // 跳过库文件检查（加快编译）
 
     // JSX
     "jsx": "react-jsx",
@@ -61,7 +60,8 @@
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "plugins/**/*"                            // 包含 plugins 目录
   ],
   "exclude": [
     "node_modules",

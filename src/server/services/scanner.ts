@@ -7,25 +7,7 @@
 import fg from 'fast-glob';
 import { stat } from 'node:fs/promises';
 import { join, relative, normalize } from 'node:path';
-
-// 支持的文件扩展名
-const SUPPORTED_EXTENSIONS = ['.md', '.mmd', '.txt', '.json', '.yml', '.yaml', '.ts', '.tsx', '.js', '.jsx'];
-
-// 默认排除的目录（fast-glob 会自动读取 .gitignore）
-const DEFAULT_EXCLUDE_DIRS = [
-  'node_modules',
-  '.git',
-  'dist',
-  'build',
-  'coverage',
-  '.next',
-  '.nuxt',
-  'target',
-  '__pycache__',
-  'venv',
-  'env',
-  '.env',
-];
+import { BASE_EXTENSIONS, DEFAULT_EXCLUDE_DIRS } from '../lib/constants.js';
 
 /**
  * 文件扫描选项
@@ -123,7 +105,7 @@ export class FileScanner {
   constructor(options: ScanOptions) {
     this.options = {
       rootDir: normalize(options.rootDir),
-      extensions: options.extensions || SUPPORTED_EXTENSIONS,
+      extensions: options.extensions || BASE_EXTENSIONS,
       excludeDirs: options.excludeDirs || DEFAULT_EXCLUDE_DIRS,
       maxDepth: options.maxDepth ?? 0,
       includeHidden: options.includeHidden ?? false,
@@ -303,7 +285,7 @@ export async function scanFiles(options: ScanOptions): Promise<FileInfo[]> {
 export async function scanDirectoryDefault(rootDir: string): Promise<ScanResult> {
   return scanDirectory({
     rootDir,
-    extensions: SUPPORTED_EXTENSIONS,
+    extensions: BASE_EXTENSIONS,
     excludeDirs: DEFAULT_EXCLUDE_DIRS,
   });
 }

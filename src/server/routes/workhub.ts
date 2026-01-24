@@ -52,7 +52,7 @@ workhub.get('/', async (c) => {
 workhub.get('/adrs', async (c) => {
   try {
     const docsDir = process.env.DOCS_DIR || './docs';
-    const { adrs, stats, errors } = await parseWorkHub(docsDir, {
+    const { adrs, stats } = await parseWorkHub(docsDir, {
       includeADRs: true,
       includeIssues: false,
       includePRs: true,

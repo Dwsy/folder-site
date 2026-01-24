@@ -1,8 +1,10 @@
 /**
  * Editor component types
- * 
+ *
  * Type definitions for content display and editor components
  */
+
+import type { ThemeMode } from './theme.js';
 
 /**
  * Content display state
@@ -539,11 +541,58 @@ export function formatFileSize(bytes: number): string {
 
 /**
  * Format timestamp for display
- * 
+ *
  * @param timestamp - Unix timestamp in milliseconds
  * @returns Formatted date string
  */
 export function formatTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleString();
+}
+
+/**
+ * Split Markdown Editor props
+ */
+export interface SplitMarkdownEditorProps {
+  /** Initial markdown content */
+  content?: string;
+  /** Theme mode */
+  theme?: ThemeMode;
+  /** Initial split position (percentage, 0-100) */
+  defaultSplitPosition?: number;
+  /** Minimum panel width (percentage) */
+  minPanelWidth?: number;
+  /** Enable synchronized scrolling */
+  enableSyncScroll?: boolean;
+  /** Show toolbar */
+  showToolbar?: boolean;
+  /** On content change callback */
+  onChange?: (content: string) => void;
+  /** On save callback */
+  onSave?: (content: string) => void;
+  /** Custom CSS class names */
+  className?: string;
+  /** Editor height */
+  height?: string | number;
+}
+
+/**
+ * Split Markdown Editor state
+ */
+export interface SplitMarkdownEditorState {
+  content: string;
+  splitPosition: number;
+  isResizing: boolean;
+  activePanel: 'editor' | 'preview' | 'both';
+  isDirty: boolean;
+}
+
+/**
+ * Simple split editor props
+ */
+export interface SimpleSplitEditorProps {
+  content: string;
+  theme?: ThemeMode;
+  splitPosition?: number;
+  className?: string;
 }

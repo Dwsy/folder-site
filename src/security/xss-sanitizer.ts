@@ -8,7 +8,36 @@
  */
 
 import DOMPurify from 'isomorphic-dompurify';
-import type { SanitizeOptions, SanitizeResult } from './types.js';
+import type { XSSSanitizeOptions as SanitizeOptions } from './types.js';
+
+/**
+ * 清理结果
+ */
+interface SanitizeResult {
+  /** 清理后的 HTML */
+  clean: string;
+  
+  /** 是否被修改 */
+  modified: boolean;
+  
+  /** 被移除的元素数量 */
+  removedCount?: number;
+
+  /** 原始长度 */
+  originalLength?: number;
+
+  /** 清理后长度 */
+  cleanLength?: number;
+
+  /** 移除的长度 */
+  removedLength?: number;
+
+  /** 错误信息（如果清理失败） */
+  error?: string;
+
+  /** 是否被修改（旧版，兼容性） */
+  wasModified?: boolean;
+}
 
 /**
  * 默认的允许标签（Office 文档渲染所需的标签）
@@ -151,7 +180,7 @@ export class XSSSanitizer {
 
       return {
         clean: cleanHtml,
-        wasModified,
+        modified: wasModified,
         originalLength,
         cleanLength,
         removedLength: originalLength - cleanLength,
@@ -166,7 +195,7 @@ export class XSSSanitizer {
 
       return {
         clean: '',
-        wasModified: true,
+        modified: true,
         originalLength: html.length,
         cleanLength: 0,
         removedLength: html.length,
@@ -202,15 +231,12 @@ export class XSSSanitizer {
    * @returns DOMPurify 配置
    */
   private buildConfig(options?: SanitizeOptions): DOMPurify.Config {
-    const config: DOMPurify.Config = {
+    const config = {
       // 允许的标签
       ALLOWED_TAGS: options?.allowedTags ?? DEFAULT_ALLOWED_TAGS,
       
       // 允许的属性
       ALLOWED_ATTR: this.buildAllowedAttributes(options?.allowedAttributes),
-      
-      // 是否移除注释
-      ALLOW_COMMENTS: options?.allowComments ?? false,
       
       // 是否保留空白
       KEEP_CONTENT: options?.keepContent ?? true,
@@ -225,27 +251,27 @@ export class XSSSanitizer {
       RETURN_DOM_IMPORT: false,
       
       // 是否使用 DOM 文档
-      USE_PROFILES: options?.useProfile,
+      USE_PROFILES: options?.useProfile ? { [options.useProfile]: true } : false,
       
       // 是否强制安全
       FORCE_BODY: options?.forceBody ?? false,
       
       // 是否允许未知协议
       ALLOW_UNKNOWN_PROTOCOLS: options?.allowUnknownProtocols ?? false,
-    };
+    } as unknown as DOMPurify.Config;
 
     // 添加可选的自定义钩子
     if (options?.addAttr) {
-      config.ADD_ATTR = options.addAttr;
+      (config as DOMPurify.Config).ADD_ATTR = options.addAttr;
     }
     if (options?.addTags) {
-      config.ADD_TAGS = options.addTags;
+      (config as DOMPurify.Config).ADD_TAGS = options.addTags;
     }
     if (options?.forbidAttr) {
-      config.FORBID_ATTR = options.forbidAttr;
+      (config as DOMPurify.Config).FORBID_ATTR = options.forbidAttr;
     }
     if (options?.forbidTags) {
-      config.FORBID_TAGS = options.forbidTags;
+      (config as DOMPurify.Config).FORBID_TAGS = options.forbidTags;
     }
 
     return config;

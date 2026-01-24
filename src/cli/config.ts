@@ -61,7 +61,7 @@ export const RESERVED_PORTS: readonly number[] = [
  */
 export const DEFAULT_CONFIG: CliConfig = {
   dir: process.cwd(),
-  port: 3000,
+  port: 3008,
   help: false,
   version: false,
 } as const;

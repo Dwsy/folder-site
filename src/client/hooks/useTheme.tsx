@@ -33,17 +33,17 @@ function migrateThemeData(stored: string): ThemeMode | null {
     
     // 新格式: { mode: 'light' | 'dark' | 'auto' }
     if (parsed.mode && ['light', 'dark', 'auto'].includes(parsed.mode)) {
-      return parsed.mode;
+      return parsed.mode as ThemeMode;
     }
     
     // 旧格式1: { theme: 'light' | 'dark' }
     if (parsed.theme && ['light', 'dark'].includes(parsed.theme)) {
-      return parsed.theme;
+      return parsed.theme as ThemeMode;
     }
     
     // 旧格式2: 直接存储字符串 "light" | "dark"
     if (typeof parsed === 'string' && ['light', 'dark', 'auto'].includes(parsed)) {
-      return parsed;
+      return parsed as ThemeMode;
     }
     
     return null;

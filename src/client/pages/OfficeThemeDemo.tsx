@@ -20,7 +20,7 @@ import {
  * Excel 表格演示组件
  */
 function ExcelTableDemo() {
-  const { themeColors } = useOfficeThemeColors();
+  const themeColors = useOfficeThemeColors();
 
   return (
     <div className="excel-workbook">

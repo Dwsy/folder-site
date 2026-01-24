@@ -170,10 +170,12 @@ export function ADRDisplay({
   adr,
   showFullContent = false,
   className,
+  onClick,
 }: {
   adr: ADREntry;
   showFullContent?: boolean;
   className?: string;
+  onClick?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -196,8 +198,9 @@ export function ADRDisplay({
 
   return (
     <div
+      onClick={onClick}
       className={cn(
-        'overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm',
+        'overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm cursor-pointer hover:shadow-md transition-shadow',
         className
       )}
     >

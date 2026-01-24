@@ -101,6 +101,18 @@ export interface FileValidationResult {
 
   /** 魔数检查结果 */
   magicNumberValid?: boolean;
+
+  /** 文件类型 */
+  fileType?: string;
+
+  /** 错误代码（旧版，兼容性） */
+  code?: string;
+
+  /** 消息 */
+  message?: string;
+
+  /** 验证详情 */
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -152,6 +164,33 @@ export interface FileValidationOptions {
 
   /** 自定义验证器 */
   customValidators?: Array<(file: File | Buffer) => FileValidationResult>;
+
+  /** 是否验证扩展名 */
+  validateExtension?: boolean;
+
+  /** 是否验证文件大小 */
+  validateFileSize?: number;
+
+  /** 是否验证魔数 */
+  validateMagicNumber?: boolean;
+
+  /** 是否启用严格魔数检查 */
+  strictMagicNumberCheck?: boolean;
+
+  /** 是否清理 HTML */
+  sanitizeHtml?: boolean;
+
+  /** 是否启用严格模式 */
+  strictMode?: boolean;
+
+  /** 允许的文件类型 */
+  allowedTypes?: string[];
+
+  /** 自定义文件类型 */
+  customFileTypes?: Record<string, string>;
+
+  /** 清理选项 */
+  sanitizeOptions?: XSSSanitizeOptions;
 }
 
 /**
@@ -195,6 +234,36 @@ export interface XSSSanitizeOptions {
 
   /** 最大 HTML 长度（防止超大 HTML 攻击） */
   maxLength?: number;
+
+  /** 是否启用严格模式 */
+  strictMode?: boolean;
+
+  /** 是否保留内容 */
+  keepContent?: boolean;
+
+  /** 是否允许注释 */
+  allowComments?: boolean;
+
+  /** 使用配置文件 */
+  useProfile?: 'html' | 'svg' | 'svgFilters';
+
+  /** 是否强制 body 标签 */
+  forceBody?: boolean;
+
+  /** 是否允许未知协议 */
+  allowUnknownProtocols?: boolean;
+
+  /** 添加允许的属性 */
+  addAttr?: string[];
+
+  /** 添加允许的标签 */
+  addTags?: string[];
+
+  /** 禁止的属性 */
+  forbidAttr?: string[];
+
+  /** 禁止的标签 */
+  forbidTags?: string[];
 }
 
 /**

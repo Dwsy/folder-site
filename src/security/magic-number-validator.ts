@@ -9,16 +9,29 @@
 
 import type {
   FileExtension,
-  ValidationResult,
-  MagicNumberPattern,
+  FileValidationResult as ValidationResult,
 } from './types.js';
+
+/**
+ * 魔数模式
+ */
+interface MagicNumberPattern {
+  /** 签名字节序列 */
+  signature: number[];
+  
+  /** 偏移量 */
+  offset: number;
+  
+  /** 描述 */
+  description: string;
+}
 
 /**
  * 文件魔数配置
  * 
  * 魔数是文件开头的特定字节序列，用于标识文件的真实类型
  */
-const MAGIC_NUMBERS: Record<FileExtension, MagicNumberPattern[]> = {
+const MAGIC_NUMBERS: Record<string, MagicNumberPattern[]> = {
   // PDF 文件
   '.pdf': [
     {
@@ -226,13 +239,13 @@ export class MagicNumberValidator {
       if (this.strictMode) {
         return {
           valid: true,
-          code: 'NO_MAGIC_NUMBER',
+          errorCode: 'file_empty',
           message: 'No magic number defined for this file type',
         };
       } else {
         return {
           valid: true,
-          code: 'MAGIC_NUMBER_WARNING',
+          errorCode: 'unknown_error',
           message: 'No magic number defined for this file type',
         };
       }
@@ -248,7 +261,7 @@ export class MagicNumberValidator {
       if (this.matchPattern(uint8Array, pattern)) {
         return {
           valid: true,
-          code: 'MAGIC_NUMBER_MATCHED',
+          errorCode: 'magic_number_invalid',
           message: `Magic number matched: ${pattern.description}`,
         };
       }
@@ -259,7 +272,7 @@ export class MagicNumberValidator {
       return {
         valid: false,
         error: 'File magic number does not match the expected file type',
-        code: 'MAGIC_NUMBER_MISMATCH',
+        errorCode: 'magic_number_invalid',
         details: {
           expectedExtension: ext,
           expectedPatterns: patterns.map((p) => p.description),
@@ -270,7 +283,7 @@ export class MagicNumberValidator {
     // 非严格模式下，返回警告
     return {
       valid: true,
-      code: 'MAGIC_NUMBER_WARNING',
+      errorCode: 'unknown_error',
       message: 'File magic number could not be verified',
     };
   }

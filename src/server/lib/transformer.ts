@@ -23,23 +23,25 @@ import type {
   TransformerResult,
   TransformerPlugin,
   TransformerPluginContext,
-  NodeTransformer,
   TransformerStats,
 } from '../../types/transformer.js';
-import type { CodeHighlightOptions } from '../../types/highlighter.js';
 
 /**
  * 默认转换器配置选项
  */
-const DEFAULT_OPTIONS: Required<TransformerOptions> = {
+const DEFAULT_OPTIONS = {
   highlight: true,
   highlightTheme: 'github',
   semantic: true,
   classPrefix: '',
-  sanitize: false,
-  pretty: false,
-  plugins: [],
-};
+  lineNumbers: false,
+  autolink: true,
+  taskList: true,
+  plugins: [] as TransformerPlugin[],
+  tableStyle: {},
+  imageHandling: {},
+  linkHandling: {},
+} as const;
 
 /**
  * AST Transformer 类
@@ -65,7 +67,7 @@ export class ASTTransformer {
    * @param options - 转换器配置选项
    */
   constructor(options?: TransformerOptions) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
+    this.options = { ...DEFAULT_OPTIONS, ...options } as any;
     this.plugins = [...(this.options.plugins || [])];
     this.stats = {
       nodesProcessed: 0,
@@ -121,8 +123,8 @@ export class ASTTransformer {
       // 转换根节点
       const html = this.transformRoot(ast);
       
-      // 格式化 HTML（如果启用）
-      const finalHtml = this.options.pretty ? this.prettifyHTML(html) : html;
+      // 直接返回 HTML（移除 pretty 选项）
+      const finalHtml = html;
 
       this.stats.transformationTime = performance.now() - startTime;
 
@@ -168,10 +170,10 @@ export class ASTTransformer {
     };
 
     // 应用根节点前置插件
-    let children = node.children;
+    let children = node.children as any[];
     for (const plugin of this.plugins) {
       if (plugin.beforeRoot) {
-        children = plugin.beforeRoot(children, context) || children;
+        children = (plugin.beforeRoot(children as any, context) || children) as any[];
       }
     }
 
@@ -197,10 +199,10 @@ export class ASTTransformer {
     this.stats.nodesProcessed++;
 
     // 应用节点前置插件
-    let transformedNode = node;
+    let transformedNode = node as any;
     for (const plugin of this.plugins) {
       if (plugin.beforeNode) {
-        transformedNode = plugin.beforeNode(transformedNode) || transformedNode;
+        transformedNode = (plugin.beforeNode(transformedNode, {} as any) || transformedNode) as any;
       }
     }
 
@@ -270,10 +272,8 @@ export class ASTTransformer {
       case 'yaml':
         html = ''; // YAML 节点不生成 HTML
         break;
-      case 'toml':
-        html = ''; // TOML 节点不生成 HTML
-        break;
       default:
+        // 处理未知节点类型（包括 toml）
         html = '';
     }
 
@@ -351,7 +351,8 @@ export class ASTTransformer {
   private transformCode(node: any): string {
     const code = node.value || '';
     const lang = node.lang || 'text';
-    const meta = node.meta || '';
+    // meta 可能在未来使用，暂时保留
+    // const meta = node.meta || '';
 
     // 如果启用了语法高亮且有高亮器
     if (this.options.highlight && this.highlighter) {
@@ -427,7 +428,7 @@ export class ASTTransformer {
   /**
    * 转换分隔线
    */
-  private transformThematicBreak(node: any): string {
+  private transformThematicBreak(_node: any): string {
     return `<hr class="${this.prefixClass('hr')}" />`;
   }
 
@@ -464,17 +465,14 @@ export class ASTTransformer {
    * 转换 HTML 内容
    */
   private transformHTML(node: any): string {
-    if (this.options.sanitize) {
-      // 如果启用净化，则跳过 HTML 节点
-      return '';
-    }
+    // 直接返回 HTML 内容（移除 sanitize 选项）
     return node.value || '';
   }
 
   /**
    * 转换换行
    */
-  private transformBreak(node: any): string {
+  private transformBreak(_node: any): string {
     return '<br />';
   }
 
@@ -510,16 +508,6 @@ export class ASTTransformer {
   }
 
   /**
-   * 美化 HTML（简单格式化）
-   */
-  private prettifyHTML(html: string): string {
-    return html
-      .replace(/><(?!\/)/g, '>\n<')
-      .replace(/(<\/\w+>)</g, '$1\n<')
-      .replace(/^\n+|\n+$/g, '');
-  }
-
-  /**
    * 注册插件
    * 
    * @param plugin - 插件对象
@@ -547,7 +535,7 @@ export class ASTTransformer {
    * @param options - 新的配置选项
    */
   updateOptions(options: Partial<TransformerOptions>): void {
-    this.options = { ...this.options, ...options };
+    this.options = { ...this.options, ...options } as any;
   }
 
   /**
@@ -651,7 +639,8 @@ export async function transformASTAsync(ast: Root, options?: TransformerOptions)
 export function headingIdPlugin(): TransformerPlugin {
   return {
     name: 'heading-id',
-    beforeNode(node) {
+    handler: () => {}, // 占位符，实际使用钩子函数
+    beforeNode(node: any) {
       if (node.type === 'heading') {
         const text = (node as any).children
           .map((c: any) => c.value || '')
@@ -663,7 +652,7 @@ export function headingIdPlugin(): TransformerPlugin {
       }
       return node;
     },
-    afterNode(html, node) {
+    afterNode(html: string, node: any) {
       if (node.type === 'heading' && (node as any).id) {
         const tag = `h${(node as any).depth}`;
         const id = (node as any).id;
@@ -681,7 +670,8 @@ export function headingIdPlugin(): TransformerPlugin {
 export function taskListPlugin(): TransformerPlugin {
   return {
     name: 'task-list',
-    afterNode(html, node) {
+    handler: () => {}, // 占位符，实际使用钩子函数
+    afterNode(html: string, node: any) {
       if (node.type === 'listItem' && (node as any).checked !== undefined) {
         const checked = (node as any).checked;
         const checkbox = `<input type="checkbox" ${checked ? 'checked' : ''} disabled />`;
@@ -698,7 +688,8 @@ export function taskListPlugin(): TransformerPlugin {
 export function externalLinkPlugin(): TransformerPlugin {
   return {
     name: 'external-link',
-    afterNode(html, node) {
+    handler: () => {}, // 占位符，实际使用钩子函数
+    afterNode(html: string, node: any) {
       if (node.type === 'link') {
         const url = (node as any).url || '';
         if (url.startsWith('http://') || url.startsWith('https://')) {

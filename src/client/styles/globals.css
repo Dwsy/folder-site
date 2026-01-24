@@ -35,6 +35,11 @@
     /* Font settings */
     --font-family: Inter, system-ui, sans-serif;
     --font-size: 16px;
+    /* Animation settings */
+    --animation-duration-fast: 150ms;
+    --animation-duration-normal: 200ms;
+    --animation-duration-slow: 300ms;
+    --animation-easing-default: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .dark {
@@ -65,6 +70,11 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 224.3 76.3% 48%;
+    /* Animation settings (same as light mode) */
+    --animation-duration-fast: 150ms;
+    --animation-duration-normal: 200ms;
+    --animation-duration-slow: 300ms;
+    --animation-easing-default: cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
@@ -149,7 +159,7 @@
   }
 
   pre {
-    @apply overflow-x-auto rounded-lg border bg-muted p-4;
+    @apply overflow-x-auto rounded-lg border bg-muted p-2;
   }
 
   pre code {

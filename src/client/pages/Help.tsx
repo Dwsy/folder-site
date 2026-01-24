@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
 import { FaHome, FaKeyboard, FaBook, FaSearch, FaQuestionCircle } from 'react-icons/fa';
+import { cn } from '../utils/cn.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 export function Help() {
+  const { hasTOC } = useTOC();
+
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-4xl' : 'max-w-full')}>
       <h1 className="mb-6 flex items-center gap-3 text-3xl font-bold">
         <FaQuestionCircle className="text-primary" />
         Help & Documentation

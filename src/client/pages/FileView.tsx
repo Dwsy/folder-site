@@ -5,6 +5,7 @@ import { MarkdownPreview } from '../components/editor/MarkdownPreview.js';
 import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiCode, FiEye } from 'react-icons/fi';
 import { useTheme } from '../hooks/useTheme.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 // Office 文档扩展名映射
 const OFFICE_EXTENSIONS = {
@@ -26,7 +27,7 @@ const OFFICE_EXTENSIONS = {
   '7z': 'archive',
 } as const;
 
-type OfficeDocType = keyof typeof OFFICE_EXTENSIONS;
+type OfficeDocType = typeof OFFICE_EXTENSIONS[keyof typeof OFFICE_EXTENSIONS];
 
 interface FileViewProps {
   className?: string;
@@ -107,12 +108,11 @@ function OfficeDocumentViewer({
     );
   }
 
-  if (error || setLocalError) {
-    const displayError = error || setLocalError;
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="text-red-500 mb-2">Error loading document</div>
-        <div className="text-sm text-muted-foreground">{displayError.message}</div>
+        <div className="text-sm text-muted-foreground">{error.message}</div>
       </div>
     );
   }
@@ -128,6 +128,7 @@ function OfficeDocumentViewer({
 export function FileView({ className }: FileViewProps) {
   const params = useParams();
   const filePath = params['*'] || '';
+  const { hasTOC } = useTOC();
 
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -258,7 +259,7 @@ export function FileView({ className }: FileViewProps) {
   const filename = filePath.split('/').pop() || 'Unknown';
 
   return (
-    <div className={cn('mx-auto max-w-7xl p-6', className)}>
+    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-7xl' : 'max-w-full', className)}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-3">

@@ -17,7 +17,7 @@ let officePlugin: OfficeRendererPlugin | null = null;
 function getOfficePlugin() {
   if (!officePlugin) {
     officePlugin = new OfficeRendererPlugin();
-    officePlugin.initialize();
+    officePlugin.initialize({} as any);
     officePlugin.activate();
   }
   return officePlugin;
@@ -67,7 +67,7 @@ renderApi.post('/office', async (c) => {
     if (typeof content === 'string') {
       buffer = new TextEncoder().encode(content).buffer;
     } else if (content instanceof Uint8Array) {
-      buffer = content.buffer.slice(0);
+      buffer = content.buffer.slice(0) as ArrayBuffer;
     } else if (content instanceof ArrayBuffer) {
       buffer = content;
     } else {
@@ -75,6 +75,16 @@ renderApi.post('/office', async (c) => {
     }
 
     // 渲染文档
+    if (!renderer) {
+      return c.json(
+        {
+          success: false,
+          error: 'Renderer not found',
+        },
+        { status: 404 }
+      );
+    }
+
     const html = await renderer.render(buffer, options);
 
     return c.json({

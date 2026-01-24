@@ -56,7 +56,7 @@ function createCommand(): Command {
     .version(packageJson.version, '-v, --version', '显示版本信息')
     .helpOption('-h, --help', '显示帮助信息')
     .option('-d, --dir <path>', '指定要服务的目录路径 (默认: 当前目录)', process.cwd())
-    .option('-p, --port <number>', '指定端口号 (默认: 3000)', process.env.PORT || '3000')
+    .option('-p, --port <number>', '指定端口号 (默认: 3008)', process.env.PORT || '3008')
     .option('-w, --whitelist <patterns>', '白名单模式：只显示指定的文件夹和文件（glob 模式，逗号分隔，如：docs/**/*,README.md）')
     .allowUnknownOption(false); // 不允许未知选项
 

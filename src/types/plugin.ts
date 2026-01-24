@@ -185,6 +185,15 @@ export interface PluginOptionProperty {
   
   /** 最大长度（可选，用于字符串或数组） */
   maxLength?: number;
+  
+  /** 嵌套属性（可选，用于 object 类型） */
+  properties?: Record<string, PluginOptionProperty>;
+  
+  /** 必需的属性列表（可选，用于 object 类型） */
+  required?: string[];
+  
+  /** 是否允许额外属性（可选，用于 object 类型） */
+  additionalProperties?: boolean;
 }
 
 /**

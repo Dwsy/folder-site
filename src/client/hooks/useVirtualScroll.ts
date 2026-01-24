@@ -208,10 +208,10 @@ export function useVirtualScroll({
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener('scroll', handleScroll as EventListener, { passive: true });
+    container.addEventListener('scroll', handleScroll as unknown as EventListener, { passive: true });
 
     return () => {
-      container.removeEventListener('scroll', handleScroll as EventListener);
+      container.removeEventListener('scroll', handleScroll as unknown as EventListener);
     };
   }, [handleScroll]);
 
@@ -324,10 +324,10 @@ export function useVirtualScrollFixed({
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener('scroll', handleScroll as EventListener, { passive: true });
+    container.addEventListener('scroll', handleScroll as unknown as EventListener, { passive: true });
 
     return () => {
-      container.removeEventListener('scroll', handleScroll as EventListener);
+      container.removeEventListener('scroll', handleScroll as unknown as EventListener);
     };
   }, [handleScroll]);
 

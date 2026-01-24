@@ -266,6 +266,26 @@ export interface TransformerPlugin {
    * 插件配置
    */
   options?: Record<string, any>;
+
+  /**
+   * 根节点前置钩子
+   */
+  beforeRoot?: (children: Node[], context: TransformerPluginContext) => Node[] | void;
+
+  /**
+   * 根节点后置钩子
+   */
+  afterRoot?: (html: string, context: TransformerPluginContext) => string | void;
+
+  /**
+   * 节点前置钩子
+   */
+  beforeNode?: (node: Node, context: TransformerPluginContext) => Node | void;
+
+  /**
+   * 节点后置钩子
+   */
+  afterNode?: (html: string, node: Node) => string | void;
 }
 
 /**
@@ -539,3 +559,68 @@ export interface TransformerState {
     avgTransformTime: number;
   };
 }
+
+/**
+ * 转换器统计信息
+ */
+export interface TransformerStats {
+  /**
+   * 已处理的节点数
+   */
+  nodesProcessed: number;
+
+  /**
+   * 已转换的节点数
+   */
+  nodesTransformed: number;
+
+  /**
+   * 已高亮的代码块数
+   */
+  codeBlocksHighlighted: number;
+
+  /**
+   * 转换耗时（毫秒）
+   */
+  transformationTime: number;
+}
+
+/**
+ * 转换器结果（简化版）
+ */
+export interface TransformerResult {
+  /**
+   * 转换后的 HTML
+   */
+  html: string;
+
+  /**
+   * 统计信息
+   */
+  stats: TransformerStats;
+}
+
+/**
+ * 转换器插件上下文
+ */
+export interface TransformerPluginContext {
+  /**
+   * 转换器选项
+   */
+  options: Required<TransformerOptions>;
+
+  /**
+   * 统计信息
+   */
+  stats: TransformerStats;
+
+  /**
+   * 语法高亮器
+   */
+  highlighter: any;
+}
+
+/**
+ * 节点转换器函数类型
+ */
+export type NodeTransformer = (node: Node) => string;

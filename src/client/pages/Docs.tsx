@@ -11,6 +11,7 @@ import { PRListWithDetail } from '../components/workhub/PRList.js';
 import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiAlertCircle, FiGitPullRequest } from 'react-icons/fi';
 import type { ADREntry, IssueEntry, PREntry } from '../../types/workhub.js';
+import { useTOC } from '../contexts/TOCContext.js';
 
 interface WorkHubResponse {
   success: boolean;
@@ -30,6 +31,7 @@ interface WorkHubResponse {
 type TabType = 'adrs' | 'issues' | 'prs' | 'all';
 
 export function Docs({ className }: { className?: string }) {
+  const { hasTOC } = useTOC();
   const [activeTab, setActiveTab] = useState<TabType>('adrs');
   const [adrs, setADRs] = useState<ADREntry[]>([]);
   const [issues, setIssues] = useState<IssueEntry[]>([]);
@@ -109,7 +111,7 @@ export function Docs({ className }: { className?: string }) {
   ];
 
   return (
-    <div className={cn('mx-auto max-w-7xl p-6', className)}>
+    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-7xl' : 'max-w-full', className)}>
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

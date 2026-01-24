@@ -9,6 +9,7 @@ export { CodeBlock } from './CodeBlock.js';
 export { MarkdownRenderer } from './MarkdownRenderer.js';
 export { MarkdownPreview } from './MarkdownPreview.js';
 export { TOC, extractHeadings, useActiveHeading } from './TOC.js';
+export { SplitMarkdownEditor, SimpleSplitEditor } from './SplitMarkdownEditor.js';
 
 export type {
   ContentDisplayProps,
@@ -43,3 +44,9 @@ export type {
   TOCItem,
   TOCProps,
 } from './TOC.js';
+
+export type {
+  SplitMarkdownEditorProps,
+  SplitMarkdownEditorState,
+  SimpleSplitEditorProps,
+} from './SplitMarkdownEditor.js';
