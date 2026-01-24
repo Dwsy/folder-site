@@ -12,6 +12,8 @@ export interface RehypeShikiOptions {
   theme?: string;
   /** Language to use if none is specified */
   defaultLanguage?: string;
+  /** Languages to skip (handled by other plugins) */
+  skipLanguages?: string[];
 }
 
 interface CodeBlock {
@@ -20,11 +22,31 @@ interface CodeBlock {
   code: string;
 }
 
+// 默认跳过的语言（由其他插件处理）
+const DEFAULT_SKIP_LANGUAGES = [
+  'mermaid',
+  'mmd',
+  'vega',
+  'vega-lite',
+  'vl',
+  'dot',
+  'graphviz',
+  'infographic',
+  'svg',
+  'html',
+  'json-canvas',
+  'canvas',
+];
+
 /**
  * Rehype plugin to apply Shiki syntax highlighting to code blocks
  */
 export const rehypeShiki: Plugin<[RehypeShikiOptions?], Root> = (options = {}) => {
-  const { theme = 'github-dark', defaultLanguage = 'plaintext' } = options;
+  const { 
+    theme = 'github-dark', 
+    defaultLanguage = 'plaintext',
+    skipLanguages = DEFAULT_SKIP_LANGUAGES,
+  } = options;
 
   return async (tree) => {
     const highlighter = getHighlighter();
@@ -47,8 +69,14 @@ export const rehypeShiki: Plugin<[RehypeShikiOptions?], Root> = (options = {}) =
         ? codeNode.properties.className
         : [];
       
-      const langClass = className.find((c: string) => c.startsWith('language-'));
-      const lang = langClass ? langClass.replace('language-', '') : defaultLanguage;
+      const langClass = className.find((c: string | number) => typeof c === 'string' && c.startsWith('language-'));
+      const lang = langClass && typeof langClass === 'string' ? langClass.replace('language-', '') : defaultLanguage;
+
+      // Skip languages handled by other plugins
+      if (skipLanguages.includes(lang)) {
+        console.log(`[rehype-shiki] Skipping language: ${lang} (handled by plugin)`);
+        return;
+      }
 
       // Get code text
       const codeText = codeNode.children
@@ -66,7 +94,7 @@ export const rehypeShiki: Plugin<[RehypeShikiOptions?], Root> = (options = {}) =
     const highlightResults = await Promise.all(
       codeBlocks.map(async ({ node, lang, code }) => {
         try {
-          const html = await highlighter.codeToHtml(code, { lang, theme });
+          const html = await highlighter.codeToHtml(code, { lang: lang as any, theme: theme as any });
           return { node, html };
         } catch (err) {
           console.error(`Failed to highlight code (lang: ${lang}):`, err);

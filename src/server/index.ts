@@ -5,6 +5,13 @@
 
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
+
+declare const Bun: {
+  file(path: string): {
+    text(): Promise<string>;
+  };
+};
+
 import {
   globalErrorHandler,
   onErrorHandler,
@@ -19,6 +26,7 @@ import apiRoutes from './routes/api.js';
 import filesRoutes from './routes/files.js';
 import searchRoutes from './routes/search.js';
 import workhubRoutes from './routes/workhub.js';
+import pluginsRoutes from './routes/plugins.js';
 
 /**
  * MIME 类型映射配置
@@ -88,6 +96,7 @@ export function createServer(): Hono {
   app.route('/api/files', filesRoutes);
   app.route('/api/search', searchRoutes);
   app.route('/api/workhub', workhubRoutes);
+  app.route('/api/plugins', pluginsRoutes);
   // 动态加载 render 路由（由于依赖 Office 插件）
   import('./routes/render.js').then((m) => {
     app.route('/api/render', m.default);
@@ -107,7 +116,7 @@ export function createServer(): Hono {
 
   // SPA fallback - 必须在所有其他路由之后
   // 对于非 API 路径且找不到静态文件的情况，返回 index.html
-  app.get('*', (c) => {
+  app.get('*', async (c) => {
     // 如果是 API 路径但未匹配，返回 404
     if (c.req.path.startsWith('/api')) {
       return newNotFoundHandler(c);
@@ -115,17 +124,15 @@ export function createServer(): Hono {
 
     // 对于前端路由，返回 index.html
     // 这样 React Router 可以处理客户端路由
-    return serveStatic({
-      path: './dist/client/index.html',
-      // 确保 index.html 返回正确的 MIME 类型
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-      },
-    })(c);
+    return c.html(await Bun.file('./dist/client/index.html').text(), 200, {
+      'Content-Type': 'text/html; charset=utf-8',
+    });
   });
 
-  // 404 处理 - 使用新的处理器
-  app.notFound(newNotFoundHandler);
+  // 404 处理 - 返回 404 响应
+  app.onError((err, c) => {
+    return newNotFoundHandler(c);
+  });
 
   newLogger.debug('Server initialized successfully with enhanced error handling');
 

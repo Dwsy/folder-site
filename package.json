@@ -18,6 +18,8 @@
     "folder-site": "./dist/cli/index.js"
   },
   "dependencies": {
+    "@antv/g2": "^5.4.8",
+    "@antv/infographic": "^0.2.12",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
     "@radix-ui/react-scroll-area": "^1.1.0",
@@ -51,6 +53,7 @@
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "rehype-stringify": "^10.0.1",
+    "remark-emoji": "^5.0.2",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
@@ -62,6 +65,7 @@
     "unist-util-visit": "^5.0.0",
     "vega": "^6.2.0",
     "vega-embed": "^7.1.0",
+    "vega-interpreter": "^2.2.1",
     "vega-lite": "^6.4.2",
     "xlsx": "^0.18.5"
   },

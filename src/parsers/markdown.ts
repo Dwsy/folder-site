@@ -13,6 +13,7 @@
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
+import remarkEmoji from 'remark-emoji';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
@@ -21,6 +22,11 @@ import rehypeStringify from 'rehype-stringify';
 import type { Root } from 'mdast';
 import { rehypeShiki } from './rehype-shiki.js';
 import { remarkMermaid } from './remark-mermaid.js';
+import { remarkInfographic } from './remark-infographic.js';
+import { remarkVega } from './remark-vega.js';
+import { remarkDot } from './remark-dot.js';
+import { remarkSvg } from './remark-svg.js';
+import { remarkJsonCanvas } from './remark-json-canvas.js';
 
 import type {
   MarkdownParserOptions,
@@ -82,6 +88,10 @@ export class MarkdownParser {
       processor = processor.use(remarkGfm);
     }
 
+    // 启用 Emoji 短代码支持
+    // @ts-ignore
+    processor = processor.use(remarkEmoji);
+
     // 启用 frontmatter 解析
     if (this.options.frontmatter) {
       // @ts-ignore
@@ -99,6 +109,26 @@ export class MarkdownParser {
       // @ts-ignore
       processor = processor.use(remarkMermaid);
     }
+
+    // 启用 Infographic 支持
+    // @ts-ignore
+    processor = processor.use(remarkInfographic);
+
+    // 启用 Vega/Vega-Lite 支持
+    // @ts-ignore
+    processor = processor.use(remarkVega);
+
+    // 启用 Graphviz DOT 支持
+    // @ts-ignore
+    processor = processor.use(remarkDot);
+
+    // 启用 SVG 支持
+    // @ts-ignore
+    processor = processor.use(remarkSvg);
+
+    // 启用 JSON Canvas 支持
+    // @ts-ignore
+    processor = processor.use(remarkJsonCanvas);
 
     // 转换为 rehype AST
     // @ts-ignore
@@ -119,6 +149,11 @@ export class MarkdownParser {
       processor = processor.use(rehypeKatex, {
         throwOnError: false,
         strict: false,
+        trust: true,
+        macros: {
+          "\\cfrac": "\\genfrac{}{}{}{0}{#1}{#2}",
+        },
+        displayMode: false,
       });
     }
 
@@ -478,10 +513,10 @@ export const defaultMarkdownParser = new MarkdownParser({
  * console.log(result.html);
  * ```
  */
-export function parseMarkdown(
+export async function parseMarkdown(
   markdown: string,
   options?: MarkdownParserOptions
-): ParseResult {
+): Promise<ParseResult> {
   const parser = new MarkdownParser(options);
   return parser.parse(markdown);
 }

@@ -15,208 +15,14 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '../../utils/cn.js';
 import { markdownToHTMLAsync, markdownToHTML } from '../../../parsers/index.js';
 import type { ParseResult } from '../../../types/parser.js';
-
-// 动态导入 mermaid（仅在客户端）
-let mermaidInstance: any = null;
-let currentMermaidTheme: string = 'default';
-
-async function initMermaid(theme: string = 'default') {
-  if (typeof window === 'undefined') return;
-  if (mermaidInstance && currentMermaidTheme === theme) return mermaidInstance;
-
-  try {
-    const mermaid = (await import('mermaid')).default;
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: theme,
-      securityLevel: 'loose',
-      fontFamily: 'sans-serif',
-      fontSize: 16,
-    });
-    mermaidInstance = mermaid;
-    currentMermaidTheme = theme;
-    return mermaid;
-  } catch (error) {
-    console.error('Failed to initialize Mermaid:', error);
-    return null;
-  }
-}
-
-/**
- * 处理 Mermaid 操作栏点击
- */
-function handleMermaidAction(action: string | undefined, code: string, svg: string, id: string, wrapper?: HTMLElement) {
-  if (!action) return;
-
-  switch (action) {
-    case 'copy':
-      navigator.clipboard.writeText(code).then(() => {
-        console.log('Mermaid code copied to clipboard');
-      }).catch(err => {
-        console.error('Failed to copy Mermaid code:', err);
-      });
-      break;
-
-    case 'fullscreen':
-      if (wrapper) {
-        openFullscreen(wrapper);
-      }
-      break;
-
-    case 'open-new':
-      openMermaidInNewTab(svg);
-      break;
-
-    case 'download-svg':
-      downloadFile(svg, `${id}.svg`, 'image/svg+xml');
-      break;
-
-    case 'download-png':
-      svgToPng(svg).then(png => {
-        downloadFile(png, `${id}.png`, 'image/png');
-      }).catch(err => {
-        console.error('Failed to convert SVG to PNG:', err);
-      });
-      break;
-
-    default:
-      console.warn('Unknown Mermaid action:', action);
-  }
-}
-
-/**
- * 全屏显示 Mermaid 图表
- */
-function openFullscreen(element: HTMLElement) {
-  if (element.requestFullscreen) {
-    element.requestFullscreen();
-  } else if ((element as any).webkitRequestFullscreen) {
-    (element as any).webkitRequestFullscreen();
-  } else if ((element as any).mozRequestFullScreen) {
-    (element as any).mozRequestFullScreen();
-  } else if ((element as any).msRequestFullscreen) {
-    (element as any).msRequestFullscreen();
-  }
-}
-
-/**
- * 在新标签页打开 Mermaid 图表
- */
-function openMermaidInNewTab(svg: string) {
-  const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mermaid Chart</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: #f5f5f5;
-    }
-    svg {
-      max-width: 100%;
-      height: auto;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    @media (prefers-color-scheme: dark) {
-      body {
-        background: #1a1a1a;
-      }
-      svg {
-        background: #2a2a2a;
-      }
-    }
-  </style>
-</head>
-<body>
-  ${svg}
-</body>
-</html>`;
-
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * 下载文件
- */
-function downloadFile(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * 将 SVG 转换为 PNG
- */
-async function svgToPng(svg: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      reject(new Error('Failed to get canvas context'));
-      return;
-    }
-
-    const img = new Image();
-    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      // 获取 SVG 尺寸
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(svg, 'image/svg+xml');
-      const svgElement = doc.querySelector('svg');
-      const width = svgElement?.getAttribute('width') || img.width;
-      const height = svgElement?.getAttribute('height') || img.height;
-
-      // 设置画布大小
-      canvas.width = parseInt(width as string) || img.width;
-      canvas.height = parseInt(height as string) || img.height;
-
-      // 绘制白色背景
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 绘制 SVG
-      ctx.drawImage(img, 0, 0);
-
-      // 转换为 PNG
-      const png = canvas.toDataURL('image/png');
-      URL.revokeObjectURL(url);
-      resolve(png);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load SVG'));
-    };
-
-    img.src = url;
-  });
-}
+import { usePluginRenderer } from '../../hooks/usePluginRenderer.js';
+import {
+  createMermaidRenderer,
+  createInfographicRenderer,
+  createVegaRenderer,
+  createGraphvizRenderer,
+  createJsonCanvasRenderer,
+} from './renderers/index.js';
 
 export interface MarkdownRendererProps {
   /** Markdown content to render */
@@ -286,114 +92,20 @@ export function MarkdownRenderer({
     parseTime: 0,
   });
 
-  const mermaidRef = useRef<HTMLDivElement>(null);
+  // 使用插件渲染系统
+  const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const mermaidTheme = isDark ? 'dark' : 'default';
 
-  // 渲染 Mermaid 图表
-  useEffect(() => {
-    if (!state.html || !mermaidRef.current) return;
+  const customRenderers = useMemo(() => ({
+    'mermaid': createMermaidRenderer(mermaidTheme),
+    'infographic': createInfographicRenderer(),
+    'vega': createVegaRenderer(),
+    'vega-lite': createVegaRenderer(),
+    'graphviz': createGraphvizRenderer(),
+    'json-canvas': createJsonCanvasRenderer(),
+  }), [mermaidTheme]);
 
-    // 确定当前主题
-    const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    const mermaidTheme = isDark ? 'dark' : 'default';
-
-    const renderMermaidDiagrams = async () => {
-      const mermaid = await initMermaid(mermaidTheme);
-      if (!mermaid) return;
-
-      const container = mermaidRef.current;
-      if (!container) return;
-
-      // 查找所有 mermaid 代码块
-      const mermaidBlocks = container.querySelectorAll('pre.mermaid code');
-
-      for (const block of Array.from(mermaidBlocks)) {
-        const code = block.textContent || '';
-        if (!code.trim()) continue;
-
-        // 生成唯一 ID
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-        try {
-          // 渲染图表
-          const { svg } = await mermaid.render(id, code);
-
-          // 替换原始代码块为 SVG
-          const preElement = block.closest('pre');
-          if (preElement && preElement.parentNode) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'mermaid-wrapper group';
-
-            // 创建 SVG 容器
-            const svgContainer = document.createElement('div');
-            svgContainer.className = 'mermaid-svg';
-            svgContainer.innerHTML = svg;
-
-            // 创建操作栏
-            const toolbar = document.createElement('div');
-            toolbar.className = 'mermaid-toolbar opacity-0 group-hover:opacity-100 transition-opacity';
-            toolbar.innerHTML = `
-              <button type="button" class="mermaid-btn" data-action="copy" title="复制代码">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </button>
-              <button type="button" class="mermaid-btn" data-action="fullscreen" title="全屏查看">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-                </svg>
-              </button>
-              <button type="button" class="mermaid-btn" data-action="open-new" title="在新标签页打开">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <line x1="10" y1="14" x2="21" y2="3"></line>
-                </svg>
-              </button>
-              <button type="button" class="mermaid-btn" data-action="download-svg" title="下载 SVG">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </button>
-              <button type="button" class="mermaid-btn" data-action="download-png" title="下载 PNG">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-              </button>
-            `;
-
-            // 添加事件监听
-            toolbar.querySelectorAll('.mermaid-btn').forEach(btn => {
-              btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const action = (btn as HTMLElement).dataset.action;
-                handleMermaidAction(action, code, svg, id, wrapper);
-              });
-            });
-
-            wrapper.appendChild(svgContainer);
-            wrapper.appendChild(toolbar);
-            preElement.parentNode.replaceChild(wrapper, preElement);
-          }
-        } catch (error) {
-          console.error('Failed to render Mermaid diagram:', error);
-          // 显示错误信息
-          const preElement = block.closest('pre');
-          if (preElement) {
-            preElement.classList.add('mermaid-error');
-            preElement.title = `Mermaid rendering error: ${error instanceof Error ? error.message : String(error)}`;
-          }
-        }
-      }
-    };
-
-    renderMermaidDiagrams();
-  }, [state.html, theme]);
+  const containerRef = usePluginRenderer(state.html, theme, customRenderers);
 
   // Memoize the parser options
   const parserOptions = useMemo(
@@ -558,7 +270,7 @@ export function MarkdownRenderer({
       )}
       style={{ '--class-prefix': classPrefix } as React.CSSProperties}
       dangerouslySetInnerHTML={{ __html: state.html }}
-      ref={mermaidRef}
+      ref={containerRef}
     />
   );
 }
