@@ -37,6 +37,7 @@ async function startServer(config: CliConfig): Promise<void> {
   console.log('   - GET  /api/        - API information');
   console.log('   - GET  /api/files   - File operations');
   console.log('   - GET  /api/search  - Search operations');
+  console.log('   - WS   /ws         - WebSocket');
   console.log('');
   console.log('Press Ctrl+C to stop');
 
@@ -55,6 +56,11 @@ async function startServer(config: CliConfig): Promise<void> {
   if (fileConfig.build?.whitelist) {
     process.env.FILE_WHITELIST = JSON.stringify(fileConfig.build.whitelist);
   }
+
+  // 启动 WebSocket 服务器（使用不同端口）
+  const { createWebSocketServer } = await import('../server/websocket-server.js');
+  const wsPort = port + 3; // 3011
+  const wsServer = createWebSocketServer(wsPort);
 
   // 启动 Bun 服务器
   const server = Bun.serve({
@@ -87,9 +93,11 @@ async function main(): Promise<void> {
   } catch (error) {
     if (error instanceof Error) {
       console.error(`❌ 启动失败: ${error.message}`);
+      console.error(error.stack);
       process.exit(1);
     } else {
       console.error('❌ 启动失败: 未知错误');
+      console.error(error);
       process.exit(1);
     }
   }

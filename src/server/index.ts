@@ -28,6 +28,7 @@ import searchRoutes from './routes/search.js';
 import searchV2Routes from './routes/search-v2.js';
 import workhubRoutes from './routes/workhub.js';
 import pluginsRoutes from './routes/plugins.js';
+import wsRoutes from './routes/ws.js';
 
 /**
  * MIME 类型映射配置
@@ -99,6 +100,7 @@ export function createServer(): Hono {
   app.route('/api/search/v2', searchV2Routes);
   app.route('/api/workhub', workhubRoutes);
   app.route('/api/plugins', pluginsRoutes);
+  app.route('/ws', wsRoutes);
   // 动态加载 render 路由（由于依赖 Office 插件）
   import('./routes/render.js').then((m) => {
     app.route('/api/render', m.default);

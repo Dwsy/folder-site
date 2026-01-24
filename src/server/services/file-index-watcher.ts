@@ -14,6 +14,8 @@ import { IncrementalIndexer, createIncrementalIndexer } from './incremental-inde
 import { FileWatcher, type WatcherOptions, type WatcherChangeEvent } from './watcher.js';
 import { scanDirectory, type ScanOptions, type ScanResult } from './scanner.js';
 import type { FileIndexEntry, FileIndexSearchOptions, FileIndexSearchResult } from '../../types/indexing.js';
+import { getEventBus } from './event-bus.js';
+import type { FileEventData, DirectoryEventData, IndexUpdatedEventData } from '../../types/events.js';
 
 /**
  * 文件索引和监视服务配置
@@ -161,26 +163,31 @@ export class FileIndexWatcherService {
     this.watcher.on('change', async (event: WatcherChangeEvent) => {
       this.log(`File changed: ${event.relativePath}`);
       await this.indexer.handleChange('change', event.path);
+      this.broadcastFileChange(event);
     });
 
     this.watcher.on('add', async (event: WatcherChangeEvent) => {
       this.log(`File added: ${event.relativePath}`);
       await this.indexer.handleChange('add', event.path);
+      this.broadcastFileAdd(event);
     });
 
     this.watcher.on('unlink', async (event: WatcherChangeEvent) => {
       this.log(`File removed: ${event.relativePath}`);
       await this.indexer.handleChange('unlink', event.path);
+      this.broadcastFileRemove(event);
     });
 
     this.watcher.on('addDir', async (event: WatcherChangeEvent) => {
       this.log(`Directory added: ${event.relativePath}`);
       await this.indexer.handleDirectoryChange('addDir', event.path);
+      this.broadcastDirectoryAdd(event);
     });
 
     this.watcher.on('unlinkDir', async (event: WatcherChangeEvent) => {
       this.log(`Directory removed: ${event.relativePath}`);
       await this.indexer.handleDirectoryChange('unlinkDir', event.path);
+      this.broadcastDirectoryRemove(event);
     });
 
     // 监听 watcher 事件
@@ -289,6 +296,130 @@ export class FileIndexWatcherService {
    */
   removeChangeListener(listener: (changes: any[]) => void): void {
     this.indexService.removeListener(listener);
+  }
+
+  /**
+   * 广播文件添加事件
+   */
+  private broadcastFileAdd(event: WatcherChangeEvent): void {
+    try {
+      const eventBus = getEventBus();
+      const data: FileEventData = {
+        name: event.relativePath.split('/').pop() || '',
+        path: event.path,
+        relativePath: event.relativePath,
+        extension: event.extension || '',
+        size: 0,
+        isDirectory: false,
+      };
+      eventBus.publish({
+        id: `evt_${Date.now()}`,
+        type: 'file.added',
+        timestamp: Date.now(),
+        data,
+        source: 'file-index-watcher',
+      });
+    } catch (error) {
+      // 事件总线可能未启动，忽略错误
+    }
+  }
+
+  /**
+   * 广播文件变化事件
+   */
+  private broadcastFileChange(event: WatcherChangeEvent): void {
+    try {
+      const eventBus = getEventBus();
+      const data: FileEventData = {
+        name: event.relativePath.split('/').pop() || '',
+        path: event.path,
+        relativePath: event.relativePath,
+        extension: event.extension || '',
+        size: 0,
+        isDirectory: false,
+      };
+      eventBus.publish({
+        id: `evt_${Date.now()}`,
+        type: 'file.changed',
+        timestamp: Date.now(),
+        data,
+        source: 'file-index-watcher',
+      });
+    } catch (error) {
+      // 事件总线可能未启动，忽略错误
+    }
+  }
+
+  /**
+   * 广播文件删除事件
+   */
+  private broadcastFileRemove(event: WatcherChangeEvent): void {
+    try {
+      const eventBus = getEventBus();
+      const data: FileEventData = {
+        name: event.relativePath.split('/').pop() || '',
+        path: event.path,
+        relativePath: event.relativePath,
+        extension: event.extension || '',
+        size: 0,
+        isDirectory: false,
+      };
+      eventBus.publish({
+        id: `evt_${Date.now()}`,
+        type: 'file.removed',
+        timestamp: Date.now(),
+        data,
+        source: 'file-index-watcher',
+      });
+    } catch (error) {
+      // 事件总线可能未启动，忽略错误
+    }
+  }
+
+  /**
+   * 广播目录添加事件
+   */
+  private broadcastDirectoryAdd(event: WatcherChangeEvent): void {
+    try {
+      const eventBus = getEventBus();
+      const data: DirectoryEventData = {
+        path: event.path,
+        relativePath: event.relativePath,
+        name: event.relativePath.split('/').pop() || '',
+      };
+      eventBus.publish({
+        id: `evt_${Date.now()}`,
+        type: 'directory.added',
+        timestamp: Date.now(),
+        data,
+        source: 'file-index-watcher',
+      });
+    } catch (error) {
+      // 事件总线可能未启动，忽略错误
+    }
+  }
+
+  /**
+   * 广播目录删除事件
+   */
+  private broadcastDirectoryRemove(event: WatcherChangeEvent): void {
+    try {
+      const eventBus = getEventBus();
+      const data: DirectoryEventData = {
+        path: event.path,
+        relativePath: event.relativePath,
+        name: event.relativePath.split('/').pop() || '',
+      };
+      eventBus.publish({
+        id: `evt_${Date.now()}`,
+        type: 'directory.removed',
+        timestamp: Date.now(),
+        data,
+        source: 'file-index-watcher',
+      });
+    } catch (error) {
+      // 事件总线可能未启动，忽略错误
+    }
   }
 
   /**
