@@ -24,6 +24,7 @@ import {
   createJsonCanvasRenderer,
   createSvgRenderer,
 } from './renderers/index.js';
+import { initCodeLanguageIcons, observeCodeBlocks } from '../../lib/code-language-icons.js';
 
 export interface MarkdownRendererProps {
   /** Markdown content to render */
@@ -108,6 +109,21 @@ export function MarkdownRenderer({
   }), [mermaidTheme]);
 
   const containerRef = usePluginRenderer(state.html, theme, customRenderers);
+
+  // Initialize code language icons when HTML changes
+  useEffect(() => {
+    if (state.html && containerRef.current) {
+      // 延迟执行，确保 DOM 已更新
+      setTimeout(() => {
+        initCodeLanguageIcons();
+      }, 0);
+    }
+  }, [state.html]);
+
+  // Observe code blocks for dynamic content
+  useEffect(() => {
+    observeCodeBlocks();
+  }, []);
 
   // Memoize the parser options
   const parserOptions = useMemo(

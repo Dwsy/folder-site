@@ -24,7 +24,6 @@ import {
 import type { ThemeMode } from '../../../types/theme.js';
 import { MarkdownTheme, getMarkdownBodyClass, getMarkdownThemeStyles } from './MarkdownTheme.js';
 import { TOC, extractHeadings, addHeadingIdsWithItems, useActiveHeading, type TOCItem } from './TOC.js';
-import { MarkdownRenderer } from './MarkdownRenderer.js';
 import { useTOC } from '../../contexts/TOCContext.js';
 
 export interface MarkdownPreviewProps {
@@ -88,7 +87,8 @@ export function MarkdownPreview({
   const { setHasTOC } = useTOC();
 
   // Track active heading - use tocItems directly (with IDs already added)
-  const activeHeadingId = useActiveHeading(state.tocItems || [], 'main');
+  // Use '.markdown-preview' as the scroll container (fallback to 'main' or 'body')
+  const activeHeadingId = useActiveHeading(state.tocItems || [], '.markdown-preview');
 
   // Update TOC visibility state
   useEffect(() => {
@@ -345,13 +345,7 @@ export function MarkdownPreview({
       )}
 
       {/* Rendered markdown */}
-      <MarkdownRenderer
-        content={content}
-        enableGFM={enableGfm}
-        enableHighlighting={true}
-        enableMath={enableMath}
-        highlightTheme={theme === 'dark' ? 'github-dark' : 'github'}
-        theme={theme || 'auto'}
+      <div
         className={cn(
           getMarkdownBodyClass(theme || 'auto'),
           'p-6',
@@ -381,6 +375,7 @@ export function MarkdownPreview({
           maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
           ...getMarkdownThemeStyles(theme || 'auto'),
         }}
+        dangerouslySetInnerHTML={{ __html: state.html }}
       />
 
       {/* Metadata footer */}

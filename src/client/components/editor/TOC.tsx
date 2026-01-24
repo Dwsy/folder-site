@@ -374,13 +374,16 @@ export function addHeadingIdsWithItems(html: string, items: TOCItem[]): { html: 
 /**
  * Hook to track active heading with IntersectionObserver
  */
-export function useActiveHeading(items: TOCItem[], containerSelector = 'main') {
+export function useActiveHeading(items: TOCItem[], containerSelector = '.markdown-content, main') {
   const [activeId, setActiveId] = useState<string | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const container = document.querySelector(containerSelector);
-    if (!container || items.length === 0) return;
+    if (!container || items.length === 0) {
+      console.warn('[useActiveHeading] Container not found for selector:', containerSelector);
+      return;
+    }
 
     // Find all heading elements in the container
     const findHeadingElements = (): HTMLElement[] => {

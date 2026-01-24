@@ -347,11 +347,15 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Header
         title={config.site?.title}
         description={config.site?.description}
-        showGitHubLink={config.site?.showGitHubLink}
+        showGitHubLink={false}
+        showThemeToggle={false}
         onSidebarToggle={handleMobileSidebarOpen}
         showSidebarToggle={isMobile}
         showMobileSearch={isMobile}
         onSearchClick={handleOpenSearch}
+        actions={
+          <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+        }
       />
 
       {/* Main Content */}
@@ -448,16 +452,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </div>
 
-      {/* Footer Bar */}
-      <footer className="flex items-center justify-end border-t bg-card px-4 py-2 lg:hidden">
-        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
-      </footer>
-
-      {/* Desktop Footer Bar */}
-      <footer className="hidden lg:flex items-center justify-end border-t bg-card px-4 py-2">
-        <SettingsButton onClick={() => setIsSettingsOpen(true)} />
-      </footer>
-
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         onMenuClick={() => setIsMobileSidebarOpen(true)}
@@ -475,6 +469,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       <SettingsPanel
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        githubUrl="https://github.com/Dwsy/folder-site"
       />
     </div>
   );

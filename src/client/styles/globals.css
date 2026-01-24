@@ -412,4 +412,72 @@
   .height-transition {
     transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
+
+  /* Code block styles */
+  .code-block-wrapper {
+    margin: 1rem 0;
+  }
+
+  .code-block-header {
+    user-select: none;
+    min-height: 40px;
+  }
+
+  .code-language-badge {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    height: 28px;
+  }
+
+  .code-language-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .code-language-icon svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+
+  .code-copy-button {
+    cursor: pointer;
+    user-select: none;
+    height: 28px;
+    white-space: nowrap;
+  }
+
+  .code-copy-button svg {
+    flex-shrink: 0;
+  }
+
+  .code-copy-button:hover {
+    background-color: hsl(var(--background));
+  }
+
+  .code-copy-button.copied {
+    background-color: hsl(142 76% 36% / 0.1);
+    color: hsl(142 76% 36%);
+    border-color: hsl(142 76% 36% / 0.2);
+  }
+
+  .code-block-content {
+    margin: 0 !important;
+    padding: 1rem !important;
+    overflow-x: auto;
+    background: transparent !important;
+  }
+
+  .code-block-content code {
+    background: transparent !important;
+  }
+
+  /* Dark mode adjustments */
+  .dark .code-copy-button.copied {
+    background-color: hsl(142 76% 36% / 0.15);
+    color: hsl(142 76% 45%);
+    border-color: hsl(142 76% 36% / 0.3);
+  }
 }
