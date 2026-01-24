@@ -44,7 +44,7 @@ Thumbs.db
 .DS_Store
 
 # Task tracking (optional - uncomment if you don't want to track task files)
-# task/
+task/
 # Personal example files (user data)
 examples/*.jpg
 examples/*.jpeg
