@@ -39,6 +39,10 @@ temp/
 # Pi Agent
 .pi/
 
+# Search Tools
+.folder-site/bin/
+.folder-site/tmp/
+
 # OS
 Thumbs.db
 .DS_Store

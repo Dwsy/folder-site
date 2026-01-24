@@ -65,9 +65,10 @@ function RootLayout() {
 
     const traverse = (n: any) => {
       if (!n.isDirectory) {
+        const relativePath = n.relativePath || n.path;
         items.push({
           name: n.name,
-          path: n.relativePath || n.path,
+          path: relativePath.startsWith('/') ? relativePath : `/file/${relativePath}`,
           type: 'file',
           extension: n.name.split('.').pop(),
         });

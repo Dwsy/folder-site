@@ -353,7 +353,8 @@ export function SearchModal({
       const { recordAccess } = useFileAccessHistory.getState();
       recordAccess(item.path, item.name);
 
-      navigate(item.path);
+      // 跳转到文件页面，添加 /file/ 前缀
+      navigate(`/file/${item.path}`);
       handleClose();
     },
     [navigate, handleClose, onSelect]

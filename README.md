@@ -6,6 +6,8 @@
 [![License](https://img.shields.io/npm/l/folder-site)](LICENSE)
 [![Node](https://img.shields.io/node/v/folder-site)](https://nodejs.org)
 
+**[English](README.md)** | **[中文文档](README.zh-CN.md)**
+
 ## ✨ Features
 
 Folder-Site CLI is a powerful command-line tool that transforms any directory into a browsable website, providing a VS Code-like experience for local documentation, knowledge bases, and Workhub integration.

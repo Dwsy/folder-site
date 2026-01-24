@@ -233,11 +233,7 @@ export function SearchResults({
             <div
               key={`${item.path}-${index}`}
               ref={(el) => (itemRefs.current[index] = el)}
-              onClick={() => {
-                handleClick(item, index);
-                // Navigate to the item path
-                window.location.href = item.path;
-              }}
+              onClick={() => handleClick(item, index)}
               onMouseEnter={() => handleMouseEnter(index)}
               onKeyDown={(e) => handleKeyDown(e, item, index)}
               className={cn(

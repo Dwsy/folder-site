@@ -25,6 +25,7 @@ import {
 import apiRoutes from './routes/api.js';
 import filesRoutes from './routes/files.js';
 import searchRoutes from './routes/search.js';
+import searchV2Routes from './routes/search-v2.js';
 import workhubRoutes from './routes/workhub.js';
 import pluginsRoutes from './routes/plugins.js';
 
@@ -95,6 +96,7 @@ export function createServer(): Hono {
   app.route('/api', apiRoutes);
   app.route('/api/files', filesRoutes);
   app.route('/api/search', searchRoutes);
+  app.route('/api/search/v2', searchV2Routes);
   app.route('/api/workhub', workhubRoutes);
   app.route('/api/plugins', pluginsRoutes);
   // 动态加载 render 路由（由于依赖 Office 插件）
