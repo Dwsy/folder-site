@@ -293,9 +293,9 @@ export class FileWatcher extends EventEmitter {
     const timer = setTimeout(() => {
       const queuedEvent = this.eventQueue.get(path);
       if (queuedEvent) {
-        // 发出事件
-        this.emit('change', event);
-        this.emit(`event:${event.type}`, event);
+        // 发出事件（根据事件类型发出相应的事件）
+        this.emit(queuedEvent.type, event);
+        this.emit(`event:${queuedEvent.type}`, event);
 
         // 清理
         this.eventQueue.delete(path);
