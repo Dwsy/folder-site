@@ -54,8 +54,11 @@ export function createJsonCanvasRenderer() {
     if (canvasBlocks.length === 0) return;
 
     for (const block of Array.from(canvasBlocks)) {
-      const code = block.textContent || '';
+      // 优先从 data-content 属性读取
+      const code = (block as HTMLElement).getAttribute('data-content') || block.textContent || '';
       if (!code.trim()) continue;
+
+      console.log('[JSON Canvas] Processing block, content length:', code.length);
 
       try {
         // 解析 JSON
