@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Split Markdown Editor Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      color: #0a0a0a;
+    }
+
+    .demo-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      margin-bottom: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .features {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .feature {
+      padding: 5px 10px;
+      background: #e5e5e5;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .editor-container {
+      height: 600px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #0a0a0a;
+        color: #fafafa;
+      }
+
+      header {
+        background: #171717;
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+
+      .editor-container {
+        background: #171717;
+        box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+      }
+
+      .feature {
+        background: #404040;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <header>
+      <h1>Split Markdown Editor</h1>
+      <p>并排显示的 Markdown 编辑器，左侧编辑，右侧实时预览</p>
+      <div class="features">
+        <span class="feature">✓ 实时预览</span>
+        <span class="feature">✓ 可调整面板大小</span>
+        <span class="feature">✓ 同步滚动</span>
+        <span class="feature">✓ 语法高亮</span>
+        <span class="feature">✓ GFM 支持</span>
+        <span class="feature">✓ 数学公式</span>
+        <span class="feature">✓ 主题切换</span>
+      </div>
+    </header>
+
+    <div class="editor-container">
+      <div id="app"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SplitMarkdownEditor } from './src/client/components/editor/index.js';
+
+    const sampleMarkdown = `---
+title: Split Markdown Editor 示例
+description: 演示并排编辑器的功能
+tags: [markdown, editor, preview]
+---
+
+# Split Markdown Editor
+
+这是一个**并排显示**的 Markdown 编辑器示例。
+
+## 功能特性
+
+### 1. 实时预览
+左侧编辑，右侧实时显示渲染结果。
+
+### 2. 可调整面板
+拖动中间的分隔条可以调整左右面板的大小。
+
+### 3. 同步滚动
+启用同步滚动后，滚动一个面板会自动滚动另一个面板。
+
+### 4. 语法高亮
+代码块支持语法高亮：
+
+\`\`\`typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const user: User = {
+  id: 1,
+  name: 'Alice',
+  email: 'alice@example.com'
+};
+\`\`\`
+
+### 5. GFM 支持
+
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 表格 | ✅ | 完整支持 |
+| 任务列表 | ✅ | 支持复选框 |
+| 删除线 | ✅ | ~~删除的内容~~ |
+
+### 6. 数学公式
+
+行内公式：$E = mc^2$
+
+块级公式：
+$$
+\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
+$$
+
+## 使用方法
+
+1. 在左侧面板编辑 Markdown 内容
+2. 右侧面板会自动显示预览
+3. 拖动中间分隔条调整面板大小
+4. 使用工具栏按钮切换视图模式
+`;
+
+    // 渲染应用
+    const app = document.getElementById('app');
+    if (app) {
+      // 注意：这里需要实际的 React 渲染逻辑
+      // 由于这是 HTML 示例，实际使用时需要在 React 应用中使用
+      app.innerHTML = \`
+        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+          <div style="text-align: center;">
+            <h2 style="margin-bottom: 10px;">React 组件</h2>
+            <p>SplitMarkdownEditor 是一个 React 组件</p>
+            <p style="margin-top: 20px; font-size: 14px;">请在 React 应用中使用：</p>
+            <pre style="margin-top: 10px; padding: 15px; background: #f5f5f5; border-radius: 6px; text-align: left; overflow-x: auto;">
+&lt;SplitMarkdownEditor
+  content={markdown}
+  theme="auto"
+  defaultSplitPosition={50}
+  enableSyncScroll={true}
+  showToolbar={true}
+  onChange={(content) => setContent(content)}
+/&gt;
+            </pre>
+          </div>
+        </div>
+      \`;
+    }
+  </script>
+</body>
+</html>
