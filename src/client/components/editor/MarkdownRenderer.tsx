@@ -22,6 +22,7 @@ import {
   createVegaRenderer,
   createGraphvizRenderer,
   createJsonCanvasRenderer,
+  createSvgRenderer,
 } from './renderers/index.js';
 
 export interface MarkdownRendererProps {
@@ -103,6 +104,7 @@ export function MarkdownRenderer({
     'vega-lite': createVegaRenderer(),
     'graphviz': createGraphvizRenderer(),
     'json-canvas': createJsonCanvasRenderer(),
+    'svg': createSvgRenderer(),
   }), [mermaidTheme]);
 
   const containerRef = usePluginRenderer(state.html, theme, customRenderers);

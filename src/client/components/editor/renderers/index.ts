@@ -7,3 +7,4 @@ export { createInfographicRenderer } from './infographic-renderer.js';
 export { createVegaRenderer } from './vega-renderer.js';
 export { createGraphvizRenderer } from './graphviz-renderer.js';
 export { createJsonCanvasRenderer } from './json-canvas-renderer.js';
+export { createSvgRenderer } from './svg-renderer.js';
