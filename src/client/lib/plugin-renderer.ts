@@ -90,7 +90,15 @@ export class PluginRenderer {
     console.log('[PluginRenderer] renderAll called, plugins:', Array.from(this.plugins.keys()));
     console.log('[PluginRenderer] renderers:', Array.from(this.renderers.keys()));
     
-    for (const [pluginName, config] of this.plugins) {
+    // 收集所有需要渲染的插件名称（插件配置 + 自定义渲染器）
+    const allPluginNames = new Set([
+      ...Array.from(this.plugins.keys()),
+      ...Array.from(this.renderers.keys())
+    ]);
+    
+    console.log('[PluginRenderer] All plugin names to render:', Array.from(allPluginNames));
+    
+    for (const pluginName of allPluginNames) {
       console.log(`[PluginRenderer] Processing plugin: ${pluginName}`);
       // 检查是否有自定义渲染器
       const renderer = this.renderers.get(pluginName);
@@ -101,7 +109,10 @@ export class PluginRenderer {
       } else {
         console.log(`[PluginRenderer] Using default renderer for ${pluginName}`);
         // 使用默认渲染器（简单场景）
-        await this.renderPlugin(container, pluginName, config, theme);
+        const config = this.plugins.get(pluginName);
+        if (config) {
+          await this.renderPlugin(container, pluginName, config, theme);
+        }
       }
     }
   }

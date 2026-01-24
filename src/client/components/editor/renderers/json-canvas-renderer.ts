@@ -36,22 +36,23 @@ export function createJsonCanvasRenderer() {
     console.log('[JSON Canvas] Starting render...');
     console.log('[JSON Canvas] Container:', container);
     
-    // 查找带有 data-json-canvas 属性的代码块
-    const canvasBlocks = container.querySelectorAll('code[data-json-canvas="true"]');
+    // 查找 pre 元素（不是 code）
+    const canvasBlocks = container.querySelectorAll('pre[data-json-canvas="true"]');
     console.log('[JSON Canvas] Found blocks:', canvasBlocks.length);
     
-    // 调试：列出所有 code 元素
-    const allCodes = container.querySelectorAll('code');
-    console.log('[JSON Canvas] All code elements:', allCodes.length);
-    allCodes.forEach((code, i) => {
-      console.log(`[JSON Canvas] Code ${i}:`, {
-        className: code.className,
-        hasDataAttr: code.hasAttribute('data-json-canvas'),
-        dataContent: code.getAttribute('data-content')?.substring(0, 50)
+    if (canvasBlocks.length === 0) {
+      // 调试：列出所有 pre 元素
+      const allPres = container.querySelectorAll('pre');
+      console.log('[JSON Canvas] All pre elements:', allPres.length);
+      allPres.forEach((pre, i) => {
+        console.log(`[JSON Canvas] Pre ${i}:`, {
+          className: pre.className,
+          hasDataAttr: pre.hasAttribute('data-json-canvas'),
+          dataContent: pre.getAttribute('data-content')?.substring(0, 50)
+        });
       });
-    });
-    
-    if (canvasBlocks.length === 0) return;
+      return;
+    }
 
     for (const block of Array.from(canvasBlocks)) {
       // 优先从 data-content 属性读取

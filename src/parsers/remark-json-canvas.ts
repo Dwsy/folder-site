@@ -17,23 +17,32 @@ export const remarkJsonCanvas: Plugin<[RemarkJsonCanvasOptions?], Root> = (optio
   return (tree) => {
     visit(tree, 'code', (node: Code) => {
       if (node.lang === 'json-canvas' || node.lang === 'canvas') {
-        const data = node.data || (node.data = {});
-        
-        // 保存原始内容到 data 属性
-        const hProperties = {
-          className: [className],
-          'data-json-canvas': 'true',
-          'data-content': node.value,  // 保存原始内容
-          ...(autoRender && { 'data-auto-render': 'true' }),
-        };
-
-        data.hProperties = hProperties;
-        
-        // 不转换为 HTML，保持为 code 节点
-        // 让 rehype 处理时应用 hProperties
+        // 转换为 HTML 节点（像 Mermaid 一样）
+        (node as any).type = 'html';
+        node.value = `<pre class="${className}" data-json-canvas="true" data-content="${escapeAttr(node.value)}"><code>${escapeHtml(node.value)}</code></pre>`;
       }
     });
   };
 };
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '&#10;')
+    .replace(/\r/g, '&#13;');
+}
 
 export default remarkJsonCanvas;
