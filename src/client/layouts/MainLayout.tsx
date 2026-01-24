@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/sidebar/Sidebar.js';
 import { Header } from '../components/header/Header.js';
+import { TabBar } from '../components/tabs/TabBar.js';
 import { SettingsPanel, SettingsButton } from '../components/settings/index.js';
 import { MobileBottomNav } from '../components/mobile/MobileBottomNav.js';
 import { SearchModal } from '../components/search/SearchModal.js';
@@ -10,6 +11,17 @@ import { useTOC } from '../contexts/TOCContext.js';
 
 interface MainLayoutProps {
   children?: ReactNode;
+}
+
+interface ConfigResponse {
+  success: boolean;
+  data: {
+    site?: {
+      title?: string;
+      description?: string;
+      showGitHubLink?: boolean;
+    };
+  };
 }
 
 // 触摸滑动阈值（屏幕宽度的百分比）
@@ -21,13 +33,20 @@ export function MainLayout({ children }: MainLayoutProps) {
   const location = useLocation();
   const { hasTOC, setHasTOC } = useTOC();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedWidth = localStorage.getItem('sidebar-width');
+      return savedWidth ? parseInt(savedWidth, 10) : 256;
+    }
+    return 256;
+  });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [fileTree, setFileTree] = useState<any[]>([]);
+  const [config, setConfig] = useState<ConfigResponse['data']>({});
 
   // 触摸手势状态
   const touchStartX = useRef<number | null>(null);
@@ -75,6 +94,23 @@ export function MainLayout({ children }: MainLayoutProps) {
     };
 
     fetchFileTree();
+  }, []);
+
+  // 获取配置
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/config');
+        const data: ConfigResponse = await response.json();
+        if (data.success) {
+          setConfig(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch config:', error);
+      }
+    };
+
+    fetchConfig();
   }, []);
 
   // 路由变化时重置 TOC 状态
@@ -309,6 +345,9 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex h-screen flex-col bg-background text-foreground">
       {/* Header */}
       <Header
+        title={config.site?.title}
+        description={config.site?.description}
+        showGitHubLink={config.site?.showGitHubLink}
         onSidebarToggle={handleMobileSidebarOpen}
         showSidebarToggle={isMobile}
         showMobileSearch={isMobile}
@@ -366,18 +405,19 @@ export function MainLayout({ children }: MainLayoutProps) {
                 setSidebarWidth(newWidth);
               };
 
-              const handleMouseUp = () => {
+              const handleMouseUp = (e: MouseEvent) => {
                 document.removeEventListener('mousemove', handleMouseMove);
                 document.removeEventListener('mouseup', handleMouseUp);
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
 
-                // 保存侧边栏宽度
-                localStorage.setItem('sidebar-width', String(sidebarWidth));
+                // 保存侧边栏宽度（只在拖动结束时保存，避免卡顿）
+                const finalWidth = Math.max(200, Math.min(500, startWidth + (e.clientX - startX)));
+                localStorage.setItem('sidebar-width', String(finalWidth));
               };
 
               document.addEventListener('mousemove', handleMouseMove);
-              document.addEventListener('mouseup', handleMouseUp);
+              document.addEventListener('mouseup', handleMouseUp as unknown as EventListener);
               document.body.style.cursor = 'col-resize';
               document.body.style.userSelect = 'none';
             }}
@@ -390,31 +430,31 @@ export function MainLayout({ children }: MainLayoutProps) {
           />
         )}
 
-        {/* Content Area */}
-        <main
-          className={cn(
-            'flex-1 overflow-auto',
-            isMobile && 'w-full',
-            hasTOC && 'lg:mr-64' // Add right margin for desktop TOC only when TOC exists
-          )}
-        >
-          {children || <Outlet />}
-        </main>
+        {/* Content Area with TabBar */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* TabBar - 横跨整个内容区域，包括 TOC */}
+          <TabBar className="w-full" />
+
+          {/* Main Content */}
+          <main
+            className={cn(
+              'flex-1 overflow-auto',
+              isMobile && 'w-full',
+              hasTOC && 'lg:mr-64' // Add right margin for desktop TOC only when TOC exists
+            )}
+          >
+            {children || <Outlet />}
+          </main>
+        </div>
       </div>
 
       {/* Footer Bar */}
-      <footer className="flex items-center justify-between border-t bg-card px-4 py-2 lg:hidden">
-        <div className="text-xs text-muted-foreground">
-          {isMobile ? 'Folder-Site' : 'Folder-Site CLI - One-command local website generator'}
-        </div>
+      <footer className="flex items-center justify-end border-t bg-card px-4 py-2 lg:hidden">
         <SettingsButton onClick={() => setIsSettingsOpen(true)} />
       </footer>
 
       {/* Desktop Footer Bar */}
-      <footer className="hidden lg:flex items-center justify-between border-t bg-card px-4 py-2">
-        <div className="text-xs text-muted-foreground">
-          Folder-Site CLI - One-command local website generator
-        </div>
+      <footer className="hidden lg:flex items-center justify-end border-t bg-card px-4 py-2">
         <SettingsButton onClick={() => setIsSettingsOpen(true)} />
       </footer>
 

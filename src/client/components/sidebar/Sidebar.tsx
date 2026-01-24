@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FaHome,
@@ -21,6 +21,7 @@ import { cn } from '../../utils/cn.js';
 import { SearchModal } from '../search/SearchModal.js';
 import { FilePreviewModal } from '../file-preview/FilePreviewModal.js';
 import { useFileAccessHistory } from '../../hooks/useFileAccessHistory.js';
+import { useTabs } from '../../contexts/TabsContext.js';
 
 interface FileNode {
   name: string;
@@ -204,6 +205,15 @@ export function Sidebar({
   // 访问历史 hook
   useFileAccessHistory();
 
+  // 判断是否为 Mac
+  const isMac = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /Mac|iPod|iPhone|iPad/.test(window.navigator.platform);
+  }, []);
+
+  // 快捷键提示
+  const shortcutKey = isMac ? '⌘' : 'Ctrl';
+
   // Fetch file tree from API
   useEffect(() => {
     const fetchFileTree = async () => {
@@ -380,15 +390,21 @@ export function Sidebar({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isMobile, onMobileClose]);
 
+  const { openTab } = useTabs();
+
   const handleFileClick = useCallback((path: string, name: string) => {
     // 记录访问历史
     const { recordAccess } = useFileAccessHistory.getState();
     recordAccess(path, name);
 
+    // 打开标签页
+    const extension = name.split('.').pop();
+    openTab(path, name, extension);
+
     if (isMobile) {
       onMobileClose?.();
     }
-  }, [isMobile, onMobileClose]);
+  }, [isMobile, onMobileClose, openTab]);
 
   return (
     <>
@@ -438,7 +454,7 @@ export function Sidebar({
                   onClick={handleOpenSearch}
                   className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   aria-label="Search files"
-                  title="Search (Cmd+K / Ctrl+K)"
+                  title={`Search (${shortcutKey}+K)`}
                 >
                   <FaSearch className="h-3 w-3" />
                 </button>
@@ -539,9 +555,6 @@ export function Sidebar({
         {/* Footer */}
         {!collapsed && (
           <div className="border-t border-sidebar-border p-3">
-            <p className="text-xs text-muted-foreground">
-              Folder-Site CLI v0.1.0
-            </p>
           </div>
         )}
       </aside>
