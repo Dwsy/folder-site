@@ -5,12 +5,13 @@
  * Uses Shiki for syntax highlighting with support for 100+ languages
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { cn } from '../../utils/cn.js';
 import { FiCopy, FiCheck } from 'react-icons/fi';
 import { MdWrapText } from 'react-icons/md';
 import { getHighlighter } from '../../../server/lib/highlighter.js';
 import type { CodeHighlightOptions } from '../../../types/highlighter.js';
+import { loadShiki } from '../../utils/plugin-loader.js';
 
 export interface CodeBlockProps {
   code: string;

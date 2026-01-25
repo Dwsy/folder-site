@@ -8,7 +8,7 @@
  * - Loading, error, and empty states
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { CodeBlock } from './CodeBlock.js';
 import { MarkdownPreview } from './MarkdownPreview.js';
 import { PDFExportButtonCompact } from './PDFExportButton.js';
@@ -29,16 +29,19 @@ import type {
   ContentDisplayState,
 } from '../../../types/editor.js';
 import type { ThemeMode } from '../../../types/theme.js';
+import { DelayedSpinner, Skeleton } from './DelayedSpinner.js';
 
 /**
- * Loading Spinner Component
+ * Loading Spinner Component - 使用延迟显示
  */
 function LoadingSpinner({ message }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <FiRefreshCw className="mb-4 h-12 w-12 animate-spin text-primary" />
-      <p className="text-muted-foreground">{message || 'Loading content...'}</p>
-    </div>
+    <DelayedSpinner
+      delay={300}
+      message={message || 'Loading content...'}
+      useSkeleton={true}
+      skeletonLines={5}
+    />
   );
 }
 
@@ -139,7 +142,7 @@ function formatSize(bytes: number): string {
 /**
  * Main Content Display Component
  */
-export function ContentDisplay({
+export const ContentDisplay = React.memo(function ContentDisplay({
   content = '',
   language = 'text',
   filename,
@@ -336,7 +339,7 @@ export function ContentDisplay({
       {/* Content */}
       <div
         className={cn(
-          'overflow-auto',
+          maxHeight && 'overflow-auto',
           maxHeight && `max-h-[${maxHeight}]`
         )}
         style={maxHeight ? { maxHeight } : undefined}
@@ -367,5 +370,5 @@ export function ContentDisplay({
       </div>
     </div>
   );
-}
+});
 

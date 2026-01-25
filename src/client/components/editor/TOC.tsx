@@ -5,7 +5,7 @@
  * with scroll tracking and smooth scrolling
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { cn } from '../../utils/cn.js';
 import { FiList, FiChevronRight, FiChevronDown } from 'react-icons/fi';
 import type { ThemeMode } from '../../../types/theme.js';
@@ -37,7 +37,7 @@ export interface TOCProps {
 /**
  * TOC Item Component (recursive)
  */
-function TOCItemComponent({
+const TOCItemComponent = memo(function TOCItemComponent({
   item,
   activeId,
   onSectionClick,
@@ -52,16 +52,16 @@ function TOCItemComponent({
   const hasChildren = item.children && item.children.length > 0;
   const isActive = activeId === item.id;
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (onSectionClick) {
       onSectionClick(item.id);
     }
-  };
+  }, [onSectionClick, item.id]);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setExpanded(!expanded);
-  };
+  }, [expanded]);
 
   return (
     <div className="toc-item">
@@ -108,7 +108,7 @@ function TOCItemComponent({
 /**
  * Table of Contents Component
  */
-export function TOC({
+export const TOC = memo(function TOC({
   items,
   activeId,
   maxLevel = 3,
@@ -174,7 +174,7 @@ export function TOC({
   }, [filteredItems]);
 
   // Handle section click
-  const handleSectionClick = (id: string) => {
+  const handleSectionClick = useCallback((id: string) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -183,7 +183,7 @@ export function TOC({
       }
     }
     setIsMobileOpen(false);
-  };
+  }, [onSectionClick]);
 
   if (!show || filteredItems.length === 0) {
     return null;
@@ -272,7 +272,7 @@ export function TOC({
       </div>
     </>
   );
-}
+});
 
 /**
  * Generate a unique ID from heading text

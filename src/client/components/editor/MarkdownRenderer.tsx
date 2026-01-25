@@ -11,7 +11,7 @@
  * - Custom plugins support
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { cn } from '../../utils/cn.js';
 import { markdownToHTMLAsync, markdownToHTML } from '../../../parsers/index.js';
 import type { ParseResult } from '../../../types/parser.js';
@@ -25,6 +25,7 @@ import {
   createSvgRenderer,
 } from './renderers/index.js';
 import { initCodeLanguageIcons, observeCodeBlocks } from '../../lib/code-language-icons.js';
+import { MarkdownSkeleton } from './DelayedSpinner.js';
 
 export interface MarkdownRendererProps {
   /** Markdown content to render */
@@ -58,6 +59,7 @@ export interface MarkdownRendererState {
   loading: boolean;
   error: Error | null;
   parseTime: number;
+  showLoading: boolean; // 是否显示加载动画
 }
 
 /**
@@ -92,7 +94,33 @@ export function MarkdownRenderer({
     loading: true,
     error: null,
     parseTime: 0,
+    showLoading: false,
   });
+
+  // 延迟显示加载动画（300ms）
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (state.loading) {
+      // 开始加载时，设置延迟显示加载动画
+      loadingTimerRef.current = setTimeout(() => {
+        setState(prev => ({ ...prev, showLoading: true }));
+      }, 300);
+    } else {
+      // 加载完成时，清除定时器并隐藏加载动画
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setState(prev => ({ ...prev, showLoading: false }));
+    }
+
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, [state.loading]);
 
   // 使用插件渲染系统
   const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -154,6 +182,7 @@ export function MarkdownRenderer({
         loading: false,
         error: null,
         parseTime: 0,
+        showLoading: false,
       });
       return;
     }
@@ -179,6 +208,7 @@ export function MarkdownRenderer({
           loading: false,
           error: null,
           parseTime,
+          showLoading: false,
         });
 
         // Notify callback if available
@@ -207,6 +237,7 @@ export function MarkdownRenderer({
           loading: false,
           error: err,
           parseTime: performance.now() - startTime,
+          showLoading: false,
         });
 
         if (onParseError) {
@@ -218,16 +249,14 @@ export function MarkdownRenderer({
     parseMarkdown();
   }, [content, parserOptions, asyncRender, onParseComplete, onParseError]);
 
-  // Render loading state
+  // Render loading state - 只在延迟后显示
+  if (state.loading && state.showLoading) {
+    return <MarkdownSkeleton className={className} />;
+  }
+
+  // 加载中但未到延迟时间，返回空占位
   if (state.loading) {
-    return (
-      <div className={cn('flex items-center justify-center p-8', className)}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Rendering Markdown...</p>
-        </div>
-      </div>
-    );
+    return <div className={cn('min-h-[100px]', className)} />;
   }
 
   // Render error state

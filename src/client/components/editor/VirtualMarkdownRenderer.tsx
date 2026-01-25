@@ -10,6 +10,7 @@ import { cn } from '../../utils/cn.js';
 import { markdownToHTMLAsync, markdownToHTML } from '../../../parsers/index.js';
 import { useVirtualScroll } from '../../hooks/useVirtualScroll.js';
 import type { ParseResult } from '../../../types/parser.js';
+import { MarkdownSkeleton } from './DelayedSpinner.js';
 
 export interface MarkdownBlock {
   id: string;
@@ -317,9 +318,32 @@ export function VirtualMarkdownRenderer({
 }: VirtualMarkdownRendererProps) {
   const [blocks, setBlocks] = useState<MarkdownBlock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [renderedBlocks, setRenderedBlocks] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 延迟显示加载动画（300ms）
+  useEffect(() => {
+    if (loading) {
+      loadingTimerRef.current = setTimeout(() => {
+        setShowLoading(true);
+      }, 300);
+    } else {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setShowLoading(false);
+    }
+
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, [loading]);
 
   // Parse markdown into blocks
   useEffect(() => {
@@ -436,16 +460,14 @@ export function VirtualMarkdownRenderer({
     }));
   }, [blocks, enableVirtualScroll, visibleRange, getBlockOffset]);
 
-  // Render loading state
+  // Render loading state - 只在延迟后显示
+  if (loading && showLoading) {
+    return <MarkdownSkeleton className={className} />;
+  }
+
+  // 加载中但未到延迟时间，返回空占位
   if (loading) {
-    return (
-      <div className={cn('flex items-center justify-center p-8', className)}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Parsing Markdown...</p>
-        </div>
-      </div>
-    );
+    return <div className={cn('min-h-[100px]', className)} />;
   }
 
   // Render error state

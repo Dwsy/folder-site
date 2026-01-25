@@ -12,7 +12,7 @@
  * - Table of contents (TOC)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '../../utils/cn.js';
 import { markdownToHTML, type ParseResult } from '../../../parsers/index.js';
 import {
@@ -25,6 +25,7 @@ import type { ThemeMode } from '../../../types/theme.js';
 import { MarkdownTheme, getMarkdownBodyClass, getMarkdownThemeStyles } from './MarkdownTheme.js';
 import { TOC, extractHeadings, addHeadingIdsWithItems, useActiveHeading, type TOCItem } from './TOC.js';
 import { useTOC } from '../../contexts/TOCContext.js';
+import { MarkdownSkeleton } from './DelayedSpinner.js';
 
 export interface MarkdownPreviewProps {
   /** Markdown content to render */
@@ -58,6 +59,7 @@ export interface MarkdownPreviewState {
   frontmatter?: Record<string, any>;
   metadata?: ParseResult['metadata'];
   tocItems?: TOCItem[];
+  showLoading: boolean; // 是否显示加载动画
 }
 
 /**
@@ -82,9 +84,33 @@ export function MarkdownPreview({
     html: '',
     frontmatter: undefined,
     metadata: undefined,
+    showLoading: false,
   });
   const [copied, setCopied] = useState(false);
   const { setHasTOC } = useTOC();
+
+  // 延迟显示加载动画（300ms）
+  const loadingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (state.loading) {
+      loadingTimerRef.current = setTimeout(() => {
+        setState(prev => ({ ...prev, showLoading: true }));
+      }, 300);
+    } else {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+      setState(prev => ({ ...prev, showLoading: false }));
+    }
+
+    return () => {
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+    };
+  }, [state.loading]);
 
   // Track active heading - use tocItems directly (with IDs already added)
   // Use '.markdown-preview' as the scroll container (fallback to 'main' or 'body')
@@ -197,16 +223,14 @@ export function MarkdownPreview({
     }
   };
 
-  // Render loading state
+  // Render loading state - 只在延迟后显示
+  if (state.loading && state.showLoading) {
+    return <MarkdownSkeleton className={className} />;
+  }
+
+  // 加载中但未到延迟时间，返回空占位
   if (state.loading) {
-    return (
-      <div className={cn('flex items-center justify-center py-12', className)}>
-        <div className="flex flex-col items-center gap-3">
-          <FiRefreshCw className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Rendering markdown...</p>
-        </div>
-      </div>
-    );
+    return <div className={cn('min-h-[100px]', className)} />;
   }
 
   // Render error state
