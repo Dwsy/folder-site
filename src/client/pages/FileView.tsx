@@ -1,11 +1,12 @@
 import { useParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ContentDisplay } from '../components/editor/ContentDisplay.js';
 import { MarkdownPreview } from '../components/editor/MarkdownPreview.js';
 import { cn } from '../utils/cn.js';
 import { FiFileText, FiRefreshCw, FiCode, FiEye } from 'react-icons/fi';
 import { useTheme } from '../hooks/useTheme.js';
 import { useTOC } from '../contexts/TOCContext.js';
+import { useTabs } from '../contexts/TabsContext.js';
 
 // Office 文档扩展名映射
 const OFFICE_EXTENSIONS = {
@@ -129,6 +130,7 @@ export function FileView({ className }: FileViewProps) {
   const params = useParams();
   const filePath = params['*'] || '';
   const { hasTOC } = useTOC();
+  const { saveScrollPosition, getScrollPosition, activeTabId } = useTabs();
 
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -137,9 +139,42 @@ export function FileView({ className }: FileViewProps) {
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('code');
   const { theme } = useTheme();
 
-  // Reset scroll position when file path changes
+  // 滚动容器ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollRestoredRef = useRef(false);
+
+  // 获取当前tab的ID
+  const currentTabId = filePath || '';
+
+  // 恢复滚动位置
   useEffect(() => {
-    window.scrollTo({ top: 0 });
+    if (!scrollContainerRef.current || scrollRestoredRef.current) return;
+
+    const savedPosition = getScrollPosition(currentTabId);
+    if (savedPosition > 0) {
+      scrollContainerRef.current.scrollTop = savedPosition;
+    }
+    scrollRestoredRef.current = true;
+  }, [currentTabId, getScrollPosition]);
+
+  // 监听滚动事件，保存滚动位置
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (currentTabId === activeTabId) {
+        saveScrollPosition(currentTabId, container.scrollTop);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [currentTabId, activeTabId, saveScrollPosition]);
+
+  // 重置滚动恢复标志当文件路径变化时
+  useEffect(() => {
+    scrollRestoredRef.current = false;
   }, [filePath]);
 
   // Detect language from file extension and set default view mode
@@ -259,127 +294,147 @@ export function FileView({ className }: FileViewProps) {
   const filename = filePath.split('/').pop() || 'Unknown';
 
   return (
-    <div className={cn('mx-auto p-6', hasTOC ? 'max-w-7xl' : 'max-w-full', className)}>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between border-b pb-4">
-        <div className="flex items-center gap-3">
-          <FiFileText className="h-6 w-6 text-muted-foreground" />
-          <div>
-            <h1 className="text-2xl font-bold">{filename}</h1>
-            <p className="text-sm text-muted-foreground">{filePath}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* View mode toggle for markdown files */}
-          {language === 'markdown' && (
-            <div className="flex items-center gap-1 rounded-md bg-muted p-1">
-              <button
-                onClick={() => setViewMode('code')}
-                className={cn(
-                  'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
-                  viewMode === 'code'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title="Code view"
-              >
-                <FiCode className="h-4 w-4" />
-                <span>Code</span>
-              </button>
-              <button
-                onClick={() => setViewMode('preview')}
-                className={cn(
-                  'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
-                  viewMode === 'preview'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title="Preview view"
-              >
-                <FiEye className="h-4 w-4" />
-                <span>Preview</span>
-              </button>
+    <div className={cn('mx-auto h-full flex flex-col', hasTOC ? 'max-w-7xl' : 'max-w-full', className)}>
+      {/* Header - 固定在顶部 */}
+      <div className="flex-shrink-0 px-6 py-4 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FiFileText className="h-6 w-6 text-muted-foreground" />
+            <div>
+              <h1 className="text-2xl font-bold">{filename}</h1>
+              <p className="text-sm text-muted-foreground">{filePath}</p>
             </div>
-          )}
-          {error && (
-            <button
-              onClick={handleRetry}
-              className="flex items-center gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary/80"
-              aria-label="Retry loading file"
-            >
-              <FiRefreshCw className="h-4 w-4" />
-              Retry
-            </button>
-          )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* View mode toggle for markdown files */}
+            {language === 'markdown' && (
+              <div className="flex items-center gap-1 rounded-md bg-muted p-1">
+                <button
+                  onClick={() => setViewMode('code')}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
+                    viewMode === 'code'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title="Code view"
+                >
+                  <FiCode className="h-4 w-4" />
+                  <span>Code</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('preview')}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded px-3 py-1.5 text-sm transition-colors',
+                    viewMode === 'preview'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title="Preview view"
+                >
+                  <FiEye className="h-4 w-4" />
+                  <span>Preview</span>
+                </button>
+              </div>
+            )}
+            {error && (
+              <button
+                onClick={handleRetry}
+                className="flex items-center gap-2 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary/80"
+                aria-label="Retry loading file"
+              >
+                <FiRefreshCw className="h-4 w-4" />
+                Retry
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Content Display */}
-      {isOfficeDocument() ? (
-        <OfficeDocumentViewer
-          filePath={filePath}
-          docType={getOfficeDocType()!}
-          onError={setError}
-        />
-      ) : language === 'markdown' && viewMode === 'preview' ? (
-        <MarkdownPreview
-          content={content}
-          theme={theme}
-          showCopyButton={true}
-          showFrontmatter={true}
-          showTOC={true}
-          enableMath={true}
-          enableGfm={true}
-          className="rounded-lg border bg-card p-6"
-          onError={setError}
-          onRetry={handleRetry}
-        />
-      ) : (
-        <ContentDisplay
-          content={content}
-          language={language}
-          filename={filename}
-          loading={loading}
-          error={error}
-          displayMode={viewMode}
-          onRetry={handleRetry}
-          showLineNumbers={true}
-          wrapLines={false}
-          className="rounded-lg border"
-        />
-      )}
-
-      {/* Footer Info */}
-      {!loading && !error && content && (
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            {isOfficeDocument() ? (
-              <>
-                <span>Type: <span className="font-medium capitalize">{getOfficeDocType()}</span></span>
-                <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
-              </>
-            ) : (
-              <>
-                <span>Language: <span className="font-medium">{language}</span></span>
-                <span>Lines: <span className="font-medium">{content.split('\n').length}</span></span>
-                <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
-              </>
-            )}
+      {/* 滚动容器 - 独立滚动 */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-auto px-6"
+      >
+        {/* Content Display */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-pulse text-muted-foreground">Loading...</div>
           </div>
-          <span className="text-xs">Read-only view</span>
-        </div>
-      )}
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="text-red-500 mb-2">Error loading file</div>
+            <div className="text-sm text-muted-foreground">{error.message}</div>
+          </div>
+        ) : !content ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <FiFileText className="mb-4 h-16 w-16 text-muted-foreground/50" />
+            <h2 className="mb-2 text-xl font-semibold">No Content</h2>
+            <p className="text-muted-foreground">
+              This file appears to be empty or could not be loaded.
+            </p>
+          </div>
+        ) : (
+          <>
+            {isOfficeDocument() ? (
+              <OfficeDocumentViewer
+                filePath={filePath}
+                docType={getOfficeDocType()!}
+                onError={setError}
+              />
+            ) : language === 'markdown' && viewMode === 'preview' ? (
+              <div className="py-6">
+                <MarkdownPreview
+                  content={content}
+                  theme={theme}
+                  showCopyButton={true}
+                  showFrontmatter={true}
+                  showTOC={true}
+                  enableMath={true}
+                  enableGfm={true}
+                  className="rounded-lg border bg-card p-6"
+                  onError={setError}
+                  onRetry={handleRetry}
+                />
+              </div>
+            ) : (
+              <div className="py-6">
+                <ContentDisplay
+                  content={content}
+                  language={language}
+                  filename={filename}
+                  loading={false}
+                  error={null}
+                  displayMode={viewMode}
+                  onRetry={handleRetry}
+                  showLineNumbers={true}
+                  wrapLines={false}
+                  className="rounded-lg border"
+                />
+              </div>
+            )}
 
-      {/* Empty State */}
-      {!loading && !error && !content && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <FiFileText className="mb-4 h-16 w-16 text-muted-foreground/50" />
-          <h2 className="mb-2 text-xl font-semibold">No Content</h2>
-          <p className="text-muted-foreground">
-            This file appears to be empty or could not be loaded.
-          </p>
-        </div>
-      )}
+            {/* Footer Info */}
+            <div className="py-4 flex items-center justify-between text-sm text-muted-foreground border-t">
+              <div className="flex items-center gap-4">
+                {isOfficeDocument() ? (
+                  <>
+                    <span>Type: <span className="font-medium capitalize">{getOfficeDocType()}</span></span>
+                    <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
+                  </>
+                ) : (
+                  <>
+                    <span>Language: <span className="font-medium">{language}</span></span>
+                    <span>Lines: <span className="font-medium">{content.split('\n').length}</span></span>
+                    <span>Size: <span className="font-medium">{new Blob([content]).size} bytes</span></span>
+                  </>
+                )}
+              </div>
+              <span className="text-xs">Read-only view</span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

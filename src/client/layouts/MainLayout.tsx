@@ -442,7 +442,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           {/* Main Content */}
           <main
             className={cn(
-              'flex-1 overflow-auto',
+              'flex-1 flex flex-col overflow-hidden',
               isMobile && 'w-full',
               hasTOC && 'lg:mr-64' // Add right margin for desktop TOC only when TOC exists
             )}

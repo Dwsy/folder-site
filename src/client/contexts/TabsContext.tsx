@@ -32,6 +32,8 @@ export interface Tab {
   isPinned: boolean;
   /** 最后访问时间（用于 LRU） */
   lastAccessTime: number;
+  /** 滚动位置 */
+  scrollPosition: number;
 }
 
 /**
@@ -44,6 +46,8 @@ export interface TabsConfig {
   storageKey: string;
   /** 是否启用持久化 */
   enablePersistence: boolean;
+  /** 是否启用滚动位置记忆 */
+  enableScrollMemory: boolean;
 }
 
 /**
@@ -80,6 +84,10 @@ interface TabsContextValue {
   unpinTab: (id: string) => void;
   /** 移动标签页 */
   moveTab: (fromIndex: number, toIndex: number) => void;
+  /** 保存当前tab的滚动位置 */
+  saveScrollPosition: (id: string, position: number) => void;
+  /** 获取tab的滚动位置 */
+  getScrollPosition: (id: string) => number;
 }
 
 /**
@@ -94,6 +102,7 @@ const DEFAULT_CONFIG: TabsConfig = {
   maxTabs: 10,
   storageKey: 'folder-site-tabs',
   enablePersistence: true,
+  enableScrollMemory: true,
 };
 
 /**
@@ -111,10 +120,22 @@ function loadTabs(storageKey: string): { tabs: Tab[], activeTabId: string | null
     }
 
     const parsed = JSON.parse(stored);
+
+    // 为旧数据添加 scrollPosition 字段
+    const tabsWithScroll = (parsed.tabs || []).map((tab: Tab) => ({
+      ...tab,
+      scrollPosition: tab.scrollPosition ?? 0,
+    }));
+
+    const recentlyClosedWithScroll = (parsed.recentlyClosed || []).map((tab: Tab) => ({
+      ...tab,
+      scrollPosition: tab.scrollPosition ?? 0,
+    }));
+
     return {
-      tabs: parsed.tabs || [],
+      tabs: tabsWithScroll,
       activeTabId: parsed.activeTabId || null,
-      recentlyClosed: parsed.recentlyClosed || [],
+      recentlyClosed: recentlyClosedWithScroll,
     };
   } catch (error) {
     console.warn('Failed to load tabs from localStorage:', error);
@@ -240,6 +261,7 @@ export function TabsProvider({ children, config: userConfig = {} }: TabsProvider
         isActive: true,
         isPinned: false,
         lastAccessTime: now,
+        scrollPosition: 0,
       };
 
       // 检查是否超过最大数量
@@ -417,6 +439,20 @@ export function TabsProvider({ children, config: userConfig = {} }: TabsProvider
     });
   }, []);
 
+  // 保存滚动位置
+  const saveScrollPosition = useCallback((id: string, position: number) => {
+    setTabs((prevTabs) =>
+      prevTabs.map(tab =>
+        tab.id === id ? { ...tab, scrollPosition: position } : tab
+      )
+    );
+  }, []);
+
+  // 获取滚动位置
+  const getScrollPosition = useCallback((id: string): number => {
+    return tabs.find(tab => tab.id === id)?.scrollPosition ?? 0;
+  }, [tabs]);
+
   // 监听路由变化，自动添加到 tabs
   useEffect(() => {
     const match = location.pathname.match(/^\/file\/(.+)$/);
@@ -451,6 +487,8 @@ export function TabsProvider({ children, config: userConfig = {} }: TabsProvider
     pinTab,
     unpinTab,
     moveTab,
+    saveScrollPosition,
+    getScrollPosition,
   };
 
   return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>;
