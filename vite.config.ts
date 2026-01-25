@@ -69,29 +69,54 @@ export default defineConfig(({ mode }) => {
       sourcemap: mode === "development",
       rollupOptions: {
         output: {
-          manualChunks: {
-            // Vendor chunks for better caching
-            "react-vendor": ["react", "react-dom"],
-            "ui-vendor": [
-              "@radix-ui/react-dialog",
-              "@radix-ui/react-dropdown-menu",
-              "@radix-ui/react-scroll-area",
-              "@radix-ui/react-separator",
-              "@radix-ui/react-switch",
-              "@radix-ui/react-tooltip",
-            ],
-            "icons-vendor": ["@react-symbols/icons", "react-icons"],
-            "markdown-vendor": [
-              "unified",
-              "remark-parse",
-              "remark-rehype",
-              "rehype-stringify",
-              "rehype-highlight",
-              "shiki",
-            ],
+          manualChunks: (id) => {
+            // Node modules chunking
+            if (id.includes('node_modules')) {
+              // React core
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'react-vendor';
+              }
+              
+              // UI components
+              if (id.includes('@radix-ui')) {
+                return 'ui-vendor';
+              }
+              
+              // Icons
+              if (id.includes('react-icons') || id.includes('@react-symbols')) {
+                return 'icons-vendor';
+              }
+              
+              // Markdown processing
+              if (id.includes('unified') || id.includes('remark') || 
+                  id.includes('rehype') || id.includes('shiki')) {
+                return 'markdown-vendor';
+              }
+              
+              // Heavy third-party libraries
+              if (id.includes('@antv')) {
+                return 'charts-vendor';
+              }
+              
+              if (id.includes('docx-preview')) {
+                return 'office-vendor';
+              }
+              
+              if (id.includes('@viz-js')) {
+                return 'graphviz-vendor';
+              }
+              
+              // Common utilities
+              if (id.includes('clsx') || id.includes('tailwind-merge')) {
+                return 'utils-vendor';
+              }
+              
+              // Other node_modules
+              return 'vendor';
+            }
           },
-          chunkFileNames: "assets/js/[name]-[hash].js",
-          entryFileNames: "assets/js/[name]-[hash].js",
+          chunkFileNames: 'assets/js/[name]-[hash].js',
+          entryFileNames: 'assets/js/[name]-[hash].js',
           assetFileNames: (assetInfo) => {
             const name = assetInfo.name || "";
             if (name.endsWith(".css")) {
